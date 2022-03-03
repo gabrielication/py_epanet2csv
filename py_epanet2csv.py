@@ -38,7 +38,7 @@ def toCSV():
             splitted = line.split( )
 
             while (len(splitted) > 0 and splitted[0].isdigit()):
-                nodeID = splitted[0] # store the timestamp
+                nodeID = splitted[0]
                 demand = splitted[1]
                 head = splitted[2]
                 pressure = splitted[3]
