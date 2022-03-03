@@ -1,6 +1,7 @@
 import sys
 import argparse
 import re
+import csv
 
 MATCH = "Node Results" #We use this string as a filter to find the tables for Node Values
 INPUT_FILE_PATH = ""
@@ -30,6 +31,10 @@ def toCSV():
             line = f.readline()
             line = f.readline()
 
+            outName = "output"+hour
+            out = open(outName,"w")
+            writer = csv.writer(out)
+
             splitted = line.split( )
 
             while (len(splitted) > 0 and splitted[0].isdigit()):
@@ -38,10 +43,17 @@ def toCSV():
                 head = splitted[2]
                 pressure = splitted[3]
                 chlorine = splitted[4]
-                print(hour,nodeID,demand,head,pressure,chlorine)
+
+                splitted.insert(0,hour)
+
+                print(splitted)
+
+                writer.writerow(splitted)
 
                 line = f.readline()
                 splitted = line.split( )
+
+            out.close()
 
         line = f.readline()
 
