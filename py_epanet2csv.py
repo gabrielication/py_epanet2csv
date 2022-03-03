@@ -46,6 +46,9 @@ def toCSV():
 
                 splitted.insert(0,hour)
 
+                if(len(splitted) == 6):
+                    splitted.append("Junction")
+
                 print(splitted)
 
                 writer.writerow(splitted)
