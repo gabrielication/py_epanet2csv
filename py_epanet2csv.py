@@ -16,6 +16,10 @@ def toCSV():
 
     f = open(INPUT_FILE_PATH, "r")
 
+    outName = "output.csv"
+    out = open(outName,"w")
+    writer = csv.writer(out)
+
     line = f.readline()
 
     while line:
@@ -31,10 +35,6 @@ def toCSV():
             line = f.readline()
             line = f.readline()
 
-            outName = "output"+hour
-            out = open(outName,"w")
-            writer = csv.writer(out)
-
             splitted = line.split( )
 
             while (len(splitted) > 0 and splitted[0].isdigit()):
@@ -42,23 +42,23 @@ def toCSV():
                 demand = splitted[1]
                 head = splitted[2]
                 pressure = splitted[3]
-                chlorine = splitted[4]
+                #chlorine = splitted[4]
 
                 splitted.insert(0,hour)
 
-                if(len(splitted) == 6):
+                if(len(splitted) == 5):
                     splitted.append("Junction")
 
-                print(splitted)
+                #print(splitted)
 
                 writer.writerow(splitted)
 
                 line = f.readline()
                 splitted = line.split( )
 
-            out.close()
-
         line = f.readline()
+
+    out.close()
 
     f.close()
 

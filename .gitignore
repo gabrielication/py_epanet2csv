@@ -1,6 +1,2 @@
-# Ignore everything
-*
-
-# But not these files...
-!.gitignore
-!*.py
+# Ignore outputs
+*.csv
