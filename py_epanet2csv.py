@@ -17,8 +17,6 @@ def toCSV():
     f = open(INPUT_FILE_PATH, "r")
 
     outName = "output.csv"
-    out = open(outName,"w")
-    writer = csv.writer(out)
 
     line = f.readline()
 
@@ -37,7 +35,10 @@ def toCSV():
 
             splitted = line.split( )
 
-            while (len(splitted) > 0 and splitted[0].isdigit()):
+            out = open(hour+outName,"w")
+            writer = csv.writer(out)
+
+            while (len(splitted) > 0):
                 nodeID = splitted[0]
                 demand = splitted[1]
                 head = splitted[2]
@@ -56,9 +57,9 @@ def toCSV():
                 line = f.readline()
                 splitted = line.split( )
 
-        line = f.readline()
+            out.close()
 
-    out.close()
+        line = f.readline()
 
     f.close()
 
