@@ -46,7 +46,7 @@ def to_csv():
 
                 splitted.insert(0, hour)
 
-                if (len(splitted) == 5):
+                if (splitted[-1] != "Reservoir" and splitted[-1] != "Tank"):
                     splitted.append("Junction")
 
                 # print(splitted)
