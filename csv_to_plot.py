@@ -9,6 +9,9 @@ def plot_node_and_reservoir_demand(filename):
     timestamp_axis = []
     node_demand_axis = []
     reservoir_demand_axis = {}  # we need a dictionary of reservoir demand! we have multiple single values for the same timestamp
+    tank_demand_axis = {}  # we need a dictionary of tank demand! we have multiple single values for the same timestamp
+
+    junctions_total_sum = 0
 
     with open(filename) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -29,6 +32,7 @@ def plot_node_and_reservoir_demand(filename):
                 # we can reset the sum
                 #print(total_sum)
                 node_demand_sum = 0.0
+                junctions_total_sum = 0
 
             demand = float(line[2])
 
@@ -36,6 +40,7 @@ def plot_node_and_reservoir_demand(filename):
 
             if (line[-1] == "Junction"):
                 node_demand_sum += demand
+                junctions_total_sum += 1
             elif (line[-1] == "Reservoir"):
                 reservoir_id = line[1]
 
@@ -45,14 +50,25 @@ def plot_node_and_reservoir_demand(filename):
                     reservoir_demand_axis[reservoir_id].append(demand)
                 else:
                     reservoir_demand_axis[reservoir_id] = [demand]
+            elif (line[-1] == "Tank"):
+                tank_id = line[1]
+                if (tank_id in tank_demand_axis.keys()):
+                    tank_demand_axis[tank_id].append(demand)
+                else:
+                    tank_demand_axis[tank_id] = [demand]
 
         node_demand_axis.append(node_demand_sum)  # if we dont do this we lose the last sum
 
     # plotting the points
-    plt.plot(timestamp_axis, node_demand_axis, label="Junctions Demand")
+    plt.plot(timestamp_axis, node_demand_axis, label="Junctions (# "+str(junctions_total_sum)+") Total Demand")
+
+    print("total junctions: "+str(junctions_total_sum))
 
     for key in reservoir_demand_axis:
-        plt.plot(timestamp_axis, reservoir_demand_axis[key], label=key)
+        plt.plot(timestamp_axis, reservoir_demand_axis[key], label="Reservoir ID: "+key)
+
+    for key in tank_demand_axis:
+        plt.plot(timestamp_axis, tank_demand_axis[key], label="Tank ID: "+key)
 
     # naming the x axis
     plt.xlabel('Timestamp (hour)')
@@ -62,12 +78,14 @@ def plot_node_and_reservoir_demand(filename):
     # giving a title to my graph
     plt.title('Demand Graph')
 
+    plt.legend()
+
     # function to show the plot
     plt.show()
 
 def plot_demand_and_pressure(filename):
-    node1 = "8600"
-    node2 = "8742"
+    node1 = "11"
+    node2 = "23"
 
     timestamp_axis = []
     node1_demand_axis = []
@@ -76,8 +94,8 @@ def plot_demand_and_pressure(filename):
     node1_pressure_axis = []
     node2_pressure_axis = []
 
-    reservoir_demand_axis = {}  # we need a dictionary of reservoir demand! we have multiple single values for the same timestamp
-    reservoir_pressure_axis = {}  # we need a dictionary of reservoir demand! we have multiple single values for the same timestamp
+    tank_demand_axis = {}  # we need a dictionary of reservoir demand! we have multiple single values for the same timestamp
+    tank_pressure_axis = {}  # we need a dictionary of reservoir demand! we have multiple single values for the same timestamp
 
     with open(filename) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -102,40 +120,56 @@ def plot_demand_and_pressure(filename):
                     node2_demand_axis.append(demand)
                     node2_pressure_axis.append(pressure)
 
-            elif (line[-1] == "Reservoir"):
-                reservoir_id = line[1]
+            elif (line[-1] == "Tank"):
+                tank_id = line[1]
 
                 # demand = abs(demand)
 
-                if (reservoir_id in reservoir_demand_axis.keys()):
-                    reservoir_demand_axis[reservoir_id].append(demand)
+                if (tank_id in tank_demand_axis.keys()):
+                    tank_demand_axis[tank_id].append(demand)
                 else:
-                    reservoir_demand_axis[reservoir_id] = [demand]
+                    tank_demand_axis[tank_id] = [demand]
 
-                if (reservoir_id in reservoir_pressure_axis.keys()):
-                    reservoir_pressure_axis[reservoir_id].append(pressure)
+                if (tank_id in tank_pressure_axis.keys()):
+                    tank_pressure_axis[tank_id].append(pressure)
                 else:
-                    reservoir_pressure_axis[reservoir_id] = [pressure]
+                    tank_pressure_axis[tank_id] = [pressure]
 
-    #for key in reservoir_demand_axis:
-    #    plt.plot(timestamp_axis, reservoir_demand_axis[key], label=key)
+    #for key in tank_demand_axis:
+    #    plt.plot(timestamp_axis, tank_demand_axis[key], label=key)
+
+    if(len(node1_demand_axis) == 0):
+        print("Node ID: "+node1+" not found")
+        quit()
+    elif(len(node2_demand_axis) == 0):
+        print("Node ID: "+node2+" not found")
+        quit()
 
     fig, axs = plt.subplots(2)
     #fig.suptitle('Demand and Pressure subplots')
 
-    axs[0].plot(timestamp_axis, node1_demand_axis)
-    axs[0].plot(timestamp_axis, node2_demand_axis)
-    axs[0].set_title("Demand for Junction "+node1+" and "+node2+" and reservoirs")
+    axs[0].plot(timestamp_axis, node1_demand_axis, label="Junction ID: "+node1)
+    axs[0].plot(timestamp_axis, node2_demand_axis, label="Junctions ID: "+node2)
+    for key in tank_demand_axis:
+        axs[0].plot(timestamp_axis, tank_demand_axis[key], label="Tank ID: "+key)
 
-    #for key in reservoir_demand_axis:
-    #    axs[0].plot(timestamp_axis, reservoir_demand_axis[key])
+    axs[0].set_title("Demand for Junction " + node1 + " and " + node2 + " and Tanks")
+    axs[0].legend()
 
-    axs[1].plot(timestamp_axis, node1_pressure_axis)
-    axs[1].plot(timestamp_axis, node2_pressure_axis)
-    axs[1].set_title("Pressure for Junction " + node1 + " and " + node2)
+    axs[1].plot(timestamp_axis, node1_pressure_axis, label="Junction ID: "+node1)
+    axs[1].plot(timestamp_axis, node2_pressure_axis, label="Junction ID: "+node2)
+    for key in tank_demand_axis:
+        axs[1].plot(timestamp_axis, tank_pressure_axis[key], label="Tank ID: "+key)
+
+    axs[1].legend()
+    axs[1].set_title("Pressure for Junction " + node1 + " and " + node2+" and Tanks")
+
+    plt.legend()
 
     # function to show the plot
     plt.show()
+
+    print(" ")
 
 
 # Press the green button in the gutter to run the script.
