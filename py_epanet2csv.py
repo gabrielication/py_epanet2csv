@@ -2,19 +2,42 @@ import sys
 import argparse
 import csv
 
-MATCH = "Node Results"  # We use this string as a filter to find the tables for Node Values
-INPUT_FILE_PATH = ""
+def read_coordinates_from_inp(coord_file):
+    node_coordinates = {}
+    match = "[COORDINATES]"
 
+    with open(coord_file) as network_file:
+        for line in network_file:
+            if match in line:
+                line = network_file.readline()
+                line = network_file.readline()
 
-def to_csv():
+                while(line):
+                    splitted = line.split()
+
+                    if(len(splitted) == 0):
+                        break
+                    node_coordinates[splitted[0]] = [splitted[1],splitted[2]]
+                    print(node_coordinates[splitted[0]])
+                    line = network_file.readline()
+                break
+    return node_coordinates
+
+def to_csv(input_file, coord_file=""):
     found = False
+    match = "Node Results"  # We use this string as a filter to find the tables for Node Values
+    node_coordinates = {}
+
+    if(len(coord_file)>0):
+        node_coordinates = read_coordinates_from_inp(coord_file)
+        print(len(node_coordinates))
 
     table_count = 0  # how many tables we found?
 
-    if INPUT_FILE_PATH == "":
+    if input_file == "":
         sys.exit("Input file path cannot be empty")
 
-    f = open(INPUT_FILE_PATH, "r")
+    f = open(input_file, "r")
 
     outName = "output.csv"
     out = open(outName, "w")
@@ -23,7 +46,7 @@ def to_csv():
     line = f.readline()
 
     while line:
-        if MATCH in line:
+        if match in line:
             found = True
             table_count += 1
             splitted = line.split()
@@ -77,13 +100,18 @@ if __name__ == "__main__":
 
     # Add long and short argument
     parser.add_argument("--input", "-i", help="Input file for processing")
+    parser.add_argument("--coordinates", "-c", help="Input file to include node coordinates to CSV")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
     # Check for --name
     if args.input:
-        INPUT_FILE_PATH = args.input
-        to_csv()
+        input_file = args.input
+        if args.coordinates:
+            coord_file = args.coordinates
+            to_csv(input_file,coord_file)
+        else:
+            to_csv(input_file)
     else:
         print("Usage 'py_epanet2csv.py -i inputfile'")
