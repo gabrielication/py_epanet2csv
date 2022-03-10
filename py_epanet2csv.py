@@ -18,7 +18,7 @@ def read_coordinates_from_inp(coord_file):
                     if(len(splitted) == 0):
                         break
                     node_coordinates[splitted[0]] = [splitted[1],splitted[2]]
-                    print(node_coordinates[splitted[0]])
+                    #print(node_coordinates[splitted[0]])
                     line = network_file.readline()
                 break
     return node_coordinates
@@ -30,7 +30,6 @@ def to_csv(input_file, coord_file=""):
 
     if(len(coord_file)>0):
         node_coordinates = read_coordinates_from_inp(coord_file)
-        print(len(node_coordinates))
 
     table_count = 0  # how many tables we found?
 
@@ -66,15 +65,31 @@ def to_csv(input_file, coord_file=""):
                 head = splitted[2]
                 pressure = splitted[3]
                 # chlorine = splitted[4]
+                type = ""
+                x_coord = ""
+                y_coord = ""
 
-                splitted.insert(0, hour)
+                if (splitted[-1] == "Reservoir"):
+                    type = "Reservoir"
+                elif(splitted[-1] == "Tank"):
+                    type = "Tank"
+                else:
+                    type = "Junction"
 
-                if (splitted[-1] != "Reservoir" and splitted[-1] != "Tank"):
-                    splitted.append("Junction")
+                output_row = [hour, nodeID, demand, head, pressure]
 
-                # print(splitted)
+                if(len(node_coordinates)>0):
+                    if(nodeID not in node_coordinates):
+                        print("Wrong coordinate file")
+                        break
+                    x_coord = node_coordinates[nodeID][0]
+                    y_coord = node_coordinates[nodeID][1]
+                    output_row.append(x_coord)
+                    output_row.append(y_coord)
 
-                writer.writerow(splitted)
+                output_row.append(type)
+
+                writer.writerow(output_row)
 
                 line = f.readline()
                 splitted = line.split()
