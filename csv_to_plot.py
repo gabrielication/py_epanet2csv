@@ -135,41 +135,34 @@ def plot_demand_and_pressure(filename):
                 else:
                     tank_pressure_axis[tank_id] = [pressure]
 
-    #for key in tank_demand_axis:
-    #    plt.plot(timestamp_axis, tank_demand_axis[key], label=key)
-
     if(len(node1_demand_axis) == 0):
         print("Node ID: "+node1+" not found")
-        quit()
     elif(len(node2_demand_axis) == 0):
         print("Node ID: "+node2+" not found")
-        quit()
+    else:
+        fig, axs = plt.subplots(2)
+        #fig.suptitle('Demand and Pressure subplots')
 
-    fig, axs = plt.subplots(2)
-    #fig.suptitle('Demand and Pressure subplots')
+        axs[0].plot(timestamp_axis, node1_demand_axis, label="Junction ID: "+node1)
+        axs[0].plot(timestamp_axis, node2_demand_axis, label="Junctions ID: "+node2)
+        for key in tank_demand_axis:
+            axs[0].plot(timestamp_axis, tank_demand_axis[key], label="Tank ID: "+key)
 
-    axs[0].plot(timestamp_axis, node1_demand_axis, label="Junction ID: "+node1)
-    axs[0].plot(timestamp_axis, node2_demand_axis, label="Junctions ID: "+node2)
-    for key in tank_demand_axis:
-        axs[0].plot(timestamp_axis, tank_demand_axis[key], label="Tank ID: "+key)
+        axs[0].set_title("Demand for Junction " + node1 + " and " + node2 + " and Tanks")
+        axs[0].legend()
 
-    axs[0].set_title("Demand for Junction " + node1 + " and " + node2 + " and Tanks")
-    axs[0].legend()
+        axs[1].plot(timestamp_axis, node1_pressure_axis, label="Junction ID: "+node1)
+        axs[1].plot(timestamp_axis, node2_pressure_axis, label="Junction ID: "+node2)
+        for key in tank_demand_axis:
+            axs[1].plot(timestamp_axis, tank_pressure_axis[key], label="Tank ID: "+key)
 
-    axs[1].plot(timestamp_axis, node1_pressure_axis, label="Junction ID: "+node1)
-    axs[1].plot(timestamp_axis, node2_pressure_axis, label="Junction ID: "+node2)
-    for key in tank_demand_axis:
-        axs[1].plot(timestamp_axis, tank_pressure_axis[key], label="Tank ID: "+key)
+        axs[1].legend()
+        axs[1].set_title("Pressure for Junction " + node1 + " and " + node2+" and Tanks")
 
-    axs[1].legend()
-    axs[1].set_title("Pressure for Junction " + node1 + " and " + node2+" and Tanks")
+        plt.legend()
 
-    plt.legend()
-
-    # function to show the plot
-    plt.show()
-
-    print(" ")
+        # function to show the plot
+        plt.show()
 
 
 # Press the green button in the gutter to run the script.
