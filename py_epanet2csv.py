@@ -17,13 +17,22 @@ def read_coordinates_from_inp(coord_file):
 
                     if(len(splitted) == 0):
                         break
-                    node_coordinates[splitted[0]] = [splitted[1],splitted[2]]
-                    #print(node_coordinates[splitted[0]])
+
+                    node_id = splitted[0]
+                    node_x = splitted[1]
+                    node_y = splitted[2]
+
+                    node_coordinates[node_id] = [node_x, node_y]
+
                     line = network_file.readline()
                 break
+
+    if(len(node_coordinates) == 0):
+        print("No coordinates found!")
+
     return node_coordinates
 
-def to_csv(input_file, coord_file=""):
+def junctions_to_csv(input_file, coord_file=""):
     found = False
     match = "Node Results"  # We use this string as a filter to find the tables for Node Values
     node_coordinates = {}
@@ -125,8 +134,8 @@ if __name__ == "__main__":
         input_file = args.input
         if args.coordinates:
             coord_file = args.coordinates
-            to_csv(input_file,coord_file)
+            junctions_to_csv(input_file,coord_file)
         else:
-            to_csv(input_file)
+            junctions_to_csv(input_file)
     else:
         print("Usage 'py_epanet2csv.py -i inputfile'")
