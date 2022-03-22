@@ -47,7 +47,7 @@ def junctions_to_csv(input_file, coord_file=""):
 
     f = open(input_file, "r")
 
-    outName = "output.csv"
+    outName = "junctions_output.csv"
     out = open(outName, "w")
     writer = csv.writer(out)
 
@@ -113,6 +113,42 @@ def junctions_to_csv(input_file, coord_file=""):
     else:
         print("Cannot find any Node tables inside input file!")
 
+def pipes_to_csv(input_file):
+    match = "Link Results"
+
+    outName = "pipes_output.csv"
+    out = open(outName, "w")
+    writer = csv.writer(out)
+
+    with open(input_file) as pipes_file:
+        for line in pipes_file:
+            if match in line:
+                hour = line.split()[3]
+
+                line = pipes_file.readline()
+                line = pipes_file.readline()
+                line = pipes_file.readline()
+                line = pipes_file.readline()
+                line = pipes_file.readline()
+
+                while (line):
+                    splitted = line.split()
+
+                    if (len(splitted) == 0):
+                        break
+
+                    pipe_id = splitted[0]
+                    pipe_flow = splitted[1]
+                    pipe_velocity = splitted[2]
+                    pipe_headloss = splitted[3]
+
+                    output_row = [hour,pipe_id,pipe_flow,pipe_velocity,pipe_headloss]
+
+                    writer.writerow(output_row)
+
+                    line = pipes_file.readline()
+
+    out.close()
 
 if __name__ == "__main__":
     # Program description
@@ -135,7 +171,9 @@ if __name__ == "__main__":
         if args.coordinates:
             coord_file = args.coordinates
             junctions_to_csv(input_file,coord_file)
+            pipes_to_csv(input_file)
         else:
             junctions_to_csv(input_file)
+            pipes_to_csv(input_file)
     else:
         print("Usage 'py_epanet2csv.py -i inputfile'")
