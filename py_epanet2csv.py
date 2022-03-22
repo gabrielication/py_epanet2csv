@@ -152,7 +152,7 @@ def pipes_to_csv(input_file):
 
 if __name__ == "__main__":
     # Program description
-    text = "This script processes the report file from EPANET 2.2, extracts Node Results and converts them to csv. " \
+    text = "This program processes the report file from EPANET 2.2, extracts Node Results and converts them to csv. " \
            "Please type the path of the file you want to convert. "
 
     # Initiate the parser with a description
@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     # Add long and short argument
     parser.add_argument("--input", "-i", help="Input file for processing")
-    parser.add_argument("--coordinates", "-c", help="Input file to include node coordinates to CSV")
+    parser.add_argument("--coordinates", "-c", help="Input file to include node coordinates to CSV (it is the original network file)")
 
     # Read arguments from the command line
     args = parser.parse_args()
@@ -176,4 +176,4 @@ if __name__ == "__main__":
             junctions_to_csv(input_file)
             pipes_to_csv(input_file)
     else:
-        print("Usage 'py_epanet2csv.py -i inputfile'")
+        print("See 'py_epanet2csv.py -h' in order to know how to correctly execute this program")
