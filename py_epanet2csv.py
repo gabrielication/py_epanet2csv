@@ -92,7 +92,7 @@ def read_pumps_start_end_nodes_from_inp(coord_file):
 
     return start_end_nodes
 
-def junctions_to_csv(input_file, coord_file=""):
+def nodes_to_csv(input_file, coord_file=""):
     found = False
     match = "Node Results"  # We use this string as a filter to find the tables for Node Values
     node_coordinates = {}
@@ -107,7 +107,7 @@ def junctions_to_csv(input_file, coord_file=""):
 
     f = open(input_file, "r")
 
-    outName = "junctions_output.csv"
+    outName = "nodes_output.csv"
     out = open(outName, "w")
     writer = csv.writer(out)
 
@@ -173,10 +173,10 @@ def junctions_to_csv(input_file, coord_file=""):
     else:
         print("Cannot find any Node tables inside input file!")
 
-def pipes_to_csv(input_file, pipes_file=""):
+def links_to_csv(input_file, pipes_file=""):
     match = "Link Results"
 
-    outName = "pipes_output.csv"
+    outName = "links_output.csv"
     pipes_start_end_nodes = {}
     pumps_start_end_nodes = {}
 
@@ -251,10 +251,10 @@ if __name__ == "__main__":
         input_file = args.input
         if args.coordinates:
             coord_file = args.coordinates
-            junctions_to_csv(input_file,coord_file)
-            pipes_to_csv(input_file,coord_file)
+            nodes_to_csv(input_file, coord_file)
+            links_to_csv(input_file, coord_file)
         else:
-            junctions_to_csv(input_file)
-            pipes_to_csv(input_file)
+            nodes_to_csv(input_file)
+            links_to_csv(input_file)
     else:
         print("See 'py_epanet2csv.py -h' in order to know how to correctly execute this program")
