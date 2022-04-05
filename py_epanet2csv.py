@@ -3,6 +3,8 @@ import argparse
 import csv
 
 def read_coordinates_from_inp(coord_file):
+    print("Reading coordinates...")
+
     node_coordinates = {}
     match = "[COORDINATES]"
 
@@ -33,6 +35,8 @@ def read_coordinates_from_inp(coord_file):
     return node_coordinates
 
 def read_pipes_start_end_nodes_from_inp(coord_file):
+    print("Reading pipes...")
+
     start_end_nodes = {}
     match = "[PIPES]"
 
@@ -63,6 +67,8 @@ def read_pipes_start_end_nodes_from_inp(coord_file):
     return start_end_nodes
 
 def read_pumps_start_end_nodes_from_inp(coord_file):
+    print("Reading pumps...")
+
     start_end_nodes = {}
     match = "[PUMPS]"
 
@@ -93,6 +99,8 @@ def read_pumps_start_end_nodes_from_inp(coord_file):
     return start_end_nodes
 
 def nodes_to_csv(input_file, coord_file=""):
+    print("Extracting Nodes, can take a while. Please wait...")
+
     found = False
     match = "Node Results"  # We use this string as a filter to find the tables for Node Values
     node_coordinates = {}
@@ -169,11 +177,13 @@ def nodes_to_csv(input_file, coord_file=""):
     f.close()
 
     if found:
-        print("Found %d tables" % table_count)
+        print("Found %d Node tables" % table_count)
     else:
         print("Cannot find any Node tables inside input file!")
 
 def links_to_csv(input_file, pipes_file=""):
+    print("Extracting Links, can take a while. Please wait...")
+
     match = "Link Results"
 
     outName = "links_output.csv"
@@ -256,5 +266,6 @@ if __name__ == "__main__":
         else:
             nodes_to_csv(input_file)
             links_to_csv(input_file)
+        print("CSV conversion finished.")
     else:
         print("See 'py_epanet2csv.py -h' in order to know how to correctly execute this program")
