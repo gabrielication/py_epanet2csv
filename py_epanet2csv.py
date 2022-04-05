@@ -62,6 +62,36 @@ def read_pipes_start_end_nodes_from_inp(coord_file):
 
     return start_end_nodes
 
+def read_pumps_start_end_nodes_from_inp(coord_file):
+    start_end_nodes = {}
+    match = "[PUMPS]"
+
+    with open(coord_file) as network_file:
+        for line in network_file:
+            if match in line:
+                line = network_file.readline()
+                line = network_file.readline()
+
+                while (line):
+                    splitted = line.split()
+
+                    if (len(splitted) == 0):
+                        break
+
+                    pump_id = splitted[0]
+                    start_node = splitted[1]
+                    end_node = splitted[2]
+
+                    start_end_nodes[pump_id] = [start_node, end_node]
+
+                    line = network_file.readline()
+                break
+
+    if (len(start_end_nodes) == 0):
+        print("No pumps' start end nodes found!")
+
+    return start_end_nodes
+
 def junctions_to_csv(input_file, coord_file=""):
     found = False
     match = "Node Results"  # We use this string as a filter to find the tables for Node Values
@@ -147,10 +177,12 @@ def pipes_to_csv(input_file, pipes_file=""):
     match = "Link Results"
 
     outName = "pipes_output.csv"
-    start_end_nodes = {}
+    pipes_start_end_nodes = {}
+    pumps_start_end_nodes = {}
 
     if (len(pipes_file) > 0):
-        start_end_nodes = read_pipes_start_end_nodes_from_inp(coord_file)
+        pipes_start_end_nodes = read_pipes_start_end_nodes_from_inp(coord_file)
+        pumps_start_end_nodes = read_pumps_start_end_nodes_from_inp(coord_file)
 
     out = open(outName, "w")
     writer = csv.writer(out)
@@ -184,9 +216,12 @@ def pipes_to_csv(input_file, pipes_file=""):
                     if(type != "Pump"):
                         type = "Pipe"
 
-                    if(len(start_end_nodes) > 0 and type == "Pipe"):
-                        start_node = start_end_nodes[pipe_id][0]
-                        end_node = start_end_nodes[pipe_id][1]
+                    if(len(pipes_start_end_nodes) > 0 and type == "Pipe"):
+                        start_node = pipes_start_end_nodes[pipe_id][0]
+                        end_node = pipes_start_end_nodes[pipe_id][1]
+                    elif(len(pumps_start_end_nodes) > 0 and type == "Pump"):
+                        start_node = pumps_start_end_nodes[pipe_id][0]
+                        end_node = pumps_start_end_nodes[pipe_id][1]
 
                     output_row = [hour,pipe_id,pipe_flow,pipe_velocity,pipe_headloss,start_node,end_node,type]
 
