@@ -3,6 +3,8 @@ import sys
 import argparse
 
 def extract_links(input_file, extracted_nodes):
+    print("Extracting Links. Can take a while...")
+
     outName = "extracted_links.csv"
     out = open(outName, "w")
     writer = csv.writer(out)
@@ -12,14 +14,30 @@ def extract_links(input_file, extracted_nodes):
     with open(input_file) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
 
+        timestamp = ""
+
         for line in csv_reader:
             link_id = line[1]
             start_node = line[-3]
             end_node = line[-2]
 
+            if(line[0] != timestamp):
+                timestamp = line[0]
+                print(timestamp)
+
             if((start_node in extracted_nodes) or (end_node in extracted_nodes)):
+                '''
+                if(link_id != "10099" and link_id != "11067"): #filter to be removed
+                    writer.writerow(line)
+
+                    if link_id not in extracted_links:
+                        extracted_links.append(link_id)
+                '''
+
                 writer.writerow(line)
-                extracted_links.append(link_id)
+
+                if link_id not in extracted_links:
+                    extracted_links.append(link_id)
     out.close()
 
     print("Extracted links to " + outName)
@@ -27,6 +45,8 @@ def extract_links(input_file, extracted_nodes):
     return extracted_links
 
 def extract_nodes(input_file, min_x_coord, max_y_coord, max_x_coord, min_y_coord, selected_ids=[]):
+    print("Extracting Nodes. Can take a while...")
+
     outName = "extracted_nodes.csv"
     out = open(outName, "w")
     writer = csv.writer(out)
@@ -50,7 +70,9 @@ def extract_nodes(input_file, min_x_coord, max_y_coord, max_x_coord, min_y_coord
                     if(node_y <= max_y_coord):
                         if(node_y >= min_y_coord):
                             writer.writerow(line)
-                            extracted_nodes.append(node_id)
+
+                            if node_id not in extracted_nodes:
+                                extracted_nodes.append(node_id)
 
     out.close()
 
