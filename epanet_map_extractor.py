@@ -99,7 +99,7 @@ if __name__ == "__main__":
     # Read arguments from the command line
     args = parser.parse_args()
 
-    extracted_nodes = extract_nodes("nodes_output.csv", 494318.100, 1379694.190, 500947.500, 1376590.440, ["8596"])
+    extracted_nodes = extract_nodes("nodes_output.csv", 494318.100, 1379694.190, 500947.500, 1376590.440)
     extracted_links = extract_links("links_output.csv", extracted_nodes)
 
 """

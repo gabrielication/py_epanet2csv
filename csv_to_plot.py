@@ -5,6 +5,25 @@ import numpy as np
 
 filename_input = ""
 
+def read_links(filename):
+
+    links_flow = {}
+
+    with open(filename) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+
+        for line in csv_reader:
+            timestamp = line[0]
+            link_id = line[1]
+            flow = float(line[2])
+
+            if(link_id in links_flow):
+                links_flow[link_id].append(flow)
+            else:
+                links_flow[link_id] = [flow]
+
+    return links_flow
+
 def plot_node_and_reservoir_demand(filename):
     timestamp_axis = []
     node_demand_axis = []
@@ -77,6 +96,91 @@ def plot_node_and_reservoir_demand(filename):
 
     # giving a title to my graph
     plt.title('Demand Graph')
+
+    plt.legend()
+
+    # function to show the plot
+    plt.show()
+
+def plot_node_and_reservoir_demand_with_links(filename, links_file, link_id):
+    timestamp_axis = []
+    node_demand_axis = []
+    reservoir_demand_axis = {}  # we need a dictionary of reservoir demand! we have multiple single values for the same timestamp
+    tank_demand_axis = {}  # we need a dictionary of tank demand! we have multiple single values for the same timestamp
+
+    junctions_total_sum = 0
+
+    links = read_links(links_file)
+
+    with open(filename) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+
+        node_demand_sum = 0.0
+        total_sum = 0.0
+
+        for line in csv_reader:
+            if len(timestamp_axis) == 0:
+                # if this is the first row that we are reading then we can insert the first timestamp
+                timestamp_axis.append(line[0])
+            elif (line[0] != timestamp_axis[-1]):
+                # if this is the next timestamp that we are reading then we have to append the new one and set the other values
+                # insert new timestamp
+                timestamp_axis.append(line[0])
+                # we have to save the sum of junctions otherwise it will be lost
+                node_demand_axis.append(node_demand_sum)
+                # we can reset the sum
+                #print(total_sum)
+                node_demand_sum = 0.0
+                junctions_total_sum = 0
+
+            demand = float(line[2])
+
+            total_sum += demand
+
+            if (line[-1] == "Junction"):
+                node_demand_sum += demand
+                junctions_total_sum += 1
+            elif (line[-1] == "Reservoir"):
+                reservoir_id = line[1]
+
+                # demand = abs(demand)
+
+                if (reservoir_id in reservoir_demand_axis.keys()):
+                    reservoir_demand_axis[reservoir_id].append(demand)
+                else:
+                    reservoir_demand_axis[reservoir_id] = [demand]
+            elif (line[-1] == "Tank"):
+                tank_id = line[1]
+                if (tank_id in tank_demand_axis.keys()):
+                    tank_demand_axis[tank_id].append(demand)
+                else:
+                    tank_demand_axis[tank_id] = [demand]
+
+        node_demand_axis.append(node_demand_sum)  # if we dont do this we lose the last sum
+
+    # plotting the points
+    plt.plot(timestamp_axis, node_demand_axis, label="Junctions (# "+str(junctions_total_sum)+") Total Demand")
+
+    print("total junctions: "+str(junctions_total_sum))
+
+    plt.plot(timestamp_axis, links[link_id], label="Link ID: "+link_id)
+
+    for key in reservoir_demand_axis:
+        plt.plot(timestamp_axis, reservoir_demand_axis[key], label="Reservoir ID: "+key)
+
+    for key in tank_demand_axis:
+        plt.plot(timestamp_axis, tank_demand_axis[key], label="Tank ID: "+key)
+
+    # naming the x axis
+    plt.xlabel('Timestamp (hour)')
+    # naming the y axis
+    plt.ylabel('Flow (GPM)')
+
+    # giving a title to my graph
+    plt.title('Flow Graph')
+
+    plt.xticks(range(0, 180, 10))  # Put x axis ticks every 10 units.
+    plt.yticks(range(0, 40, 5))  # Y ticks every 50.  You can provide any list.
 
     plt.legend()
 
@@ -181,6 +285,9 @@ if __name__ == '__main__':
     # Read arguments from the command line
     args = parser.parse_args()
 
+    plot_node_and_reservoir_demand_with_links("extracted_nodes.csv", "extracted_links.csv", "10101")
+
+'''
     # Check for --name
     if args.input and args.mode:
         filename_input = args.input
@@ -192,3 +299,4 @@ if __name__ == '__main__':
             print("Mode not supported. See 'csv_to_plot.py -h'")
     else:
         print("Usage 'csv_to_plot.py -i inputfile -m mode'")
+'''
