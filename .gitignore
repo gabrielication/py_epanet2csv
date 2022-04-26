@@ -1,6 +1,6 @@
 # Ignore outputs
 *.csv
-
+*.bin
 *.rpt
 
 # Created by .ignore support plugin (hsz.mobi)
