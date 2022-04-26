@@ -2,6 +2,7 @@
 *.csv
 *.bin
 *.rpt
+*.inp
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
