@@ -45,6 +45,8 @@ def run_nodes_sim_to_csv(inp_file):
 
             output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos, node_type]
 
+            #print("Node demand is: "+str(demand_value)+" so Tot demand is now: " + str(tot_demand))
+
             writer.writerow(output_row)
 
         print("Tot demand at "+str(hour)+" is: "+str(tot_demand))
