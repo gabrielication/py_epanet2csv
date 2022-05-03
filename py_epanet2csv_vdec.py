@@ -7,17 +7,72 @@ import sys
 import numpy as np
 from decimal import Decimal
 
-
-def run_nodes_sim_to_csv(inp_file):
+def run_sim(inp_file):
     print("Running simulation...")
 
     wn = wntr.network.WaterNetworkModel(inp_file)
 
     node_names = wn.node_name_list
+    link_names = wn.link_name_list
 
     results = wntr.sim.EpanetSimulator(wn).run_sim()
 
     print("Simulation finished. Writing to csv (can take a while)...")
+
+    nodes_to_csv(wn, results, node_names)
+    links_to_csv(wn, results, link_names)
+
+    print("Finished!")
+
+def links_to_csv(wn, results, link_names):
+    print("Writing Links' CSV...")
+
+    flow_results = results.link['flowrate']
+    velocity_results = results.link['velocity']
+    headloss_results = results.link['headloss']
+
+    indexes = flow_results.index
+
+    outName = "links_output.csv"
+    out = open(outName, "w")
+    writer = csv.writer(out)
+
+    debug = False
+
+    for timestamp in indexes:
+        tot_demand = Decimal('0')
+        demand_value = Decimal('0')
+
+        hour = pd.to_datetime(timestamp, unit='s').time()
+
+        #print(timestamp)
+        for linkID in link_names:
+            link_obj = wn.get_link(linkID)
+
+            flow_value = Decimal(str(flow_results.loc[timestamp, linkID]))
+            flow_value = round(flow_value, 8)
+
+            velocity_value = Decimal(str(velocity_results.loc[timestamp, linkID]))
+            velocity_value = round(velocity_value, 8)
+
+            headloss_value = Decimal(str(headloss_results.loc[timestamp, linkID]))
+            headloss_value = round(headloss_value, 8)
+
+            start_node_value = link_obj.start_node_name
+            end_node_value = link_obj.end_node_name
+
+            node_type = link_obj.__class__.__name__
+
+            output_row = [hour, linkID, flow_value, velocity_value, headloss_value, start_node_value, end_node_value, node_type]
+
+            writer.writerow(output_row)
+
+    out.close()
+
+    print("Links' CSV written...")
+
+def nodes_to_csv(wn, results, node_names):
+    print("Writing Nodes' CSV...")
 
     demand_results = results.node['demand']
     head_results = results.node['head']
@@ -37,7 +92,7 @@ def run_nodes_sim_to_csv(inp_file):
 
         hour = pd.to_datetime(timestamp, unit='s').time()
 
-        print(timestamp)
+        #print(timestamp)
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
 
@@ -84,15 +139,16 @@ def run_nodes_sim_to_csv(inp_file):
             writer.writerow(output_row)
 
         # print(timestamp)
-        if tot_demand<1e-6:
-            print("Tot demand at "+str(hour)+" is: 0 ("+str(tot_demand)+")")
-        else:
-            print("Tot demand at "+str(hour)+" is: "+str(tot_demand))
+        if debug:
+            if tot_demand<1e-6:
+                print("Tot demand at "+str(hour)+" is: 0 ("+str(tot_demand)+")")
+            else:
+                print("Tot demand at "+str(hour)+" is: "+str(tot_demand))
         # break
 
     out.close()
 
-    print("Finished!")
+    print("Nodes' CSV written...")
 
 if __name__ == "__main__":
 
@@ -112,12 +168,6 @@ if __name__ == "__main__":
     # nodes_path = "./extracted_nodes.csv"
     # links_path = "./extracted_links.csv"
     # nodes_path = "./nodes_output.csv"
-    input_file_inp = "./networks/Net3.inp"
-    run_nodes_sim_to_csv(input_file_inp)
 
-    # Check for --name
-    if args.input:
-        input_file = args.input
-        run_nodes_sim_to_csv(input_file)
-    else:
-        print("See 'py_epanet2csv.py -h' in order to know how to correctly execute this program")
+    input_file_inp = "./networks/Net3.inp"
+    run_sim(input_file_inp)
