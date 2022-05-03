@@ -32,8 +32,8 @@ def run_nodes_sim_to_csv(inp_file):
     debug = False
 
     for timestamp in indexes:
-        tot_demand = float(0)
-        demand_value = float(0)
+        tot_demand = Decimal('0')
+        demand_value = Decimal('0')
 
         hour = pd.to_datetime(timestamp, unit='s').time()
 
@@ -41,8 +41,8 @@ def run_nodes_sim_to_csv(inp_file):
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
 
-            demand_value = float(demand_results.loc[timestamp, nodeID])
-            demand_value = round(demand_value,8)
+            demand_value = Decimal(str(demand_results.loc[timestamp, nodeID]))
+            # demand_value = round(demand_value,8)
             head_value = head_results.loc[timestamp, nodeID]
             pressure_value = pressure_results.loc[timestamp, nodeID]
 
@@ -55,7 +55,7 @@ def run_nodes_sim_to_csv(inp_file):
                 print("{:4.15f}".format(tot_demand))
 
             tot_demand = tot_demand + demand_value
-            tot_demand = round(tot_demand,8)
+            # tot_demand = round(tot_demand,8)
 
             if debug:
                 print("tot_d")
@@ -81,7 +81,10 @@ def run_nodes_sim_to_csv(inp_file):
             writer.writerow(output_row)
 
         # print(timestamp)
-        print("Tot demand at "+str(hour)+" is: "+str(tot_demand))
+        if tot_demand<1e-6:
+            print("Tot demand at "+str(hour)+" is: 0 ("+str(tot_demand)+")")
+        else:
+            print("Tot demand at "+str(hour)+" is: "+str(tot_demand))
         # break
 
     out.close()

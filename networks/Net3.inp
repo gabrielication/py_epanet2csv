@@ -367,7 +367,7 @@ Link 330 OPEN IF Node 1 ABOVE 19.1
  Specific Gravity   	1.0
  Viscosity          	1.0
  Trials             	40
- Accuracy           	0.001
+ Accuracy           	0.000001
  CHECKFREQ          	2
  MAXCHECK           	10
  DAMPLIMIT          	0
