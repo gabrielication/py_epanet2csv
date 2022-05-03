@@ -42,9 +42,12 @@ def run_nodes_sim_to_csv(inp_file):
             node_obj = wn.get_node(nodeID)
 
             demand_value = Decimal(str(demand_results.loc[timestamp, nodeID]))
-            # demand_value = round(demand_value,8)
-            head_value = head_results.loc[timestamp, nodeID]
-            pressure_value = pressure_results.loc[timestamp, nodeID]
+            demand_value = round(demand_value,8)
+            head_value = Decimal(str(head_results.loc[timestamp, nodeID]))
+            head_value = round(head_value,8)
+            pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
+            pressure_value = round(pressure_value,8)
+
 
             if debug:
                 print("--------")
@@ -55,7 +58,7 @@ def run_nodes_sim_to_csv(inp_file):
                 print("{:4.15f}".format(tot_demand))
 
             tot_demand = tot_demand + demand_value
-            # tot_demand = round(tot_demand,8)
+            tot_demand = round(tot_demand,8)
 
             if debug:
                 print("tot_d")
