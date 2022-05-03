@@ -7,6 +7,8 @@ import sys
 import numpy as np
 from decimal import Decimal
 
+import time
+
 def run_sim(inp_file):
     print("Running simulation...")
 
@@ -43,7 +45,10 @@ def links_to_csv(wn, results, link_names):
         tot_demand = Decimal('0')
         demand_value = Decimal('0')
 
-        hour = pd.to_datetime(timestamp, unit='s').time()
+        #hour = pd.to_datetime(timestamp, unit='s').time()
+
+        hour = str(
+            int(timestamp / 3600)) + ":00:00"  # cheap way to calculate timestamps. if we choose an interval != 1h then it will break
 
         #print(timestamp)
         for linkID in link_names:
@@ -90,9 +95,12 @@ def nodes_to_csv(wn, results, node_names):
         tot_demand = Decimal('0')
         demand_value = Decimal('0')
 
-        hour = pd.to_datetime(timestamp, unit='s').time()
+        #hour = pd.to_datetime(timestamp, unit='s').time()
 
-        #print(timestamp)
+        hour = str(int(timestamp/3600))+":00:00" #cheap way to calculate timestamps. if we choose an interval != 1h then it will break
+
+        #print(hour)
+
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
 
@@ -170,4 +178,6 @@ if __name__ == "__main__":
     # nodes_path = "./nodes_output.csv"
 
     input_file_inp = "./networks/Net3.inp"
+    #input_file_inp = "deprecated/network_examples/month_large.inp"
+
     run_sim(input_file_inp)
