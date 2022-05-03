@@ -1,247 +1,95 @@
-import sys
 import argparse
+
+import wntr
+import pandas as pd
 import csv
+import sys
+import numpy as np
+from decimal import Decimal
 
-def read_coordinates_from_inp(coord_file):
-    print("Reading coordinates...")
 
-    node_coordinates = {}
-    match = "[COORDINATES]"
+def run_nodes_sim_to_csv(inp_file):
+    print("Running simulation...")
 
-    with open(coord_file) as network_file:
-        for line in network_file:
-            if match in line:
-                line = network_file.readline()
-                line = network_file.readline()
+    wn = wntr.network.WaterNetworkModel(inp_file)
 
-                while(line):
-                    splitted = line.split()
+    node_names = wn.node_name_list
 
-                    if(len(splitted) == 0):
-                        break
+    results = wntr.sim.EpanetSimulator(wn).run_sim()
 
-                    node_id = splitted[0]
-                    node_x = splitted[1]
-                    node_y = splitted[2]
+    print("Simulation finished. Writing to csv (can take a while)...")
 
-                    node_coordinates[node_id] = [node_x, node_y]
+    demand_results = results.node['demand']
+    head_results = results.node['head']
+    pressure_results = results.node['pressure']
 
-                    line = network_file.readline()
-                break
-
-    if(len(node_coordinates) == 0):
-        print("No coordinates found!")
-
-    return node_coordinates
-
-def read_pipes_start_end_nodes_from_inp(coord_file):
-    print("Reading pipes...")
-
-    start_end_nodes = {}
-    match = "[PIPES]"
-
-    with open(coord_file) as network_file:
-        for line in network_file:
-            if match in line:
-                line = network_file.readline()
-                line = network_file.readline()
-
-                while (line):
-                    splitted = line.split()
-
-                    if (len(splitted) == 0):
-                        break
-
-                    pipe_id = splitted[0]
-                    start_node = splitted[1]
-                    end_node = splitted[2]
-
-                    start_end_nodes[pipe_id] = [start_node, end_node]
-
-                    line = network_file.readline()
-                break
-
-    if (len(start_end_nodes) == 0):
-        print("No pipes' start end nodes found!")
-
-    return start_end_nodes
-
-def read_pumps_start_end_nodes_from_inp(coord_file):
-    print("Reading pumps...")
-
-    start_end_nodes = {}
-    match = "[PUMPS]"
-
-    with open(coord_file) as network_file:
-        for line in network_file:
-            if match in line:
-                line = network_file.readline()
-                line = network_file.readline()
-
-                while (line):
-                    splitted = line.split()
-
-                    if (len(splitted) == 0):
-                        break
-
-                    pump_id = splitted[0]
-                    start_node = splitted[1]
-                    end_node = splitted[2]
-
-                    start_end_nodes[pump_id] = [start_node, end_node]
-
-                    line = network_file.readline()
-                break
-
-    if (len(start_end_nodes) == 0):
-        print("No pumps' start end nodes found!")
-
-    return start_end_nodes
-
-def nodes_to_csv(input_file, coord_file=""):
-    print("Extracting Nodes, can take a while. Please wait...")
-
-    found = False
-    match = "Node Results"  # We use this string as a filter to find the tables for Node Values
-    node_coordinates = {}
-
-    if(len(coord_file)>0):
-        node_coordinates = read_coordinates_from_inp(coord_file)
-
-    table_count = 0  # how many tables we found?
-
-    if input_file == "":
-        sys.exit("Input file path cannot be empty")
-
-    f = open(input_file, "r")
+    indexes = demand_results.index
 
     outName = "nodes_output.csv"
     out = open(outName, "w")
     writer = csv.writer(out)
 
-    line = f.readline()
+    debug = False
 
-    while line:
-        if match in line:
-            found = True
-            table_count += 1
-            splitted = line.split()
-            hour = splitted[3]  # store the timestamp
+    for timestamp in indexes:
+        tot_demand = float(0)
+        demand_value = float(0)
 
-            line = f.readline()  # need to skip table headers (5 lines)
-            line = f.readline()
-            line = f.readline()
-            line = f.readline()
-            line = f.readline()
+        hour = pd.to_datetime(timestamp, unit='s').time()
 
-            splitted = line.split()
+        print(timestamp)
+        for nodeID in node_names:
+            node_obj = wn.get_node(nodeID)
 
-            while (len(splitted) > 0):
-                nodeID = splitted[0]
-                demand = splitted[1]
-                head = splitted[2]
-                pressure = splitted[3]
-                # chlorine = splitted[4]
-                type = ""
-                x_coord = ""
-                y_coord = ""
+            demand_value = float(demand_results.loc[timestamp, nodeID])
+            demand_value = round(demand_value,8)
+            head_value = head_results.loc[timestamp, nodeID]
+            pressure_value = pressure_results.loc[timestamp, nodeID]
 
-                if (splitted[-1] == "Reservoir"):
-                    type = "Reservoir"
-                elif(splitted[-1] == "Tank"):
-                    type = "Tank"
-                else:
-                    type = "Junction"
+            if debug:
+                print("--------")
+                print(nodeID)
+                print("demand")
+                print("{:4.15}".format(demand_value))
+                print("tot_d")
+                print("{:4.15f}".format(tot_demand))
 
-                output_row = [hour, nodeID, demand, head, pressure]
+            tot_demand = tot_demand + demand_value
+            tot_demand = round(tot_demand,8)
 
-                if(len(node_coordinates)>0):
-                    if(nodeID not in node_coordinates):
-                        print("Wrong coordinate file")
-                        break
-                    x_coord = node_coordinates[nodeID][0]
-                    y_coord = node_coordinates[nodeID][1]
-                    output_row.append(x_coord)
-                    output_row.append(y_coord)
+            if debug:
+                print("tot_d")
+                print("{:4.15f}".format(tot_demand))
 
-                output_row.append(type)
+            if debug:
+                if nodeID=="101":
+                    print("test")
+                    sys.exit(1)
 
-                writer.writerow(output_row)
+            x_pos = node_obj.coordinates[0]
+            y_pos = node_obj.coordinates[1]
 
-                line = f.readline()
-                splitted = line.split()
+            node_type = node_obj.__class__.__name__
 
-        line = f.readline()
+            output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos, node_type]
+            # print(nodeID)
+            # print(demand_value)
+            # print(tot_demand)
+            # print("Node (" + str(nodeID) + ") demand is: "+str(demand_value)+" so Tot demand is now: " + str(tot_demand))
+            # print("Node ({}) demand is: {} so Tot demand is now: {}".format(nodeID,demand_value,tot_demand))
 
-    out.close()
-    f.close()
+            writer.writerow(output_row)
 
-    if found:
-        print("Found %d Node tables" % table_count)
-    else:
-        print("Cannot find any Node tables inside input file!")
-
-def links_to_csv(input_file, pipes_file=""):
-    print("Extracting Links, can take a while. Please wait...")
-
-    match = "Link Results"
-
-    outName = "links_output.csv"
-    pipes_start_end_nodes = {}
-    pumps_start_end_nodes = {}
-
-    if (len(pipes_file) > 0):
-        pipes_start_end_nodes = read_pipes_start_end_nodes_from_inp(coord_file)
-        pumps_start_end_nodes = read_pumps_start_end_nodes_from_inp(coord_file)
-
-    out = open(outName, "w")
-    writer = csv.writer(out)
-
-    with open(input_file) as pipes_file:
-        for line in pipes_file:
-            if match in line:
-                hour = line.split()[3]
-
-                line = pipes_file.readline()
-                line = pipes_file.readline()
-                line = pipes_file.readline()
-                line = pipes_file.readline()
-                line = pipes_file.readline()
-
-                while (line):
-                    splitted = line.split()
-
-                    if (len(splitted) == 0):
-                        break
-
-                    pipe_id = splitted[0]
-                    pipe_flow = splitted[1]
-                    pipe_velocity = splitted[2]
-                    pipe_headloss = splitted[3]
-                    start_node = ""
-                    end_node = ""
-
-                    type = splitted[-1]
-
-                    if(type != "Pump"):
-                        type = "Pipe"
-
-                    if(len(pipes_start_end_nodes) > 0 and type == "Pipe"):
-                        start_node = pipes_start_end_nodes[pipe_id][0]
-                        end_node = pipes_start_end_nodes[pipe_id][1]
-                    elif(len(pumps_start_end_nodes) > 0 and type == "Pump"):
-                        start_node = pumps_start_end_nodes[pipe_id][0]
-                        end_node = pumps_start_end_nodes[pipe_id][1]
-
-                    output_row = [hour,pipe_id,pipe_flow,pipe_velocity,pipe_headloss,start_node,end_node,type]
-
-                    writer.writerow(output_row)
-
-                    line = pipes_file.readline()
+        # print(timestamp)
+        print("Tot demand at "+str(hour)+" is: "+str(tot_demand))
+        # break
 
     out.close()
+
+    print("Finished!")
 
 if __name__ == "__main__":
+
     # Program description
     text = "This program processes the report file from EPANET 2.2, extracts Node Results and converts them to csv. " \
            "Please type the path of the file you want to convert. "
@@ -251,21 +99,19 @@ if __name__ == "__main__":
 
     # Add long and short argument
     parser.add_argument("--input", "-i", help="Input file for processing")
-    parser.add_argument("--coordinates", "-c", help="Input file to include node coordinates to CSV (it is the original network file)")
 
     # Read arguments from the command line
     args = parser.parse_args()
 
+    # nodes_path = "./extracted_nodes.csv"
+    # links_path = "./extracted_links.csv"
+    # nodes_path = "./nodes_output.csv"
+    input_file_inp = "./networks/Net3.inp"
+    run_nodes_sim_to_csv(input_file_inp)
+
     # Check for --name
     if args.input:
         input_file = args.input
-        if args.coordinates:
-            coord_file = args.coordinates
-            nodes_to_csv(input_file, coord_file)
-            links_to_csv(input_file, coord_file)
-        else:
-            nodes_to_csv(input_file)
-            links_to_csv(input_file)
-        print("CSV conversion finished.")
+        run_nodes_sim_to_csv(input_file)
     else:
         print("See 'py_epanet2csv.py -h' in order to know how to correctly execute this program")
