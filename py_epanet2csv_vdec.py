@@ -14,9 +14,15 @@ def run_sim(inp_file):
 
     wn = wntr.network.WaterNetworkModel(inp_file)
 
+    wn.options.hydraulic.demand_model = 'PDD'
+
+    wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
+    wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
+
     node_names = wn.node_name_list
     link_names = wn.link_name_list
 
+    #print(dict(wn.options.hydraulic))
     results = wntr.sim.EpanetSimulator(wn).run_sim()
 
     print("Simulation finished. Writing to csv (can take a while)...")
