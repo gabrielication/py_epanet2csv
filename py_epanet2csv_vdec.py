@@ -19,11 +19,24 @@ def run_sim(inp_file):
     wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
+    '''
+    node = wn.get_node('123')
+    node.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
+
+    node2 = wn.get_node('203')
+    node2.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
+
+    node3 = wn.get_node('255')
+    node3.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
+    '''
+
     node_names = wn.node_name_list
     link_names = wn.link_name_list
 
     #print(dict(wn.options.hydraulic))
-    results = wntr.sim.EpanetSimulator(wn).run_sim()
+
+    #results = wntr.sim.EpanetSimulator(wn).run_sim()
+    results = wntr.sim.WNTRSimulator(wn).run_sim()
 
     print("Simulation finished. Writing to csv (can take a while)...")
 
@@ -37,7 +50,7 @@ def links_to_csv(wn, results, link_names):
 
     flow_results = results.link['flowrate']
     velocity_results = results.link['velocity']
-    headloss_results = results.link['headloss']
+    #headloss_results = results.link['headloss']
 
     indexes = flow_results.index
 
@@ -66,21 +79,23 @@ def links_to_csv(wn, results, link_names):
             velocity_value = Decimal(str(velocity_results.loc[timestamp, linkID]))
             velocity_value = round(velocity_value, 8)
 
-            headloss_value = Decimal(str(headloss_results.loc[timestamp, linkID]))
-            headloss_value = round(headloss_value, 8)
+            #headloss_value = Decimal(str(headloss_results.loc[timestamp, linkID]))
+            #headloss_value = round(headloss_value, 8)
 
             start_node_value = link_obj.start_node_name
             end_node_value = link_obj.end_node_name
 
             node_type = link_obj.__class__.__name__
 
-            output_row = [hour, linkID, flow_value, velocity_value, headloss_value, start_node_value, end_node_value, node_type]
+            #output_row = [hour, linkID, flow_value, velocity_value, headloss_value, start_node_value, end_node_value, node_type]
+            output_row = [hour, linkID, flow_value, velocity_value, start_node_value, end_node_value,
+                          node_type]
 
             writer.writerow(output_row)
 
     out.close()
 
-    print("Links' CSV written...")
+    print("Links' CSV written.")
 
 def nodes_to_csv(wn, results, node_names):
     print("Writing Nodes' CSV...")
@@ -162,7 +177,7 @@ def nodes_to_csv(wn, results, node_names):
 
     out.close()
 
-    print("Nodes' CSV written...")
+    print("Nodes' CSV written.")
 
 if __name__ == "__main__":
 
