@@ -1,13 +1,9 @@
 import argparse
 
 import wntr
-import pandas as pd
 import csv
 import sys
-import numpy as np
 from decimal import Decimal
-
-import time
 
 def run_sim(inp_file):
     print("Running simulation...")
@@ -19,16 +15,15 @@ def run_sim(inp_file):
     wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
-    '''
+
     node = wn.get_node('123')
     node.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
-
+    
     node2 = wn.get_node('203')
     node2.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
 
     node3 = wn.get_node('255')
     node3.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
-    '''
 
     node_names = wn.node_name_list
     link_names = wn.link_name_list
@@ -50,7 +45,7 @@ def links_to_csv(wn, results, link_names):
 
     flow_results = results.link['flowrate']
     velocity_results = results.link['velocity']
-    #headloss_results = results.link['headloss']
+    #headloss_results = results.link['headloss'] NOT COMPATIBLE WITH WNTR
 
     indexes = flow_results.index
 
@@ -132,6 +127,15 @@ def nodes_to_csv(wn, results, node_names):
             pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
             pressure_value = round(pressure_value,8)
 
+            has_leak = node_obj._leak
+
+            leak_area_value = node_obj.leak_area #I think that this does not require an approximation... right?
+
+            leak_discharge_value = node_obj.leak_discharge_coeff #Same as above...?
+
+            current_leak_demand_value = results.node["leak_demand"].at[timestamp, nodeID]
+            current_leak_demand_value = Decimal(str(current_leak_demand_value))
+            current_leak_demand_value = round(current_leak_demand_value, 8)
 
             if debug:
                 print("--------")
@@ -158,7 +162,9 @@ def nodes_to_csv(wn, results, node_names):
 
             node_type = node_obj.__class__.__name__
 
-            output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos, node_type]
+            output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos,
+                          node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value]
+
             # print(nodeID)
             # print(demand_value)
             # print(tot_demand)
