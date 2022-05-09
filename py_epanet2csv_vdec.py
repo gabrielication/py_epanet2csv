@@ -47,11 +47,15 @@ def pick_three_rand_leaks(wn, area_size, start_leak=0, end_leak=0):
 
         if(start_leak == 0 and end_leak == 0):
             node_obj.add_leak(wn, area=area_size)
+            print("ao")
         elif(start_leak != 0 and end_leak == 0):
             node_obj.add_leak(wn, area=area_size, start_time=start_leak)
+            print("aaao")
         elif(start_leak == 0 and end_leak != 0):
             node_obj.add_leak(wn, area=area_size, end_time=end_leak)
+            print("aeeeo")
         else:
+            print("aoaaaqqqqq")
             node_obj.add_leak(wn, area=area_size, start_time=start_leak, end_time=end_leak)
 
         print("Leak added to node id: ",node_id)
@@ -143,15 +147,23 @@ def nodes_to_csv(wn, results, node_names):
             pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
             pressure_value = round(pressure_value,8)
 
-            has_leak = node_obj._leak
+            #has_leak = node_obj._leak #this leak-flag represents if a leak was set to the node but not if the leak is flowing now on this timestamp
+            has_leak = False
 
             leak_area_value = node_obj.leak_area #I think that this does not require an approximation... right?
 
             leak_discharge_value = node_obj.leak_discharge_coeff #Same as above...?
 
             current_leak_demand_value = results.node["leak_demand"].at[timestamp, nodeID]
+
+            if(current_leak_demand_value > 0.0):
+                has_leak = True #this leak-flag is set to true if the leak is flowing now on this timestamp
+
             current_leak_demand_value = Decimal(str(current_leak_demand_value))
             current_leak_demand_value = round(current_leak_demand_value, 8)
+
+            if(has_leak):
+                print(node_obj.leak_status, timestamp)
 
             if debug:
                 print("--------")
