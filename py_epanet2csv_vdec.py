@@ -4,6 +4,7 @@ import wntr
 import csv
 import sys
 from decimal import Decimal
+import random
 
 def run_sim(inp_file):
     print("Running simulation...")
@@ -15,19 +16,18 @@ def run_sim(inp_file):
     wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
-    node = wn.get_node('123')
-    node.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
-    
-    node2 = wn.get_node('203')
-    node2.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
-
-    node3 = wn.get_node('255')
-    node3.add_leak(wn, area=0.05, start_time=2 * 3600, end_time=12 * 3600)
-
     node_names = wn.node_name_list
+    junction_names = wn.junction_name_list
     link_names = wn.link_name_list
 
-    #print(dict(wn.options.hydraulic))
+    sim_duration_in_seconds = wn.options.time.duration
+
+    leaks = True
+
+    if(leaks):
+        pick_three_rand_leaks(wn, junction_names, 0.05, start_leak=sim_duration_in_seconds/2) #leakages start at half the duration (e.g. 1 year, start at 6 month)
+
+    print(dict(wn.options.hydraulic))
 
     #results = wntr.sim.EpanetSimulator(wn).run_sim()
     results = wntr.sim.WNTRSimulator(wn).run_sim()
@@ -38,6 +38,23 @@ def run_sim(inp_file):
     links_to_csv(wn, results, link_names)
 
     print("Finished!")
+
+def pick_three_rand_leaks(wn, node_names, area_size, start_leak=0, end_leak=0):
+    selected_junctions = random.sample(node_names, 3)
+
+    for node_id in selected_junctions:
+        node_obj = wn.get_node(node_id)
+
+        if(start_leak == 0 and end_leak == 0):
+            node_obj.add_leak(wn, area=area_size)
+        elif(start_leak != 0 and end_leak == 0):
+            node_obj.add_leak(wn, area=area_size, start_time=start_leak)
+        elif(start_leak == 0 and end_leak != 0):
+            node_obj.add_leak(wn, area=area_size, end_time=end_leak)
+        else:
+            node_obj.add_leak(wn, area=area_size, start_time=start_leak, end_time=end_leak)
+
+        print("Leak added to node id: ",node_id)
 
 def links_to_csv(wn, results, link_names):
     print("Writing Links' CSV...")
