@@ -26,7 +26,7 @@ def run_sim(inp_file):
     if(leaks):
         pick_three_rand_leaks(wn, 0.05, start_leak=sim_duration_in_seconds/2) #leakages start at half the duration (e.g. 1 year, start at 6 month)
 
-    print(dict(wn.options.hydraulic))
+    #print(dict(wn.options.hydraulic))
 
     #results = wntr.sim.EpanetSimulator(wn).run_sim()
     results = wntr.sim.WNTRSimulator(wn).run_sim()
@@ -47,15 +47,11 @@ def pick_three_rand_leaks(wn, area_size, start_leak=0, end_leak=0):
 
         if(start_leak == 0 and end_leak == 0):
             node_obj.add_leak(wn, area=area_size)
-            print("ao")
         elif(start_leak != 0 and end_leak == 0):
             node_obj.add_leak(wn, area=area_size, start_time=start_leak)
-            print("aaao")
         elif(start_leak == 0 and end_leak != 0):
             node_obj.add_leak(wn, area=area_size, end_time=end_leak)
-            print("aeeeo")
         else:
-            print("aoaaaqqqqq")
             node_obj.add_leak(wn, area=area_size, start_time=start_leak, end_time=end_leak)
 
         print("Leak added to node id: ",node_id)
@@ -161,9 +157,6 @@ def nodes_to_csv(wn, results, node_names):
 
             current_leak_demand_value = Decimal(str(current_leak_demand_value))
             current_leak_demand_value = round(current_leak_demand_value, 8)
-
-            if(has_leak):
-                print(node_obj.leak_status, timestamp)
 
             if debug:
                 print("--------")
