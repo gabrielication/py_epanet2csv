@@ -17,7 +17,6 @@ def run_sim(inp_file):
     wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
     node_names = wn.node_name_list
-    junction_names = wn.junction_name_list
     link_names = wn.link_name_list
 
     sim_duration_in_seconds = wn.options.time.duration
@@ -25,7 +24,7 @@ def run_sim(inp_file):
     leaks = True
 
     if(leaks):
-        pick_three_rand_leaks(wn, junction_names, 0.05, start_leak=sim_duration_in_seconds/2) #leakages start at half the duration (e.g. 1 year, start at 6 month)
+        pick_three_rand_leaks(wn, 0.05, start_leak=sim_duration_in_seconds/2) #leakages start at half the duration (e.g. 1 year, start at 6 month)
 
     print(dict(wn.options.hydraulic))
 
@@ -39,7 +38,8 @@ def run_sim(inp_file):
 
     print("Finished!")
 
-def pick_three_rand_leaks(wn, node_names, area_size, start_leak=0, end_leak=0):
+def pick_three_rand_leaks(wn, area_size, start_leak=0, end_leak=0):
+    node_names = wn.junction_name_list
     selected_junctions = random.sample(node_names, 3)
 
     for node_id in selected_junctions:
