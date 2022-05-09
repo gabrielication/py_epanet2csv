@@ -7,7 +7,7 @@ from decimal import Decimal
 import random
 
 def run_sim(inp_file):
-    print("Running simulation...")
+    print("Configuring simulation...")
 
     wn = wntr.network.WaterNetworkModel(inp_file)
 
@@ -21,14 +21,16 @@ def run_sim(inp_file):
 
     sim_duration_in_seconds = wn.options.time.duration
 
-    leaks = True
+    leaks = False
 
     if(leaks):
-        pick_three_rand_leaks(wn, 0.05, start_leak=sim_duration_in_seconds/2) #leakages start at half the duration (e.g. 1 year, start at 6 month)
+        pick_three_rand_leaks(wn, 0.05) #leakages start at half the duration (e.g. 1 year, start at 6 month)
 
     #print(dict(wn.options.hydraulic))
 
     #results = wntr.sim.EpanetSimulator(wn).run_sim()
+    print("Running simulation...")
+
     results = wntr.sim.WNTRSimulator(wn).run_sim()
 
     print("Simulation finished. Writing to csv (can take a while)...")
@@ -38,21 +40,14 @@ def run_sim(inp_file):
 
     print("Finished!")
 
-def pick_three_rand_leaks(wn, area_size, start_leak=0, end_leak=0):
+def pick_three_rand_leaks(wn, area_size):
     node_names = wn.junction_name_list
     selected_junctions = random.sample(node_names, 3)
 
     for node_id in selected_junctions:
         node_obj = wn.get_node(node_id)
 
-        if(start_leak == 0 and end_leak == 0):
-            node_obj.add_leak(wn, area=area_size)
-        elif(start_leak != 0 and end_leak == 0):
-            node_obj.add_leak(wn, area=area_size, start_time=start_leak)
-        elif(start_leak == 0 and end_leak != 0):
-            node_obj.add_leak(wn, area=area_size, end_time=end_leak)
-        else:
-            node_obj.add_leak(wn, area=area_size, start_time=start_leak, end_time=end_leak)
+        node_obj.add_leak(wn, area=area_size, start_time=0)
 
         print("Leak added to node id: ",node_id)
 
