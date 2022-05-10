@@ -1,15 +1,30 @@
-import argparse
-
 import wntr
 import csv
 import sys
 from decimal import Decimal
 import random
 
-def run_sim(inp_file):
-    print("Configuring simulation...")
+import threading
 
-    wn = wntr.network.WaterNetworkModel(inp_file)
+threadLock = threading.Lock()
+
+class WNTR_Thread (threading.Thread):
+    def __init__(self, name, inp_file):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.inp_file = inp_file
+
+    def run(self):
+        print ("Thread '" + self.name + "' started")
+        # Lock on
+        threadLock.acquire()
+        wn = wntr.network.WaterNetworkModel(self.inp_file)
+        # Free lock
+        threadLock.release()
+        run_sim(wn,output_file_name=self.name+"_", thread_name= self.name+": ")
+
+def run_sim(wn,output_file_name="",thread_name=""):
+    print(thread_name+"Configuring simulation...")
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
 
@@ -21,26 +36,26 @@ def run_sim(inp_file):
 
     sim_duration_in_seconds = wn.options.time.duration
 
-    leaks = False
+    leaks = True
 
     if(leaks):
-        pick_three_rand_leaks(wn, 0.05) #leakages start at half the duration (e.g. 1 year, start at 6 month)
+        pick_three_rand_leaks(wn, 0.05,thread_name) #leakages start at half the duration (e.g. 1 year, start at 6 month)
 
     #print(dict(wn.options.hydraulic))
 
     #results = wntr.sim.EpanetSimulator(wn).run_sim()
-    print("Running simulation...")
+    print(thread_name+"Running simulation...")
 
     results = wntr.sim.WNTRSimulator(wn).run_sim()
 
-    print("Simulation finished. Writing to csv (can take a while)...")
+    print(thread_name+"Simulation finished. Writing to csv (can take a while)...")
 
-    nodes_to_csv(wn, results, node_names)
-    links_to_csv(wn, results, link_names)
+    nodes_to_csv(wn, results, node_names,output_file_name,thread_name)
+    links_to_csv(wn, results, link_names,output_file_name,thread_name)
 
-    print("Finished!")
+    print(thread_name+"Finished!")
 
-def pick_three_rand_leaks(wn, area_size):
+def pick_three_rand_leaks(wn, area_size,thread_name):
     node_names = wn.junction_name_list
     selected_junctions = random.sample(node_names, 3)
 
@@ -49,10 +64,10 @@ def pick_three_rand_leaks(wn, area_size):
 
         node_obj.add_leak(wn, area=area_size, start_time=0)
 
-        print("Leak added to node id: ",node_id)
+        print(thread_name+"Leak added to node id: ",node_id)
 
-def links_to_csv(wn, results, link_names):
-    print("Writing Links' CSV...")
+def links_to_csv(wn, results, link_names,output_file_name,thread_name):
+    print(thread_name+"Writing Links' CSV...")
 
     flow_results = results.link['flowrate']
     velocity_results = results.link['velocity']
@@ -60,7 +75,7 @@ def links_to_csv(wn, results, link_names):
 
     indexes = flow_results.index
 
-    outName = "links_output.csv"
+    outName = output_file_name+"links_output.csv"
     out = open(outName, "w")
     writer = csv.writer(out)
 
@@ -101,10 +116,10 @@ def links_to_csv(wn, results, link_names):
 
     out.close()
 
-    print("Links' CSV written.")
+    print(thread_name+"Links' CSV written.")
 
-def nodes_to_csv(wn, results, node_names):
-    print("Writing Nodes' CSV...")
+def nodes_to_csv(wn, results, node_names,output_file_name,thread_name):
+    print(thread_name+"Writing Nodes' CSV...")
 
     demand_results = results.node['demand']
     head_results = results.node['head']
@@ -112,7 +127,7 @@ def nodes_to_csv(wn, results, node_names):
 
     indexes = demand_results.index
 
-    outName = "nodes_output.csv"
+    outName = output_file_name+"nodes_output.csv"
     out = open(outName, "w")
     writer = csv.writer(out)
 
@@ -199,28 +214,26 @@ def nodes_to_csv(wn, results, node_names):
 
     out.close()
 
-    print("Nodes' CSV written.")
+    print(thread_name+"Nodes' CSV written.")
 
 if __name__ == "__main__":
 
-    # Program description
-    text = "This program processes the report file from EPANET 2.2, extracts Node Results and converts them to csv. " \
-           "Please type the path of the file you want to convert. "
+    input_file_inp = "./networks/exported_month_large_complete_two_reservoirs.inp"
 
-    # Initiate the parser with a description
-    parser = argparse.ArgumentParser(description=text)
+    #Code to be ran with a single execution
+    '''
+    wn = wntr.network.WaterNetworkModel(input_file_inp)
+    run_sim(wn)
+    '''
 
-    # Add long and short argument
-    parser.add_argument("--input", "-i", help="Input file for processing")
+    #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
+    thread1 = WNTR_Thread("T1",input_file_inp)
+    thread2 = WNTR_Thread("T2", input_file_inp)
 
-    # Read arguments from the command line
-    args = parser.parse_args()
+    thread1.start()
+    thread2.start()
 
-    # nodes_path = "./extracted_nodes.csv"
-    # links_path = "./extracted_links.csv"
-    # nodes_path = "./nodes_output.csv"
+    thread1.join()
+    thread2.join()
 
-    input_file_inp = "./networks/Net3.inp"
-    #input_file_inp = "deprecated/network_examples/month_large.inp"
-
-    run_sim(input_file_inp)
+    print("Exiting...")
