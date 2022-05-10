@@ -1,30 +1,32 @@
+import multiprocessing
+
 import wntr
 import csv
 import sys
 from decimal import Decimal
 import random
 
-import threading
+from multiprocessing import Process, Lock
 
-threadLock = threading.Lock()
+lock = Lock()
 
-class WNTR_Thread (threading.Thread):
+class WNTR_Process (Process):
     def __init__(self, name, inp_file):
-        threading.Thread.__init__(self)
+        Process.__init__(self)
         self.name = name
         self.inp_file = inp_file
 
     def run(self):
-        print ("Thread '" + self.name + "' started")
+        print ("Proc '" + self.name + "' started")
         # Lock on
-        threadLock.acquire()
+        lock.acquire()
         wn = wntr.network.WaterNetworkModel(self.inp_file)
         # Free lock
-        threadLock.release()
-        run_sim(wn,output_file_name=self.name+"_", thread_name= self.name+": ")
+        lock.release()
+        run_sim(wn, output_file_name=self.name+"_", proc_name=self.name + ": ")
 
-def run_sim(wn,output_file_name="",thread_name=""):
-    print(thread_name+"Configuring simulation...")
+def run_sim(wn, output_file_name="", proc_name=""):
+    print(proc_name + "Configuring simulation...")
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
 
@@ -39,23 +41,23 @@ def run_sim(wn,output_file_name="",thread_name=""):
     leaks = True
 
     if(leaks):
-        pick_three_rand_leaks(wn, 0.05,thread_name) #leakages start at half the duration (e.g. 1 year, start at 6 month)
+        pick_three_rand_leaks(wn, 0.05, proc_name) #leakages start at half the duration (e.g. 1 year, start at 6 month)
 
     #print(dict(wn.options.hydraulic))
 
     #results = wntr.sim.EpanetSimulator(wn).run_sim()
-    print(thread_name+"Running simulation...")
+    print(proc_name + "Running simulation...")
 
     results = wntr.sim.WNTRSimulator(wn).run_sim()
 
-    print(thread_name+"Simulation finished. Writing to csv (can take a while)...")
+    print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
 
-    nodes_to_csv(wn, results, node_names,output_file_name,thread_name)
-    links_to_csv(wn, results, link_names,output_file_name,thread_name)
+    nodes_to_csv(wn, results, node_names, output_file_name, proc_name)
+    links_to_csv(wn, results, link_names, output_file_name, proc_name)
 
-    print(thread_name+"Finished!")
+    print(proc_name + "Finished!")
 
-def pick_three_rand_leaks(wn, area_size,thread_name):
+def pick_three_rand_leaks(wn, area_size, proc_name):
     node_names = wn.junction_name_list
     selected_junctions = random.sample(node_names, 3)
 
@@ -64,10 +66,10 @@ def pick_three_rand_leaks(wn, area_size,thread_name):
 
         node_obj.add_leak(wn, area=area_size, start_time=0)
 
-        print(thread_name+"Leak added to node id: ",node_id)
+        print(proc_name + "Leak added to node id: ", node_id)
 
-def links_to_csv(wn, results, link_names,output_file_name,thread_name):
-    print(thread_name+"Writing Links' CSV...")
+def links_to_csv(wn, results, link_names, output_file_name, proc_name):
+    print(proc_name + "Writing Links' CSV...")
 
     flow_results = results.link['flowrate']
     velocity_results = results.link['velocity']
@@ -116,10 +118,10 @@ def links_to_csv(wn, results, link_names,output_file_name,thread_name):
 
     out.close()
 
-    print(thread_name+"Links' CSV written.")
+    print(proc_name + "Links' CSV written.")
 
-def nodes_to_csv(wn, results, node_names,output_file_name,thread_name):
-    print(thread_name+"Writing Nodes' CSV...")
+def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
+    print(proc_name + "Writing Nodes' CSV...")
 
     demand_results = results.node['demand']
     head_results = results.node['head']
@@ -214,7 +216,7 @@ def nodes_to_csv(wn, results, node_names,output_file_name,thread_name):
 
     out.close()
 
-    print(thread_name+"Nodes' CSV written.")
+    print(proc_name + "Nodes' CSV written.")
 
 if __name__ == "__main__":
 
@@ -227,13 +229,13 @@ if __name__ == "__main__":
     '''
 
     #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
-    thread1 = WNTR_Thread("T1",input_file_inp)
-    thread2 = WNTR_Thread("T2", input_file_inp)
+    proc1 = WNTR_Process("P1", input_file_inp)
+    proc2 = WNTR_Process("P2", input_file_inp)
 
-    thread1.start()
-    thread2.start()
+    proc1.start()
+    proc2.start()
 
-    thread1.join()
-    thread2.join()
+    proc1.join()
+    proc2.join()
 
     print("Exiting...")
