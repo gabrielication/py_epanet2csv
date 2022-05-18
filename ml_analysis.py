@@ -10,16 +10,12 @@ filename = 'nodes_output.csv'
 data = pd.read_csv(filename, names=["hour","nodeID","demand_value","head_value","pressure_value","x_pos", "y_pos",
                                     "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value"])
 
-#TODO: add more fields to target_ylo
-#TODO: when a leak is present, in the training set we should have demand replaced with current_leak_demand
-
-target_y = data.drop(["hour","nodeID","demand_value","head_value","pressure_value","x_pos", "y_pos",
-                                    "node_type","current_leak_demand_value"],axis=1)
-attributes_X = data.drop(["hour","nodeID","has_leak", "x_pos", "y_pos","leak_area_value", "leak_discharge_value","node_type"],axis=1)
+target_y = data[["has_leak","leak_area_value","leak_discharge_value"]]
+attributes_X = data[["demand_value","head_value","pressure_value","current_leak_demand_value"]]
 
 #data.info()
-attributes_X.info()
-target_y.info()
+#attributes_X.info()
+#target_y.info()
 
 X_train, X_test, y_train, y_test = train_test_split(attributes_X, target_y,test_size=0.2)
 
