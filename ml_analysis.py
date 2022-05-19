@@ -1,12 +1,7 @@
-
-from sklearn import linear_model
 from sklearn.metrics import accuracy_score
-from sklearn.metrics import mean_squared_error, r2_score
-
 from sklearn import svm
 
 import numpy as np
-
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -48,15 +43,12 @@ print("Score on X_train and y_train is: "+str(regr.score(X_train, y_train)))
 print("Score on X_test and y_test is: "+str(regr.score(X_test, y_test)))
 
 print("Prediction started...")
+
 # Make predictions using the testing set
 target_y_pred1 = regr.predict(X_train)
 target_y_pred2 = regr.predict(X_test)
 
-#print("Coefficient of determination: %.2f" % r2_score(y_train, target_y_pred1))
-print("Coefficient of determination: %.2f" % r2_score(y_test, target_y_pred2))
 print("Accuracy score is: "+str(accuracy_score(y_test, target_y_pred2)))
-
-#print("R2 Score on X_test and y_test is: "+str(r2_score(X_test, y_test)))
 
 '''
 print("Prediction started...")
