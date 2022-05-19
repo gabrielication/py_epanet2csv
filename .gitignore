@@ -4,6 +4,8 @@
 *.rpt
 *.inp
 
+!sample_nodes_output_one_week.csv
+
 !networks/*.inp
 
 # Created by .ignore support plugin (hsz.mobi)

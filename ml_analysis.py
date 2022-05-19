@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-filename = 'nodes_output(3).csv'
+filename = 'sample_nodes_output_one_week.csv'
 
 print("Loading csv...")
 
