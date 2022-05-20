@@ -1,9 +1,12 @@
+#WARNING: sklearnex 2021.5.3 works only with sklearn 1.0.2
+from sklearnex import patch_sklearn
+patch_sklearn()
+
 from sklearn.metrics import accuracy_score
 from sklearn import svm
-
+from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 filename = 'sample_nodes_output_one_week.csv'
 

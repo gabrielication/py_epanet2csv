@@ -1,36 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-=====================
-Classifier comparison
-=====================
+#WARNING: sklearnex 2021.5.3 works only with sklearn 1.0.2
+from sklearnex import patch_sklearn
+patch_sklearn()
 
-A comparison of a several classifiers in scikit-learn on synthetic datasets.
-The point of this example is to illustrate the nature of decision boundaries
-of different classifiers.
-This should be taken with a grain of salt, as the intuition conveyed by
-these examples does not necessarily carry over to real datasets.
-
-Particularly in high-dimensional spaces, data can more easily be separated
-linearly and the simplicity of classifiers such as naive Bayes and linear SVMs
-might lead to better generalization than is achieved by other classifiers.
-
-The plots show training points in solid colors and testing points
-semi-transparent. The lower right shows the classification accuracy on the test
-set.
-
-"""
-
-# Code source: Gaël Varoquaux
-#              Andreas Müller
-# Modified for documentation by Jaques Grobler
-# License: BSD 3 clause
-
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.datasets import make_moons, make_circles, make_classification
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -40,8 +13,6 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.inspection import DecisionBoundaryDisplay
-import numpy as np
 import pandas as pd
 
 names = [
