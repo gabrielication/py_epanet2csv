@@ -1,0 +1,29 @@
+Nearest Neighbors classifier's score: 0.9743406985032074
+Linear SVM classifier's score: 0.966143977191732
+RBF SVM classifier's score: 0.9843193157519601
+C:\Users\Domenico\PycharmProjects\py_epanet2csv\venv\lib\site-packages\sklearn\gaussian_process\_gpc.py:472: ConvergenceWarning: lbfgs failed to converge (status=2):
+ABNORMAL_TERMINATION_IN_LNSRCH.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+  _check_optimize_result("lbfgs", opt_res)
+C:\Users\Domenico\PycharmProjects\py_epanet2csv\venv\lib\site-packages\sklearn\gaussian_process\kernels.py:430: ConvergenceWarning: The optimal value found for dimension 0 of parameter k1__constant_value is close to the specified upper bound 100000.0. Increasing the bound and calling fit again may find a better value.
+  warnings.warn(
+Gaussian Process classifier's score: 0.9836065573770492
+Decision Tree classifier's score: 0.9839629365645046
+Random Forest classifier's score: 0.9807555238774056
+Neural Net classifier's score: 0.977904490377762
+C:\Users\Domenico\PycharmProjects\py_epanet2csv\venv\lib\site-packages\sklearn\discriminant_analysis.py:878: UserWarning: Variables are collinear
+  warnings.warn("Variables are collinear")
+C:\Users\Domenico\PycharmProjects\py_epanet2csv\venv\lib\site-packages\sklearn\discriminant_analysis.py:903: RuntimeWarning: divide by zero encountered in power
+  X2 = np.dot(Xm, R * (S ** (-0.5)))
+C:\Users\Domenico\PycharmProjects\py_epanet2csv\venv\lib\site-packages\sklearn\discriminant_analysis.py:903: RuntimeWarning: invalid value encountered in multiply
+  X2 = np.dot(Xm, R * (S ** (-0.5)))
+C:\Users\Domenico\PycharmProjects\py_epanet2csv\venv\lib\site-packages\sklearn\discriminant_analysis.py:906: RuntimeWarning: divide by zero encountered in log
+  u = np.asarray([np.sum(np.log(s)) for s in self.scalings_])
+AdaBoost classifier's score: 0.9843193157519601
+Naive Bayes classifier's score: 0.04490377761938703
+QDA classifier's score: 0.033856022808267994
+Max score is:  [0.9843193157519601, 'RBF SVM']
+
+Process finished with exit code 0
