@@ -21,13 +21,13 @@ attributes_X = data[["demand_value","head_value","pressure_value","current_leak_
 
 print("Dividing X and y matrices...")
 
-attributes_X = data[["demand_value","head_value","pressure_value"]].copy()
-target_y = data["has_leak"].astype(int)
+X = data[["demand_value","head_value","pressure_value"]].copy()
+y = data["has_leak"].astype(int)
 
 #target_y = data[["has_leak","leak_area_value","leak_discharge_value","current_leak_demand_value"]].copy()
 #attributes_X["tot_demand"] = data["demand_value"] + data["current_leak_demand_value"]
 
-X_train, X_test, y_train, y_test = train_test_split(attributes_X, target_y,test_size=0.2)
+X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.2)
 
 X_train.reset_index(drop=True, inplace=True)
 X_test.reset_index(drop=True, inplace=True)
