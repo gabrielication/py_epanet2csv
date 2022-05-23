@@ -1,8 +1,11 @@
+import sys
 import argparse
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import datetime
+import time
 
 filename_input = ""
 
@@ -273,20 +276,81 @@ def plot_demand_and_pressure(filename):
 def createELEGANTcsv():
     print("pakcet STORY TABLE")
     fileNameStory = "nodes_output.csv"
-    dfPacketStory = pd.read_csv(fileNameStory, delimiter=',')
+    fileNameStoryCleaned_1 = "cnitdata1_cleaned_sorted.csv"
+    fileNameStoryCleaned_2 = "cnitdata2_cleaned_sorted.csv"
+
+    dfWaterNodeStory = pd.read_csv(fileNameStory, delimiter=',')
     # dfPacketStory = pd.read_csv(fileNameStory, delimiter=',', usecols=colsStory)[colsStory]
-    print(dfPacketStory.columns.values)
-    print(dfPacketStory.head())
+
+    # hour,nodeID,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value
+    print(dfWaterNodeStory.columns.values)
+    print(dfWaterNodeStory.head())
     # dfPacketStory['dev_nonce']= dfPacketStory['dev_nonce'].fillna('A')
 
-    # dev_addr,dev_eui,dev_nonce,freq,gateway,
+    # dfWaterNodeStory['datetime'] = pd.to_datetime(dfWaterNodeStory['hour'], format='%H:%M:%S')
+    # dfWaterNodeStory['tmst'] = pd.Timestamp(dfWaterNodeStory['datetime'])
 
-    dfPacketStory = dfPacketStory.sort_values(by=['tmst'], na_position='first')
-    dfPacketStory.reset_index(inplace=True, drop=True)
 
-    dfPacketStory['tmst'] = dfPacketStory['tmst'] * 1000
-    dfPacketStory['dev_nonce'] = 1
-    dfPacketStory = dfPacketStory.fillna(0)
+    string = "20/01/2022 10:0:0"
+    element = datetime.datetime.strptime(string, "%d/%m/%Y %H:%M:%S")
+    tuple = element.timetuple()
+    startTmstm = int(time.mktime(tuple))
+    print(startTmstm)
+
+    # string2 = "20/01/2022 11:0:0"
+    # element2 = datetime.datetime.strptime(string2, "%d/%m/%Y %H:%M:%S")
+    # tuple2 = element2.timetuple()
+    # startTmstm2 = time.mktime(tuple2)
+    # print(startTmstm2)
+    # sys.exit(1)
+
+    AllDevice = np.unique(dfWaterNodeStory.nodeID)
+    numNodes = len(AllDevice)
+    print(len(AllDevice))
+    print(AllDevice[:3])
+    gw1Devices = AllDevice[:int(numNodes/2)]
+    gw2Devices = AllDevice[int(numNodes/2):]
+
+    dfWaterNodeStory.reset_index(inplace=True, drop=True)
+    for index, row in dfWaterNodeStory.iterrows():
+        # print(row['DEV_EUI'])
+        hours, minutes, seconds = map(int, row["hour"].split(':'))
+        # print(hours)
+        # print(minutes)
+        # print(seconds)
+        # sys.exit(1)
+        dfWaterNodeStory.loc[index, "tmst"] = int((startTmstm + (hours*3600))*1000)
+        # dfWaterNodeStory.loc[index, "tmst"] = dfWaterNodeStory.loc[index, "tmst"].astype(int)
+
+        dfWaterNodeStory.loc[index, "dev_addr"] = "{:08x}".format(int(dfWaterNodeStory.loc[index, "nodeID"]))
+        dfWaterNodeStory.loc[index, "dev_eui"] = "{:016x}".format(int(dfWaterNodeStory.loc[index, "nodeID"]))
+
+        if dfWaterNodeStory.loc[index, "nodeID"] in gw1Devices:
+            dfWaterNodeStory.loc[index, "gateway"] = "7276FF002E0616BF"
+
+        if dfWaterNodeStory.loc[index, "nodeID"] in gw2Devices:
+            dfWaterNodeStory.loc[index, "gateway"] = "7276FF002E061600"
+
+        # if index>10:
+        #     break
+
+    print(dfWaterNodeStory.columns.values)
+    print(dfWaterNodeStory.head())
+
+    dfWaterNodeStory.loc[dfWaterNodeStory['gateway'] == "7276FF002E0616BF"].to_csv(fileNameStoryCleaned_1,
+                                                                                   encoding='utf-8', float_format="%.9f", index_label='index')
+    dfWaterNodeStory.loc[dfWaterNodeStory['gateway'] == "7276FF002E061600"].to_csv(fileNameStoryCleaned_2,
+                                                                                   encoding='utf-8', float_format="%.9f", index_label='index')
+
+
+
+    # # dev_addr,dev_eui,dev_nonce,freq,gateway,
+    # dfPacketStory = dfPacketStory.sort_values(by=['tmst'], na_position='first')
+    # dfPacketStory.reset_index(inplace=True, drop=True)
+    #
+    # dfPacketStory['tmst'] = dfPacketStory['tmst'] * 1000
+    # dfPacketStory['dev_nonce'] = 1
+    # dfPacketStory = dfPacketStory.fillna(0)
 
 
 # Press the green button in the gutter to run the script.
