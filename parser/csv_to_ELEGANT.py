@@ -2,6 +2,7 @@ import argparse
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 filename_input = ""
 
@@ -269,23 +270,45 @@ def plot_demand_and_pressure(filename):
         plt.show()
 
 
+def createELEGANTcsv():
+    print("pakcet STORY TABLE")
+    fileNameStory = "nodes_output.csv"
+    dfPacketStory = pd.read_csv(fileNameStory, delimiter=',')
+    # dfPacketStory = pd.read_csv(fileNameStory, delimiter=',', usecols=colsStory)[colsStory]
+    print(dfPacketStory.columns.values)
+    print(dfPacketStory.head())
+    # dfPacketStory['dev_nonce']= dfPacketStory['dev_nonce'].fillna('A')
+
+    # dev_addr,dev_eui,dev_nonce,freq,gateway,
+
+    dfPacketStory = dfPacketStory.sort_values(by=['tmst'], na_position='first')
+    dfPacketStory.reset_index(inplace=True, drop=True)
+
+    dfPacketStory['tmst'] = dfPacketStory['tmst'] * 1000
+    dfPacketStory['dev_nonce'] = 1
+    dfPacketStory = dfPacketStory.fillna(0)
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    # Program description
-    text = "This script processes the report file from EPANET 2.2, extracts Node Results and converts them to csv. " \
-           "Please type the path of the file you want to convert. "
+    # # Program description
+    # text = "This script processes the report file from EPANET 2.2, extracts Node Results and converts them to csv. " \
+    #        "Please type the path of the file you want to convert. "
+    #
+    # # Initiate the parser with a description
+    # parser = argparse.ArgumentParser(description=text)
+    #
+    # # Add long and short argument
+    # parser.add_argument("--input", "-i", help="Input file for processing")
+    # parser.add_argument("--mode", "-m", help="Mode to choose: 'nd': Plot Junction and Reservoir demands, 'dp': Plot Demand and Pressure")
+    #
+    # # Read arguments from the command line
+    # args = parser.parse_args()
+    #
+    # plot_node_and_reservoir_demand_with_links("extracted_nodes.csv", "extracted_links.csv", "10101")
 
-    # Initiate the parser with a description
-    parser = argparse.ArgumentParser(description=text)
+    createELEGANTcsv()
 
-    # Add long and short argument
-    parser.add_argument("--input", "-i", help="Input file for processing")
-    parser.add_argument("--mode", "-m", help="Mode to choose: 'nd': Plot Junction and Reservoir demands, 'dp': Plot Demand and Pressure")
-
-    # Read arguments from the command line
-    args = parser.parse_args()
-
-    plot_node_and_reservoir_demand_with_links("extracted_nodes.csv", "extracted_links.csv", "10101")
 
 '''
     # Check for --name

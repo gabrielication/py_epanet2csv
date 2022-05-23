@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 import csv
 
-# fileNameStory = "../docker_cnit/cnitdata1.csv"
-# fileNameStoryCleaned = "../docker_cnit/cnitdata1_cleaned_sorted.csv"
-fileNameStory = "../docker_cnit/cnitdata2.csv"
-fileNameStoryCleaned = "../docker_cnit/cnitdata2_cleaned_sorted.csv"
+fileNameStory = "../docker_cnit/cnitdata1.csv"
+fileNameStoryCleaned = "../docker_cnit/cnitdata1_cleaned_sorted.csv"
+# fileNameStory = "../docker_cnit/cnitdata2.csv"
+# fileNameStoryCleaned = "../docker_cnit/cnitdata2_cleaned_sorted.csv"
 
 colsStory = ['ant' 'chan' 'codr' 'created_at' 'datr' 'dev_addr' 'dev_eui' 'dev_nonce'
  'freq' 'gateway' 'lsnr' 'ns_time' 'rssi' 'rssic' 'rssis' 'rssisd' 'size'
