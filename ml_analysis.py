@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
 
-filename = 'sample_nodes_output_one_week.csv'
+filename = 'P1_nodes_output.csv'
 
 print("Loading csv...")
 
@@ -36,7 +36,8 @@ y_test.reset_index(drop=True, inplace=True)
 
 print(np.unique(y_train))
 # Create linear regression object
-regr = svm.SVC(kernel="linear")
+#regr = svm.SVC(kernel="linear")
+regr = svm.SVC(kernel="rbf", gamma=0.7, C=1.0)
 
 print("Training started...")
 # Train the model using the training sets

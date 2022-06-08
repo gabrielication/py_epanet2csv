@@ -59,7 +59,11 @@ def run_sim(wn, output_file_name="", proc_name=""):
 
 def pick_three_rand_leaks(wn, area_size, proc_name):
     node_names = wn.junction_name_list
+
     selected_junctions = random.sample(node_names, 3)
+
+    #len_nodes = int(len(node_names) / 2)
+    #selected_junctions = random.sample(node_names, len_nodes)
 
     for node_id in selected_junctions:
         node_obj = wn.get_node(node_id)
@@ -220,7 +224,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
 
 if __name__ == "__main__":
 
-    input_file_inp = "./networks/exported_month_large_complete_two_reservoirs.inp"
+    input_file_inp = "./networks/exported_month_large_complete_one_reservoirs_small.inp"
 
     #Code to be ran with a single execution
     '''

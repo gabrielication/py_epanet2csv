@@ -438,7 +438,7 @@ ELSE PIPE P387 STATUS IS OPEN
 ;Tank            	Model
 
 [TIMES]
- Duration           	24:00 
+ Duration           	168:00
  Hydraulic Timestep 	1:00 
  Quality Timestep   	0:05 
  Pattern Timestep   	1:00 
