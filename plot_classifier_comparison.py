@@ -1,8 +1,4 @@
-#WARNING: sklearnex 2021.5.3 works only with sklearn 1.0.2
-from sklearnex import patch_sklearn
-patch_sklearn()
-
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -11,8 +7,12 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.metrics import confusion_matrix
+
+import seaborn as sns
 import pandas as pd
-import csv
+import matplotlib.pyplot as plt
+import numpy as np
 
 names = [
     "KNeighborsClassifier",
@@ -30,7 +30,7 @@ names = [
 classifiers = [
     KNeighborsClassifier(),
     SVC(kernel="linear"),
-    SVC(),
+    SVC(kernel="rbf",gamma='auto'),
     GaussianProcessClassifier(),
     DecisionTreeClassifier(),
     RandomForestClassifier(),
@@ -40,43 +40,68 @@ classifiers = [
     QuadraticDiscriminantAnalysis(),
 ]
 
-filename = 'sample_nodes_output_one_week.csv'
+def execute_classifier(model, name, X, y):
+    print("Executing "+name+"...")
 
-print("Loading csv...")
+    conf_matrix_list_of_arrays = []
+    kf = KFold(n_splits=5, random_state=1, shuffle=True)
+    for train_index, test_index in kf.split(X):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-data = pd.read_csv(filename, names=["hour","nodeID","demand_value","head_value","pressure_value","x_pos", "y_pos",
-                                    "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value"])
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
 
-print("Dividing X and y matrices...")
+        conf_matrix = confusion_matrix(y_test, y_pred)
+        conf_matrix_list_of_arrays.append(conf_matrix)
 
-X = data[["demand_value","head_value","pressure_value"]].copy()
-X = X.values
-y = data["has_leak"].astype(int)
+    mean_of_conf_matrix_arrays = np.mean(conf_matrix_list_of_arrays, axis=0)
 
-max_classifier = ""
-max_accuracy = 0.0
-max_std = 0.0
+    #print(mean_of_conf_matrix_arrays)
 
-outName = "classifiers_results.csv"
-out = open(outName, "w")
-writer = csv.writer(out)
+    group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos']
 
-# iterate over classifiers
-for name, clf in zip(names, classifiers):
-    score = cross_val_score(clf, X, y, scoring='accuracy', cv=10)
+    group_counts = ["{0:0.0f}".format(value) for value in
+                    mean_of_conf_matrix_arrays.flatten()]
 
-    accuracy_score = score.mean()
-    std_score = score.std()
+    group_percentages = ["{0:.2%}".format(value) for value in
+                         mean_of_conf_matrix_arrays.flatten() / np.sum(mean_of_conf_matrix_arrays)]
 
-    output_row = [name,accuracy_score,std_score]
-    writer.writerow(output_row)
+    labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in
+              zip(group_names, group_counts, group_percentages)]
 
-    if(accuracy_score > max_accuracy):
-        max_accuracy = accuracy_score
-        max_std = std_score
-        max_classifier = name
+    labels = np.asarray(labels).reshape(2, 2)
 
-    print(name,accuracy_score,std_score)
+    ax = sns.heatmap(mean_of_conf_matrix_arrays, annot=labels, fmt='', cmap='Blues')
 
-out.close()
-print("\nBest classifier is: "+ max_classifier+"\nMax accuracy is: "+str(max_accuracy)+"\nMax std is: "+str(max_std))
+    ax.set_title('Seaborn Confusion Matrix with labels\n\n');
+    ax.set_xlabel('\nPredicted Values')
+    ax.set_ylabel('Actual Values ');
+
+    ## Ticket labels - List must be in alphabetical order
+    ax.xaxis.set_ticklabels(['False', 'True'])
+    ax.yaxis.set_ticklabels(['False', 'True'])
+
+    ## Display the visualization of the Confusion Matrix.
+    filename = name+'.png'
+    plt.savefig(filename)
+
+
+if __name__ == "__main__":
+    print("Plot classifier comparison started!\n")
+    filename = 'P1_nodes_output.csv'
+    print("Loading csv...")
+
+    data = pd.read_csv(filename, names=["hour","nodeID","demand_value","head_value","pressure_value","x_pos", "y_pos",
+                                        "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value"])
+
+    print("Dividing X and y matrices...\n")
+
+    X = data[["demand_value","head_value","pressure_value"]].copy()
+    y = data["has_leak"].astype(int)
+
+    for name, clf in zip(names, classifiers):
+        execute_classifier(clf,name,X,y)
+
+    print("\nComparison done!")
+

@@ -1,9 +1,11 @@
 #WARNING: sklearnex 2021.5.3 works only with sklearn 1.0.2
-from sklearn.neighbors import KNeighborsClassifier
+'''
 from sklearnex import patch_sklearn
 patch_sklearn()
+'''
 
 from sklearn.metrics import confusion_matrix
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import KFold
 
 import seaborn as sns
