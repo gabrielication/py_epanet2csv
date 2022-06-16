@@ -1,3 +1,6 @@
+from sklearnex import patch_sklearn
+patch_sklearn()
+
 from sklearn.model_selection import KFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -7,12 +10,13 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
 
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
 
 names = [
     "KNeighborsClassifier",
@@ -40,11 +44,13 @@ classifiers = [
     QuadraticDiscriminantAnalysis(),
 ]
 
-def execute_classifier(model, name, X, y):
+def execute_classifier(model, name, k_folds, X, y):
     print("Executing "+name+"...")
 
+    prediction_accuracy = 0.0
+
     conf_matrix_list_of_arrays = []
-    kf = KFold(n_splits=5, random_state=1, shuffle=True)
+    kf = KFold(n_splits= k_folds, random_state=1, shuffle=True)
     for train_index, test_index in kf.split(X):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
@@ -52,8 +58,12 @@ def execute_classifier(model, name, X, y):
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
+        prediction_accuracy += accuracy_score(y_test, y_pred)
+
         conf_matrix = confusion_matrix(y_test, y_pred)
         conf_matrix_list_of_arrays.append(conf_matrix)
+
+    prediction_accuracy = prediction_accuracy / k_folds
 
     mean_of_conf_matrix_arrays = np.mean(conf_matrix_list_of_arrays, axis=0)
 
@@ -74,7 +84,7 @@ def execute_classifier(model, name, X, y):
 
     ax = sns.heatmap(mean_of_conf_matrix_arrays, annot=labels, fmt='', cmap='Blues')
 
-    ax.set_title('Seaborn Confusion Matrix with labels\n\n');
+    ax.set_title(name+'\n\n');
     ax.set_xlabel('\nPredicted Values')
     ax.set_ylabel('Actual Values ');
 
@@ -86,15 +96,22 @@ def execute_classifier(model, name, X, y):
     filename = name+'.png'
     plt.savefig(filename)
     plt.clf()
+    return prediction_accuracy
 
 
 if __name__ == "__main__":
     print("Plot classifier comparison started!\n")
-    filename = 'sample_nodes_output_one_week.csv'
+    filename = 'nodes_output.csv'
     print("Loading csv...")
 
     data = pd.read_csv(filename, names=["hour","nodeID","demand_value","head_value","pressure_value","x_pos", "y_pos",
                                         "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value"])
+
+    # open the file in the write mode
+    f = open('prediction_accuracies.csv', 'w')
+
+    # create the csv writer
+    writer = csv.writer(f)
 
     print("Dividing X and y matrices...\n")
 
@@ -102,6 +119,13 @@ if __name__ == "__main__":
     y = data["has_leak"].astype(int)
 
     for name, clf in zip(names, classifiers):
-        execute_classifier(clf,name,X,y)
+        prediction_accuracy = execute_classifier(clf,name, 5, X,y)
+        print(name+"'s prediction accuracy (mean of kfolds) is: "+str(prediction_accuracy)+"\n")
+
+        output_row = [name,prediction_accuracy]
+        writer.writerow(output_row)
+
+    # close the file
+    f.close()
 
     print("\nComparison done!")
