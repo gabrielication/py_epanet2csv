@@ -85,11 +85,12 @@ def execute_classifier(model, name, X, y):
     ## Display the visualization of the Confusion Matrix.
     filename = name+'.png'
     plt.savefig(filename)
+    plt.clf()
 
 
 if __name__ == "__main__":
     print("Plot classifier comparison started!\n")
-    filename = 'P1_nodes_output.csv'
+    filename = 'sample_nodes_output_one_week.csv'
     print("Loading csv...")
 
     data = pd.read_csv(filename, names=["hour","nodeID","demand_value","head_value","pressure_value","x_pos", "y_pos",
@@ -104,4 +105,3 @@ if __name__ == "__main__":
         execute_classifier(clf,name,X,y)
 
     print("\nComparison done!")
-
