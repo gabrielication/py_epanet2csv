@@ -41,7 +41,7 @@ def run_sim(wn, output_file_name="", proc_name=""):
     leaks = True
 
     if(leaks):
-        pick_three_rand_leaks(wn, 0.05, proc_name) #leakages start at half the duration (e.g. 1 year, start at 6 month)
+        pick_rand_leaks(wn, 0.05, proc_name)
 
     #print(dict(wn.options.hydraulic))
 
@@ -57,13 +57,16 @@ def run_sim(wn, output_file_name="", proc_name=""):
 
     print(proc_name + "Finished!")
 
-def pick_three_rand_leaks(wn, area_size, proc_name):
+def pick_rand_leaks(wn, area_size, proc_name):
     node_names = wn.junction_name_list
 
-    selected_junctions = random.sample(node_names, 3)
+    #selected_junctions = random.sample(node_names, 3)
 
-    #len_nodes = int(len(node_names) / 2)
-    #selected_junctions = random.sample(node_names, len_nodes)
+    len_nodes = int(len(node_names) / 2)
+    selected_junctions = random.sample(node_names, len_nodes)
+
+    print(len_nodes)
+    print(len(selected_junctions))
 
     for node_id in selected_junctions:
         node_obj = wn.get_node(node_id)
@@ -167,9 +170,12 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
             leak_discharge_value = node_obj.leak_discharge_coeff #Same as above...?
 
             current_leak_demand_value = results.node["leak_demand"].at[timestamp, nodeID]
-
+            '''
             if(current_leak_demand_value > 0.0):
                 has_leak = True #this leak-flag is set to true if the leak is flowing now on this timestamp
+            '''
+            if (leak_area_value > 0.0):
+                has_leak = True  # this leak-flag is set to true if we see a hole in the node
 
             current_leak_demand_value = Decimal(str(current_leak_demand_value))
             current_leak_demand_value = round(current_leak_demand_value, 8)
@@ -227,11 +233,11 @@ if __name__ == "__main__":
     input_file_inp = "./networks/exported_month_large_complete_one_reservoirs_small.inp"
 
     #Code to be ran with a single execution
-    '''
+
     wn = wntr.network.WaterNetworkModel(input_file_inp)
     run_sim(wn)
-    '''
 
+    '''
     #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
     proc1 = WNTR_Process("P1", input_file_inp)
     proc2 = WNTR_Process("P2", input_file_inp)
@@ -241,5 +247,6 @@ if __name__ == "__main__":
 
     proc1.join()
     proc2.join()
+    '''
 
     print("Exiting...")
