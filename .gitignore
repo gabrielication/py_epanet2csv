@@ -3,6 +3,9 @@
 *.bin
 *.rpt
 *.inp
+*.png
+
+!sample_nodes_output_one_week.csv
 
 !networks/*.inp
 
