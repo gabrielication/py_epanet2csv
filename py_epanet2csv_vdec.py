@@ -11,19 +11,19 @@ from multiprocessing import Process, Lock
 lock = Lock()
 
 class WNTR_Process (Process):
-    def __init__(self, name, inp_file):
+
+    def __init__(self, name, wn):
         Process.__init__(self)
         self.name = name
-        self.inp_file = inp_file
+        self.wn = wn
 
     def run(self):
         print ("Proc '" + self.name + "' started")
         # Lock on
         lock.acquire()
-        wn = wntr.network.WaterNetworkModel(self.inp_file)
         # Free lock
         lock.release()
-        run_sim(wn, output_file_name=self.name+"_", proc_name=self.name + ": ")
+        run_sim(self.wn, output_file_name=self.name+"_", proc_name=self.name + ": ")
 
 def run_sim(wn, output_file_name="", proc_name=""):
     print(proc_name + "Configuring simulation...")
@@ -37,11 +37,6 @@ def run_sim(wn, output_file_name="", proc_name=""):
     link_names = wn.link_name_list
 
     sim_duration_in_seconds = wn.options.time.duration
-
-    leaks = True
-
-    if(leaks):
-        pick_rand_leaks(wn, 0.05, proc_name)
 
     #print(dict(wn.options.hydraulic))
 
@@ -57,7 +52,7 @@ def run_sim(wn, output_file_name="", proc_name=""):
 
     print(proc_name + "Finished!")
 
-def pick_rand_leaks(wn, area_size, proc_name):
+def pick_rand_leaks(wn):
     node_names = wn.junction_name_list
 
     #selected_junctions = random.sample(node_names, 3)
@@ -68,6 +63,9 @@ def pick_rand_leaks(wn, area_size, proc_name):
     print(len_nodes)
     print(len(selected_junctions))
 
+    return selected_junctions
+
+def assign_leaks(wn, area_size, selected_junctions, proc_name):
     for node_id in selected_junctions:
         node_obj = wn.get_node(node_id)
 
@@ -234,19 +232,35 @@ if __name__ == "__main__":
 
     #Code to be ran with a single execution
 
-    wn = wntr.network.WaterNetworkModel(input_file_inp)
-    run_sim(wn)
+    wn_1week = wntr.network.WaterNetworkModel(input_file_inp)
+    wn_1week.options.time.duration = 168 * 3600
 
-    '''
+    wn_1month = wntr.network.WaterNetworkModel(input_file_inp)
+    wn_1month.options.time.duration = 744 * 3600
+
+    wn_1year = wntr.network.WaterNetworkModel(input_file_inp)
+    wn_1year.options.time.duration = 8760 * 3600
+
+    leaks = True
+
+    if (leaks):
+        selected_junctions = pick_rand_leaks(wn_1week)
+
+        assign_leaks(wn_1week,0.05,selected_junctions,"1WEEK")
+        assign_leaks(wn_1month,0.05,selected_junctions,"1MONTH")
+        assign_leaks(wn_1year, 0.05, selected_junctions, "1YEAR")
+
     #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
-    proc1 = WNTR_Process("P1", input_file_inp)
-    proc2 = WNTR_Process("P2", input_file_inp)
+    proc1 = WNTR_Process("1WEEK", wn_1week)
+    proc2 = WNTR_Process("1MONTH", wn_1month)
+    proc3 = WNTR_Process("1YEAR", wn_1year)
 
     proc1.start()
     proc2.start()
+    proc3.start()
 
     proc1.join()
     proc2.join()
-    '''
+    proc3.join()
 
     print("Exiting...")
