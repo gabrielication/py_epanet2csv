@@ -2,14 +2,11 @@ from sklearnex import patch_sklearn
 patch_sklearn()
 
 from sklearn.model_selection import KFold
-from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix, accuracy_score
 
 import seaborn as sns
@@ -22,26 +19,20 @@ names = [
     "KNeighborsClassifier",
     "LinearSVM",
     "RBFSVM",
-    "GaussianProcess",
     "DecisionTree",
     "RandomForest",
-    "MLPClassifier",
     "AdaBoostClassifier",
     "GaussianNaiveBayes",
-    "QuadraticDiscriminantAnalysis",
 ]
 
 classifiers = [
     KNeighborsClassifier(),
     SVC(kernel="linear"),
     SVC(kernel="rbf",gamma='auto'),
-    GaussianProcessClassifier(),
     DecisionTreeClassifier(),
     RandomForestClassifier(),
-    MLPClassifier(),
     AdaBoostClassifier(),
     GaussianNB(),
-    QuadraticDiscriminantAnalysis(),
 ]
 
 def execute_classifier(model, name, k_folds, X, y):

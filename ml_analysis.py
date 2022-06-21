@@ -1,8 +1,5 @@
-#WARNING: sklearnex 2021.5.3 works only with sklearn 1.0.2
-'''
 from sklearnex import patch_sklearn
 patch_sklearn()
-'''
 
 from sklearn.metrics import confusion_matrix
 from sklearn.neighbors import KNeighborsClassifier
@@ -13,8 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-filename = 'P1_nodes_output.csv'
+filename = 'nodes_output.csv'
 
 print("Loading csv...")
 
