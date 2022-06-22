@@ -8,14 +8,18 @@ import random
 
 from multiprocessing import Process, Lock
 
+smart_sensors_enabled = True
+leaks_enabled = True
+
 lock = Lock()
 
 class WNTR_Process (Process):
 
-    def __init__(self, name, wn):
+    def __init__(self, name, wn, smart_sensor_junctions):
         Process.__init__(self)
         self.name = name
         self.wn = wn
+        self.smart_sensor_junctions = smart_sensor_junctions
 
     def run(self):
         print ("Proc '" + self.name + "' started")
@@ -23,9 +27,9 @@ class WNTR_Process (Process):
         lock.acquire()
         # Free lock
         lock.release()
-        run_sim(self.wn, output_file_name=self.name+"_", proc_name=self.name + ": ")
+        run_sim(self.wn, self.smart_sensor_junctions, output_file_name=self.name+"_", proc_name=self.name + ": ")
 
-def run_sim(wn, output_file_name="", proc_name=""):
+def run_sim(wn, smart_sensor_junctions, output_file_name="", proc_name=""):
     print(proc_name + "Configuring simulation...")
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
@@ -47,7 +51,7 @@ def run_sim(wn, output_file_name="", proc_name=""):
 
     print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
 
-    nodes_to_csv(wn, results, node_names, output_file_name, proc_name)
+    nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions)
     links_to_csv(wn, results, link_names, output_file_name, proc_name)
 
     print(proc_name + "Finished!")
@@ -72,6 +76,17 @@ def assign_leaks(wn, area_size, selected_junctions, proc_name):
         node_obj.add_leak(wn, area=area_size, start_time=0)
 
         print(proc_name + "Leak added to node id: ", node_id)
+
+def pick_rand_smart_sensors(wn):
+    node_names = wn.junction_name_list
+
+    len_nodes = int(len(node_names) / 4)
+    selected_junctions = random.sample(node_names, len_nodes)
+
+    print(len_nodes)
+    print(len(selected_junctions))
+
+    return selected_junctions
 
 def links_to_csv(wn, results, link_names, output_file_name, proc_name):
     print(proc_name + "Writing Links' CSV...")
@@ -125,7 +140,7 @@ def links_to_csv(wn, results, link_names, output_file_name, proc_name):
 
     print(proc_name + "Links' CSV written.")
 
-def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
+def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions):
     print(proc_name + "Writing Nodes' CSV...")
 
     demand_results = results.node['demand']
@@ -160,6 +175,8 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
             pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
             pressure_value = round(pressure_value,8)
 
+            smart_sensor_is_present = 0 #can be 0,1,2
+
             #has_leak = node_obj._leak #this leak-flag represents if a leak was set to the node but not if the leak is flowing now on this timestamp
             has_leak = False
 
@@ -174,6 +191,15 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
             '''
             if (leak_area_value > 0.0):
                 has_leak = True  # this leak-flag is set to true if we see a hole in the node
+
+            if(smart_sensors_enabled):
+                if(nodeID in smart_sensor_junctions):
+                    if(has_leak):
+                        smart_sensor_is_present = 2
+                    else:
+                        smart_sensor_is_present = 1
+                else:
+                    smart_sensor_is_present = 0
 
             current_leak_demand_value = Decimal(str(current_leak_demand_value))
             current_leak_demand_value = round(current_leak_demand_value, 8)
@@ -204,7 +230,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
             node_type = node_obj.__class__.__name__
 
             output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos,
-                          node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value]
+                          node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value, smart_sensor_is_present]
 
             # print(nodeID)
             # print(demand_value)
@@ -228,7 +254,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name):
 
 if __name__ == "__main__":
 
-    input_file_inp = "./networks/exported_month_large_complete_one_reservoirs_small.inp"
+    input_file_inp = "./networks/exported_month_large_complete_two_reservoirs.inp"
 
     #Code to be ran with a single execution
 
@@ -241,19 +267,22 @@ if __name__ == "__main__":
     wn_1year = wntr.network.WaterNetworkModel(input_file_inp)
     wn_1year.options.time.duration = 8760 * 3600
 
-    leaks = True
+    smart_sensor_junctions = []
 
-    if (leaks):
+    if (leaks_enabled):
         selected_junctions = pick_rand_leaks(wn_1week)
 
         assign_leaks(wn_1week,0.05,selected_junctions,"1WEEK")
         assign_leaks(wn_1month,0.05,selected_junctions,"1MONTH")
         assign_leaks(wn_1year, 0.05, selected_junctions, "1YEAR")
 
+    if (smart_sensors_enabled):
+        smart_sensor_junctions = pick_rand_smart_sensors(wn_1week)
+
     #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
-    proc1 = WNTR_Process("1WEEK", wn_1week)
-    proc2 = WNTR_Process("1MONTH", wn_1month)
-    proc3 = WNTR_Process("1YEAR", wn_1year)
+    proc1 = WNTR_Process("1WEEK", wn_1week, smart_sensor_junctions)
+    proc2 = WNTR_Process("1MONTH", wn_1month, smart_sensor_junctions)
+    proc3 = WNTR_Process("1YEAR", wn_1year, smart_sensor_junctions)
 
     proc1.start()
     proc2.start()
