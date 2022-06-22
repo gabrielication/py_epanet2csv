@@ -1,9 +1,9 @@
-from sklearn.tree import DecisionTreeClassifier
 from sklearnex import patch_sklearn
 patch_sklearn()
 
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import KFold
+from sklearn.tree import DecisionTreeClassifier
 
 import seaborn as sns
 import pandas as pd
@@ -85,7 +85,7 @@ def execute_classifier(input_filename, prefix_output_filename, confusion_matrix_
     ax.yaxis.set_ticklabels(['False', 'True'])
 
     ## Display the visualization of the Confusion Matrix.
-    filename = prefix_output_filename+confusion_matrix_name+'.png'
+    filename = "decision_tree_results/"+prefix_output_filename+confusion_matrix_name+'.png'
     plt.savefig(filename)
     plt.clf()
 
@@ -105,7 +105,7 @@ def run_evaluation():
 
     for prefix in prefixes:
 
-        output_filename = prefix + 'decision_tree_accuracies.csv'
+        output_filename = "decision_tree_results/" + prefix + 'decision_tree_accuracies.csv'
 
         # open the file in the write mode
         f = open(output_filename, 'w')
