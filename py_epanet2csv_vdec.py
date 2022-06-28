@@ -254,35 +254,41 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
 
 if __name__ == "__main__":
 
-    input_file_inp = "./networks/exported_month_large_complete_two_reservoirs.inp"
+    input_file_inp1 = "./networks/exported_month_large_complete_one_reservoirs_small.inp"
+    input_file_inp2 = "./networks/exported_month_large_complete_one_reservoirs_large.inp"
+    input_file_inp3 = "./networks/exported_month_large_complete_two_reservoirs.inp"
 
     #Code to be ran with a single execution
 
-    wn_1week = wntr.network.WaterNetworkModel(input_file_inp)
-    wn_1week.options.time.duration = 168 * 3600
+    wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
+    wn_1.options.time.duration = 24 * 3600
 
-    wn_1month = wntr.network.WaterNetworkModel(input_file_inp)
-    wn_1month.options.time.duration = 744 * 3600
+    wn_2 = wntr.network.WaterNetworkModel(input_file_inp2)
+    wn_2.options.time.duration = 24 * 3600
 
-    wn_1year = wntr.network.WaterNetworkModel(input_file_inp)
-    wn_1year.options.time.duration = 8760 * 3600
+    wn_3 = wntr.network.WaterNetworkModel(input_file_inp3)
+    wn_3.options.time.duration = 24 * 3600
 
     smart_sensor_junctions = []
 
     if (leaks_enabled):
-        selected_junctions = pick_rand_leaks(wn_1week)
+        selected_junctions1 = pick_rand_leaks(wn_1)
+        selected_junctions2 = pick_rand_leaks(wn_2)
+        selected_junctions3 = pick_rand_leaks(wn_3)
 
-        assign_leaks(wn_1week,0.05,selected_junctions,"1WEEK")
-        assign_leaks(wn_1month,0.05,selected_junctions,"1MONTH")
-        assign_leaks(wn_1year, 0.05, selected_junctions, "1YEAR")
+        assign_leaks(wn_1, 0.05, selected_junctions1, "1D_one_res_small")
+        assign_leaks(wn_2, 0.05, selected_junctions2, "1D_one_res_large")
+        assign_leaks(wn_3, 0.05, selected_junctions3, "1D_two_res_large")
 
     if (smart_sensors_enabled):
-        smart_sensor_junctions = pick_rand_smart_sensors(wn_1week)
+        smart_sensor_junctions1 = pick_rand_smart_sensors(wn_1)
+        smart_sensor_junctions2 = pick_rand_smart_sensors(wn_2)
+        smart_sensor_junctions3 = pick_rand_smart_sensors(wn_3)
 
     #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
-    proc1 = WNTR_Process("1WEEK", wn_1week, smart_sensor_junctions)
-    proc2 = WNTR_Process("1MONTH", wn_1month, smart_sensor_junctions)
-    proc3 = WNTR_Process("1YEAR", wn_1year, smart_sensor_junctions)
+    proc1 = WNTR_Process("1D_one_res_small", wn_1, smart_sensor_junctions1)
+    proc2 = WNTR_Process("1D_one_res_large", wn_2, smart_sensor_junctions2)
+    proc3 = WNTR_Process("1D_two_res_large", wn_3, smart_sensor_junctions3)
 
     proc1.start()
     proc2.start()
