@@ -1,5 +1,9 @@
-from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
+
+from sklearnex import patch_sklearn
+patch_sklearn()
+
+from sklearn.model_selection import KFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
@@ -87,7 +91,8 @@ def execute_classifier(model, name, k_folds, X, y, prefix_output_filename):
     filename = prefix_output_filename+name+'.png'
     plt.savefig(filename)
     plt.clf()
-    return prediction_accuracy, calc_accuracy, precision, recall, false_positive_rate
+
+    return calc_accuracy, precision, recall, false_positive_rate
 
 def execute_classifier_comparison_wo_smart_sensors(input_filename, prefix_output_filename):
     print("Loading "+input_filename+"...")
@@ -105,7 +110,7 @@ def execute_classifier_comparison_wo_smart_sensors(input_filename, prefix_output
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ["Classificator","Accuracy","Calc Accuracy", "Precision", "Recall", "False Positive Rate"]
+    header = ["Classificator","Accuracy", "Precision", "Recall", "False Positive Rate"]
     writer.writerow(header)
 
     print("Dividing X and y matrices...\n")
