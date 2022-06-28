@@ -1,0 +1,2 @@
+tot_nodes_demand,leak_percentage,number_of_nodes,number_of_junctions,number_of_reservoirs,number_of_tanks,number_of_nodes_with_leaks,number_of_nodes_with_sensors,time_spent_on_sim
+0.30628341,42.3545,2099,2097,2,0,1048,524,24.0
