@@ -1,4 +1,6 @@
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from sklearnex import patch_sklearn
 patch_sklearn()
@@ -91,7 +93,6 @@ def execute_classifier(model, name, k_folds, X, y, prefix_output_filename):
     filename = prefix_output_filename+name+'.png'
     plt.savefig(filename)
     plt.clf()
-
     return calc_accuracy, precision, recall, false_positive_rate
 
 def execute_classifier_comparison_wo_smart_sensors(input_filename, prefix_output_filename):
@@ -169,16 +170,15 @@ def execute_classifier_comparison_with_smart_sensors(input_filename, prefix_outp
     X = data[["demand_value", "head_value", "pressure_value","smart_sensor_presence"]].copy()
     y = data["has_leak"].astype(int)
 
-    clf1 = KNeighborsClassifier()
-    clf2 = SVC(kernel="linear")
-    clf3 = SVC(kernel="rbf",gamma='auto')
-    clf4 = DecisionTreeClassifier()
-    clf5 = RandomForestClassifier()
-    clf6 = AdaBoostClassifier()
-    clf7 = GaussianNB()
-    clf8 = MLPClassifier(random_state=1)
 
-    #eclf = EnsembleVoteClassifier(clfs=[clf1, clf2, clf3, clf4, clf5, clf6, clf7], weights=[1, 1, 1, 1, 1, 1, 1], voting="hard")
+    clf1 = Pipeline([('scaler', StandardScaler()), ('KNC', KNeighborsClassifier())])
+    clf2 = Pipeline([('scaler', StandardScaler()), ('SVCL', SVC(kernel="linear"))])
+    clf3 = Pipeline([('scaler', StandardScaler()), ('SVCR', SVC(kernel="rbf",gamma='auto'))])
+    clf4 = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    clf5 = Pipeline([('scaler', StandardScaler()), ('RFC', RandomForestClassifier())])
+    clf6 = Pipeline([('scaler', StandardScaler()), ('ABC', AdaBoostClassifier())])
+    clf7 = Pipeline([('scaler', StandardScaler()), ('GNB', GaussianNB())])
+    clf8 = Pipeline([('scaler', StandardScaler()), ('MLPC', MLPClassifier(random_state=1,max_iter=300))])
 
     classifiers = [clf1, clf2, clf3, clf4, clf5, clf6, clf7, clf8]
 
