@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+
+#test
+
 # comparison all model
 accuracy_net1 = pd.read_csv ('ml_results/all_classificators_results/1WEEK_prediction_accuracies.csv')
 accuracy_net2 = pd.read_csv ('ml_results/all_classificators_results/1MONTH_prediction_accuracies.csv')
