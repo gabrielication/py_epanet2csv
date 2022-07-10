@@ -1,7 +1,6 @@
 from sklearn.neighbors import KNeighborsClassifier
 
 from sklearnex import patch_sklearn
-
 patch_sklearn()
 
 # We will patch just SVM since it is incredibly slower without intelex
@@ -20,6 +19,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
+import sys
 
 names = [
     "KNeighborsClassifier",
@@ -41,12 +41,24 @@ def execute_classifier_comparison_wo_smart_sensors(input_filename, prefix_output
                               "node_type", "has_leak", "leak_area_value", "leak_discharge_value",
                               "current_leak_demand_value", "smart_sensor_presence"])
 
+    print("Rows number : ", len(data))
+    print("Nodes number : ", len(data["nodeID"].unique()))
+
+    # cut dataset to 168 hours
+    end_index_dataset = len(data["nodeID"].unique())*24*28
+    data = data.iloc[:end_index_dataset]
+
+    print("Rows number : ", len(data))
+    print("Nodes number : ", len(data["nodeID"].unique()))
+
     print("Dividing X and y matrices...\n")
 
     X = data[["demand_value", "head_value", "pressure_value"]].copy()
+    y_sensors = pd.DataFrame(0, index=np.arange(len(data)), columns=["smart_sensor_presence"])
+    y_sensors = y_sensors["smart_sensor_presence"].astype(int)
     y = data["has_leak"].astype(int)
 
-    classifiers_configurator(X, y, prefix_output_filename, input_filename)
+    classifiers_configurator(X, y, y_sensors, prefix_output_filename, input_filename)
 
 
 def execute_classifier_comparison_with_smart_sensors(input_filename, prefix_output_filename):
@@ -57,19 +69,30 @@ def execute_classifier_comparison_with_smart_sensors(input_filename, prefix_outp
                               "node_type", "has_leak", "leak_area_value", "leak_discharge_value",
                               "current_leak_demand_value", "smart_sensor_presence"])
 
+    print("Rows number : ", len(data))
+    print("Nodes number : ", len(data["nodeID"].unique()))
+
+    # cut dataset to 168 hours
+    end_index_dataset = len(data["nodeID"].unique()) * 24 * 28
+    data = data.iloc[:end_index_dataset]
+
+    print("Rows number : ", len(data))
+    print("Nodes number : ", len(data["nodeID"].unique()))
+
     print("Dividing X and y matrices...\n")
 
     X = data[["demand_value", "head_value", "pressure_value", "smart_sensor_presence"]].copy()
+    y_sensors = data["smart_sensor_presence"].astype(int)
     y = data["has_leak"].astype(int)
 
-    classifiers_configurator(X, y, prefix_output_filename, input_filename)
+    classifiers_configurator(X, y, y_sensors, prefix_output_filename, input_filename)
 
 
-def classifiers_configurator(X, y, prefix_output_filename, input_filename):
-    output_filename = prefix_output_filename + 'prediction_accuracies.csv'
+def classifiers_configurator(X, y, y_sensors, prefix_output_filename, input_filename):
+    output_filename = prefix_output_filename + 'prediction_accuracies_complete.csv'
 
     # open the file in the write mode
-    f = open(output_filename, 'w')
+    f = open(output_filename, 'w+')
 
     # create the csv writer
     writer = csv.writer(f)
@@ -89,7 +112,7 @@ def classifiers_configurator(X, y, prefix_output_filename, input_filename):
     classifiers = [clf1, clf2, clf3, clf4, clf5, clf6, clf7, clf8]
 
     for name, clf in zip(names, classifiers):
-        prediction_measurements = execute_classifier(clf, name, 5, X, y, prefix_output_filename)
+        prediction_measurements = execute_classifier(clf, name, 4, X, y, y_sensors, prefix_output_filename)
         # print(name + "'s prediction accuracy (mean of kfolds) is: " + str(prediction_accuracy) + "\n")
 
         output_row = [name] + list(prediction_measurements)
@@ -103,35 +126,71 @@ def classifiers_configurator(X, y, prefix_output_filename, input_filename):
     print("\n" + input_filename + " comparison done!\n\n")
 
 
-def execute_classifier(model, name, k_folds, X, y, prefix_output_filename):
+def execute_classifier(model, name, k_folds, X, y, y_sensors, prefix_output_filename):
     print("Executing " + name + "...")
 
     prediction_accuracy = 0.0
 
     conf_matrix_list_of_arrays = []
-    kf = KFold(n_splits=k_folds, random_state=1, shuffle=True)
+    # kf = KFold(n_splits=k_folds, random_state=1, shuffle=True)
+    index_fold = 1
+    kf = KFold(n_splits=k_folds, shuffle=False)
     for train_index, test_index in kf.split(X):
+        print("k-fold n. : ", index_fold)
+        print("start index train : ", train_index[0])
+        print("start index test : ", test_index[0])
+        # continue
+
+        count_different_zero = 0
+        count_different_one = 0
+
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
+        # update y_pred with know sensor information, if present
+        for ii in range(len(y_pred)):
+            # no sensor
+            if y_sensors.iloc[ii] == 0:
+                continue
+            # sensor not leak
+            elif y_sensors.iloc[ii] == 1:
+                if y_pred[ii] > 0:
+                    print("EXIT with different > 0 *************")
+                    count_different_one += 1
+                # sys.exit(1)
+                y_pred[ii] = 0
+            # sensor and leak
+            elif y_sensors.iloc[ii] == 2:
+                if y_pred[ii] < 1:
+                    print("EXIT with different < 1 *************")
+                    count_different_zero += 1
+                # sys.exit(1)
+                y_pred[ii] = 1
+
         prediction_accuracy += accuracy_score(y_test, y_pred)
 
         conf_matrix = confusion_matrix(y_test, y_pred)
         conf_matrix_list_of_arrays.append(conf_matrix)
 
+        index_fold += 1
+
+    # sys.exit(1)
     prediction_accuracy = prediction_accuracy / k_folds
 
-    mean_of_conf_matrix_arrays = np.mean(conf_matrix_list_of_arrays, axis=0)
+    # print(conf_matrix_list_of_arrays)
 
+    mean_of_conf_matrix_arrays = np.mean(conf_matrix_list_of_arrays, axis=0)
     # print(mean_of_conf_matrix_arrays)
 
     group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos']
 
-    group_counts = ["{0:0.0f}".format(value) for value in
-                    mean_of_conf_matrix_arrays.flatten()]
+    group_counts = ["{0:0.0f}".format(value) for value in mean_of_conf_matrix_arrays.flatten()]
+    print(group_counts)
+
+    # sys.exit(1)
 
     true_negatives = float(group_counts[0])
     false_positives = float(group_counts[1])
@@ -140,6 +199,7 @@ def execute_classifier(model, name, k_folds, X, y, prefix_output_filename):
 
     calc_accuracy = (true_positives + true_negatives) / (
                 true_positives + true_negatives + false_negatives + false_positives)
+
     precision = true_positives / (true_positives + false_positives)
     recall = true_positives / (true_positives + false_negatives)
     false_positive_rate = false_positives / (false_positives + true_negatives)
@@ -174,45 +234,45 @@ if __name__ == "__main__":
 
     # input_filename = 'nodes_output.csv'
 
-    execute_classifier_comparison_wo_smart_sensors("1D_one_res_small/1D_one_res_small_nodes_output.csv",
-                                                   "1D_one_res_small/without_sensors/1D_one_res_small_")
-    execute_classifier_comparison_wo_smart_sensors("1D_one_res_large/1D_one_res_large_nodes_output.csv",
-                                                   "1D_one_res_large/without_sensors/1D_one_res_large_")
-    execute_classifier_comparison_wo_smart_sensors("1D_two_res_large/1D_two_res_large_nodes_output.csv",
-                                                   "1D_two_res_large/without_sensors/1D_two_res_large_")
+    # execute_classifier_comparison_wo_smart_sensors("1D_one_res_small/1D_one_res_small_nodes_output.csv",
+    #                                                "1D_one_res_small/without_sensors/1D_one_res_small_")
+    # execute_classifier_comparison_wo_smart_sensors("1D_one_res_large/1D_one_res_large_nodes_output.csv",
+    #                                                "1D_one_res_large/without_sensors/1D_one_res_large_")
+    # execute_classifier_comparison_wo_smart_sensors("1D_two_res_large/1D_two_res_large_nodes_output.csv",
+    #                                                "1D_two_res_large/without_sensors/1D_two_res_large_")
 
-    execute_classifier_comparison_wo_smart_sensors("1W_one_res_small/1W_one_res_small_nodes_output.csv",
-                                                   "1W_one_res_small/without_sensors/1W_one_res_small_")
-    execute_classifier_comparison_wo_smart_sensors("1W_one_res_large/1W_one_res_large_nodes_output.csv",
-                                                   "1W_one_res_large/without_sensors/1W_one_res_large_")
-    execute_classifier_comparison_wo_smart_sensors("1W_two_res_large/1W_two_res_large_nodes_output.csv",
-                                                   "1W_two_res_large/without_sensors/1W_two_res_large_")
+    # execute_classifier_comparison_wo_smart_sensors("1W_one_res_small/1W_one_res_small_nodes_output.csv",
+    #                                                "1W_one_res_small_7_fold_day/without_sensors/1W_one_res_small_")
+    # execute_classifier_comparison_wo_smart_sensors("1W_one_res_large/1W_one_res_large_nodes_output.csv",
+    #                                                "1W_one_res_large_7_fold_day/without_sensors/1W_one_res_large_")
+    # execute_classifier_comparison_wo_smart_sensors("1W_two_res_large/1W_two_res_large_nodes_output.csv",
+    #                                                "1W_two_res_large_7_fold_day/without_sensors/1W_two_res_large_")
 
     execute_classifier_comparison_wo_smart_sensors("1M_one_res_small/1M_one_res_small_nodes_output.csv",
-                                                   "1M_one_res_small/without_sensors/1M_one_res_small_")
+                                                   "1M_one_res_small_4_fold_week/without_sensors/1M_one_res_small_")
     execute_classifier_comparison_wo_smart_sensors("1M_one_res_large/1M_one_res_large_nodes_output.csv",
-                                                   "1M_one_res_large/without_sensors/1M_one_res_large_")
+                                                   "1M_one_res_large_4_fold_week/without_sensors/1M_one_res_large_")
     execute_classifier_comparison_wo_smart_sensors("1M_two_res_large/1M_two_res_large_nodes_output.csv",
-                                                   "1M_two_res_large/without_sensors/1M_two_res_large_")
-
-    # Add sensor field
-    execute_classifier_comparison_with_smart_sensors("1D_one_res_small/1D_one_res_small_nodes_output.csv",
-                                                     "1D_one_res_small/with_sensors/1D_one_res_small_")
-    execute_classifier_comparison_with_smart_sensors("1D_one_res_large/1D_one_res_large_nodes_output.csv",
-                                                     "1D_one_res_large/with_sensors/1D_one_res_large_")
-    execute_classifier_comparison_with_smart_sensors("1D_two_res_large/1D_two_res_large_nodes_output.csv",
-                                                     "1D_two_res_large/with_sensors/1D_two_res_large_")
-
-    execute_classifier_comparison_with_smart_sensors("1W_one_res_small/1W_one_res_small_nodes_output.csv",
-                                                     "1W_one_res_small/with_sensors/1W_one_res_small_")
-    execute_classifier_comparison_with_smart_sensors("1W_one_res_large/1W_one_res_large_nodes_output.csv",
-                                                     "1W_one_res_large/with_sensors/1W_one_res_large_")
-    execute_classifier_comparison_with_smart_sensors("1W_two_res_large/1W_two_res_large_nodes_output.csv",
-                                                     "1W_two_res_large/with_sensors/1W_two_res_large_")
-
+                                                   "1M_two_res_large_4_fold_week/without_sensors/1M_two_res_large_")
+    #
+    # # Add sensor field
+    # execute_classifier_comparison_with_smart_sensors("1D_one_res_small/1D_one_res_small_nodes_output.csv",
+    #                                                  "1D_one_res_small/with_sensors/1D_one_res_small_")
+    # execute_classifier_comparison_with_smart_sensors("1D_one_res_large/1D_one_res_large_nodes_output.csv",
+    #                                                  "1D_one_res_large/with_sensors/1D_one_res_large_")
+    # execute_classifier_comparison_with_smart_sensors("1D_two_res_large/1D_two_res_large_nodes_output.csv",
+    #                                                  "1D_two_res_large/with_sensors/1D_two_res_large_")
+    #
+    # execute_classifier_comparison_with_smart_sensors("1W_one_res_small/1W_one_res_small_nodes_output.csv",
+    #                                                  "1W_one_res_small_7_fold_day/with_sensors/1W_one_res_small_")
+    # execute_classifier_comparison_with_smart_sensors("1W_one_res_large/1W_one_res_large_nodes_output.csv",
+    #                                                  "1W_one_res_large_7_fold_day/with_sensors/1W_one_res_large_")
+    # execute_classifier_comparison_with_smart_sensors("1W_two_res_large/1W_two_res_large_nodes_output.csv",
+    #                                                  "1W_two_res_large_7_fold_day/with_sensors/1W_two_res_large_")
+    #
     execute_classifier_comparison_with_smart_sensors("1M_one_res_small/1M_one_res_small_nodes_output.csv",
-                                                     "1M_one_res_small/with_sensors/1M_one_res_small_")
+                                                     "1M_one_res_small_4_fold_week/with_sensors/1M_one_res_small_")
     execute_classifier_comparison_with_smart_sensors("1M_one_res_large/1M_one_res_large_nodes_output.csv",
-                                                     "1M_one_res_large/with_sensors/1M_one_res_large_")
+                                                     "1M_one_res_large_4_fold_week/with_sensors/1M_one_res_large_")
     execute_classifier_comparison_with_smart_sensors("1M_two_res_large/1M_two_res_large_nodes_output.csv",
-                                                     "1M_two_res_large/with_sensors/1M_two_res_large_")
+                                                     "1M_two_res_large_4_fold_week/with_sensors/1M_two_res_large_")
