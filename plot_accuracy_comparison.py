@@ -4,6 +4,7 @@ import pandas as pd
 
 
 #test
+#test 2
 
 # comparison all model
 accuracy_net1 = pd.read_csv ('ml_results/all_classificators_results/1WEEK_prediction_accuracies.csv')
