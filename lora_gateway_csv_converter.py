@@ -12,7 +12,7 @@ def how_many_gws(input_file):
 
     result = int(result)
 
-    print("File contains "+str(result)+" gateways")
+    print("File contains "+str(result)+" gateways\n")
 
     return result
 
@@ -32,10 +32,20 @@ def create_csv_per_gw(input_file):
 
         out.close()
 
+    print("Finished")
+
 def write_gw_csv(input_file, writer, gw_id):
+
+    print("Writing csv for GW id: "+str(gw_id)+"...")
 
     gw_rssi_index = 13 + (gw_id * 2)
     gw_sf_index = gw_rssi_index + 1
+
+    header = ["hour", "nodeID", "demand_value", "head_value", "pressure_value", "x_pos", "y_pos",
+							  "node_type", "has_leak", "leak_area_value", "leak_discharge_value",
+							  "current_leak_demand_value", "gw_rssi", "gw_sf"]
+
+    writer.writerow(header)
 
     with open(input_file) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -64,6 +74,8 @@ def write_gw_csv(input_file, writer, gw_id):
             output_row.append(gw_sf)
 
             writer.writerow(output_row)
+
+    print("csv written!\n")
 
 if __name__ == "__main__":
 
