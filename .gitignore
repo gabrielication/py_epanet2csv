@@ -5,7 +5,7 @@
 *.inp
 *.png
 
-!sample_nodes_output_one_week.csv
+!deprecated/sample_nodes_output_one_week.csv
 
 !networks/*.inp
 

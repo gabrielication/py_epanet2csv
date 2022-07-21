@@ -6,9 +6,9 @@ import pandas as pd
 #test
 
 # comparison all model
-accuracy_net1 = pd.read_csv ('ml_results/all_classificators_results/1WEEK_prediction_accuracies.csv')
-accuracy_net2 = pd.read_csv ('ml_results/all_classificators_results/1MONTH_prediction_accuracies.csv')
-accuracy_net3 = pd.read_csv ('ml_results/all_classificators_results/1YEAR_prediction_accuracies.csv')
+accuracy_net1 = pd.read_csv ('../ml_results/all_classificators_results/1WEEK_prediction_accuracies.csv')
+accuracy_net2 = pd.read_csv ('../ml_results/all_classificators_results/1MONTH_prediction_accuracies.csv')
+accuracy_net3 = pd.read_csv ('../ml_results/all_classificators_results/1YEAR_prediction_accuracies.csv')
 
 data = []
 networks = ["Network 1", "Network 2", "Network 3"]

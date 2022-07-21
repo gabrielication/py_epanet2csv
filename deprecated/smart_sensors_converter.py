@@ -53,7 +53,7 @@ def assign_smart_sensors(selected_junctions, input_file, prefix_out):
 
 if __name__ == "__main__":
 
-    input_file_inp = "networks/exported_month_large_complete_one_reservoirs_small.inp"
+    input_file_inp = "../networks/exported_month_large_complete_one_reservoirs_small.inp"
 
     selected_junctions= read_junctions(input_file_inp)
 

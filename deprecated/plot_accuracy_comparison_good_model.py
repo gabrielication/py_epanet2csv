@@ -4,12 +4,13 @@ import pandas as pd
 
 # comparison all model
 # accuracy_net1 = pd.read_csv ('ml_results/all_classificators_results/1WEEK_prediction_accuracies.csv')
-accuracy_net2_no_sensors = pd.read_csv ('ml_results/all_classificators_results/1MONTH_prediction_accuracies.csv')
+accuracy_net2_no_sensors = pd.read_csv ('../ml_results/all_classificators_results/1MONTH_prediction_accuracies.csv')
 # accuracy_net3 = pd.read_csv ('ml_results/all_classificators_results/1YEAR_prediction_accuracies.csv')
 
 # comparison good model
 # accuracy_net1 = pd.read_csv ('ml_results/with_sensors_decision_tree_results/1WEEK_prediction_accuracies.csv')
-accuracy_net2_sensors = pd.read_csv ('ml_results/with_sensors_decision_tree_results/1MONTH_decision_tree_accuracies.csv')
+accuracy_net2_sensors = pd.read_csv (
+    '../ml_results/with_sensors_decision_tree_results/1MONTH_decision_tree_accuracies.csv')
 # accuracy_net3 = pd.read_csv ('ml_results/with_sensors_decision_tree_results/1YEAR_prediction_accuracies.csv')
 
 
