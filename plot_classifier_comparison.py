@@ -168,14 +168,17 @@ if __name__ == "__main__":
 
     #input_filename = 'nodes_output.csv'
 
-    execute_classifier_comparison_wo_smart_sensors("1D_one_res_small/1D_one_res_small_nodes_output.csv", "1D_one_res_small/without_sensors/1D_one_res_small_")
-    execute_classifier_comparison_wo_smart_sensors("1D_one_res_large/1D_one_res_large_nodes_output.csv", "1D_one_res_large/without_sensors/1D_one_res_large_")
-    execute_classifier_comparison_wo_smart_sensors("1D_two_res_large/1D_two_res_large_nodes_output.csv", "1D_two_res_large/without_sensors/1D_two_res_large_")
+    execute_classifier_comparison_wo_smart_sensors("deprecated/1D_one_res_small/1D_one_res_small_nodes_output.csv",
+                                                   "deprecated/1D_one_res_small/without_sensors/1D_one_res_small_")
+    execute_classifier_comparison_wo_smart_sensors("deprecated/1D_one_res_large/1D_one_res_large_nodes_output.csv",
+                                                   "deprecated/1D_one_res_large/without_sensors/1D_one_res_large_")
+    execute_classifier_comparison_wo_smart_sensors("deprecated/1D_two_res_large/1D_two_res_large_nodes_output.csv",
+                                                   "deprecated/1D_two_res_large/without_sensors/1D_two_res_large_")
 
     #Add sensor field
-    execute_classifier_comparison_with_smart_sensors("1D_one_res_small/1D_one_res_small_nodes_output.csv",
-                                                   "1D_one_res_small/with_sensors/1D_one_res_small_")
-    execute_classifier_comparison_with_smart_sensors("1D_one_res_large/1D_one_res_large_nodes_output.csv",
-                                                   "1D_one_res_large/with_sensors/1D_one_res_large_")
-    execute_classifier_comparison_with_smart_sensors("1D_two_res_large/1D_two_res_large_nodes_output.csv",
-                                                   "1D_two_res_large/with_sensors/1D_two_res_large_")
+    execute_classifier_comparison_with_smart_sensors("deprecated/1D_one_res_small/1D_one_res_small_nodes_output.csv",
+                                                     "deprecated/1D_one_res_small/with_sensors/1D_one_res_small_")
+    execute_classifier_comparison_with_smart_sensors("deprecated/1D_one_res_large/1D_one_res_large_nodes_output.csv",
+                                                     "deprecated/1D_one_res_large/with_sensors/1D_one_res_large_")
+    execute_classifier_comparison_with_smart_sensors("deprecated/1D_two_res_large/1D_two_res_large_nodes_output.csv",
+                                                     "deprecated/1D_two_res_large/with_sensors/1D_two_res_large_")
