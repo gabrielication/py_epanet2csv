@@ -12,7 +12,7 @@ def how_many_gws(input_file):
 
     result = int(result)
 
-    print("File contains "+str(result)+" gateways\n")
+    print(input_file+" contains "+str(result)+" gateways\n")
 
     return result
 
@@ -32,7 +32,7 @@ def create_csv_per_gw(input_file):
 
         out.close()
 
-    print("Finished")
+    print("Finished\n\n")
 
 def write_gw_csv(input_file, writer, gw_id):
 
@@ -79,6 +79,7 @@ def write_gw_csv(input_file, writer, gw_id):
 
 if __name__ == "__main__":
 
-    input_file = "lora1D_one_res_small_nodes_output.csv"
-
-    create_csv_per_gw(input_file)
+    create_csv_per_gw("lora1D_one_res_small_nodes_output.csv")
+    create_csv_per_gw("lora1M_one_res_small_nodes_output.csv")
+    create_csv_per_gw("lora1M_one_res_large_nodes_output.csv")
+    create_csv_per_gw("lora1M_two_res_large_nodes_output.csv")
