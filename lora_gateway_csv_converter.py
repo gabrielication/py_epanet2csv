@@ -24,7 +24,7 @@ def create_csv_per_gw(input_file):
 
         outName = "gw_"+str(gw_id)+"_"+input_file
 
-        out = open(outName, "w")
+        out = open(outName, "w", newline='', encoding='utf-8')
 
         writer = csv.writer(out)
 
@@ -64,7 +64,7 @@ def write_gw_csv(input_file, writer, gw_id):
                 output_row[5] = "0.0"
                 output_row[6] = "0.0"
 
-                output_row[8] = "False"
+                #output_row[8] = "False"
 
                 output_row[9] = "0.0"
                 output_row[10] = "0.0"
