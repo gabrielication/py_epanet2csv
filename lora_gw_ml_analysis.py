@@ -7,6 +7,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 
+from joblib import dump, load
+
 import csv
 import os
 import pandas as pd
@@ -188,15 +190,15 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     f.close()
 
 if __name__ == "__main__":
-    print("Decision Tree benchmark started...\n")
+    print("Lora GW ML benchmark started...\n")
 
     # DECISION TREE
 
-    # input_full_dataset = "1M_one_res_small_nodes_output.csv"
-    # folder_prefix = "lora_gw_datasets/"
-    #
-    # model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    # execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_")
+    input_full_dataset = "1M_one_res_small_nodes_output.csv"
+    folder_prefix = "lora_gw_datasets/"
+
+    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_")
 
     input_full_dataset = "1M_one_res_large_nodes_output.csv"
     folder_prefix = "lora_gw_datasets/"
@@ -248,4 +250,4 @@ if __name__ == "__main__":
     # execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "mlp_2l_4000u_")
 
 
-    print("\nDecision Tree benchmark done!\n")
+    print("\nLora GW ML benchmark done!\n")
