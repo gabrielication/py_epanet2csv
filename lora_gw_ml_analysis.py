@@ -7,6 +7,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 
+from joblib import dump, load
+
 import csv
 import os
 import pandas as pd
@@ -165,8 +167,17 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     header = ["gw_id","accuracy","precision","recall","fscore","false_positive_rate","true_negatives","false_positives","false_negatives","true_positives"]
     writer.writerow(header)
 
-    # we first fit the model on the complete dataset and save the fitted model back
-    model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer)
+    output_filename_full_fitted_model = model_out_prefix + input_full_dataset.replace(".csv","") + '_full_fit_model.joblib'
+
+    print(output_filename_full_fitted_model)
+
+    if os.path.exists(output_filename_full_fitted_model):
+        print("\nFull fitted model already exists. Loading "+output_filename_full_fitted_model+"...")
+        model_fitted = load(output_filename_full_fitted_model)
+    else:
+        # we first fit the model on the complete dataset and save the fitted model back
+        model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer)
+        dump(model_fitted, output_filename_full_fitted_model)
 
     # we have to iterate each gateway and produce a report from its prediction
     for gw_id in range(10, 49):
@@ -180,15 +191,15 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     f.close()
 
 if __name__ == "__main__":
-    print("Decision Tree benchmark started...\n")
+    print("Lora GW ML benchmark started...\n")
 
     # DECISION TREE
 
-    # input_full_dataset = "1M_one_res_small_nodes_output.csv"
-    # folder_prefix = "lora_gw_datasets/"
-    #
-    # model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    # execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_")
+    input_full_dataset = "1M_one_res_small_nodes_output.csv"
+    folder_prefix = "lora_gw_datasets/"
+
+    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_")
 
     # input_full_dataset = "1M_one_res_large_nodes_output.csv"
     # folder_prefix = "lora_gw_datasets/"
@@ -216,12 +227,12 @@ if __name__ == "__main__":
     # execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "mlp_2l_100u_")
     #
     #
-    input_full_dataset = "1M_one_res_large_nodes_output.csv"
-    folder_prefix = "lora_gw_datasets/"
+    #input_full_dataset = "1M_one_res_large_nodes_output.csv"
+    #folder_prefix = "lora_gw_datasets/"
     #
-    model = Pipeline([('scaler', StandardScaler()),
-                      ('MLPC', MLPClassifier(random_state=1, max_iter=1000, hidden_layer_sizes=(2000)))])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "mlp_1l_2000u_")
+    #model = Pipeline([('scaler', StandardScaler()),
+    #                  ('MLPC', MLPClassifier(random_state=1, max_iter=1000, hidden_layer_sizes=(2000)))])
+    #execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "mlp_1l_2000u_")
     #
     # model = Pipeline([('scaler', StandardScaler()),
     #                   ('MLPC', MLPClassifier(random_state=1, max_iter=1000, hidden_layer_sizes=(2000, 2000)))])
@@ -240,4 +251,4 @@ if __name__ == "__main__":
     # execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "mlp_2l_4000u_")
 
 
-    print("\nDecision Tree benchmark done!\n")
+    print("\nLora GW ML benchmark done!\n")
