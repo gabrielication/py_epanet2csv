@@ -78,49 +78,53 @@ def execute_classifier(model, input_gw_dataset, gw_id, writer):
     # print("Loading " + input_gw_dataset + "...")
 
     data_gw = pd.read_csv(input_gw_dataset)
-    # print(data_gw.head())
+
     """
      hour nodeID  demand_value  ...  current_leak_demand_value     gw_rssi  gw_sf
     """
 
-    # data_gw = pd.read_csv("1M_one_res_large_nodes_output.csv",
-    #                         names=["hour", "nodeID", "demand_value", "head_value", "pressure_value", "x_pos", "y_pos",
-    #                                "node_type", "has_leak", "leak_area_value", "leak_discharge_value",
-    #                                "current_leak_demand_value", "smart_sensor_presence"])
-    # print(data_gw.head())
-
     # cut dataset to 4 weeks
-    # start_index_test = len(data_gw["nodeID"].unique()) * 24 * 21
-    # end_index_dataset = len(data_gw["nodeID"].unique()) * 24 * 28
-    start_index_test = len(data_gw["nodeID"].unique()) * 24 * 23
-    stop_index_test = (len(data_gw["nodeID"].unique()) * 24 * 23) + len(data_gw["nodeID"].unique())
+    start_index_test = len(data_gw["nodeID"].unique()) * 24 * 21
+    stop_index_test = len(data_gw["nodeID"].unique()) * 24 * 28
 
     data_gw = data_gw.iloc[start_index_test:stop_index_test]
-    data_gw.reset_index(inplace=True, drop=True)
-
-    # print("Cuting " + input_gw_dataset + "...")
-    # print(data_gw.head())
+    #data_gw.reset_index(inplace=True, drop=True)
 
     # print("Dividing X_gw and y_gw matrices...")
-    X_test_gw = data_gw[["demand_value", "head_value", "pressure_value"]].copy()
-    y_test_gw = data_gw["has_leak"].astype(int)
+    X_gw = data_gw[["demand_value", "head_value", "pressure_value"]].copy()
+    y_gw = data_gw["has_leak"].astype(int)
 
-    # test dataset represent only the last week
-    # print("Predicting...")
+    accuracy = 0.0
+    i = 0
 
-    y_pred_test_gw = model.predict(X_test_gw)
-    # data_gw['y_pred_test_gw'] = y_pred_test_gw
-    # print("len all : ", len(y_pred_test_gw), " - ", len(X_test_gw))
-    # print("len all dataset : ", len(data_gw))
+    for day_of_the_week in range(7):
+        start_index_test = len(data_gw["nodeID"].unique()) * 24 * day_of_the_week
+        stop_index_test = len(data_gw["nodeID"].unique()) * 24 * (day_of_the_week + 1)
 
-    idx  = data_gw.index[data_gw['gw_sf'] == 7].tolist()
-    # print("len only covered node : ", len(idx))
-    y_test_gw = y_test_gw.iloc[idx]
-    y_pred_test_gw = y_pred_test_gw[idx]
-    # print("len all 2 : ", len(y_pred_test_gw), " - ", len(y_test_gw))
+        for hour_of_the_day in range(24):
+
+            start_index_hour_test = start_index_test + (len(data_gw["nodeID"].unique()) * hour_of_the_day)
+            stop_index_hour_test = start_index_test + (len(data_gw["nodeID"].unique()) * (hour_of_the_day + 1))
+
+            X_test_gw = X_gw.iloc[start_index_hour_test:stop_index_hour_test]
+            y_test_gw = y_gw.iloc[start_index_hour_test:stop_index_hour_test]
+
+            print("len x test", len(X_test_gw))
+            print("len y test", len(y_test_gw))
+
+            y_pred_test_gw = model.predict(X_test_gw)
+            # data_gw['y_pred_test_gw'] = y_pred_test_gw
+            # print("len all : ", len(y_pred_test_gw), " - ", len(X_test_gw))
+            # print("len all dataset : ", len(data_gw))
+
+            produce_results_from_cf_matrix(y_test_gw, y_pred_test_gw, gw_id, writer)
+
+            #accuracy += results[1]
+            i += 1
+
+    avg_accuracy = accuracy / i
 
 
-    produce_results_from_cf_matrix(y_test_gw, y_pred_test_gw, gw_id, writer)
 
 def produce_results_from_cf_matrix(y_test, y_pred, gw_id, writer):
     cf_matrix = confusion_matrix(y_test, y_pred)
