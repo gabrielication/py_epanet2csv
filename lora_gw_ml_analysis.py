@@ -13,7 +13,6 @@ import csv
 import os
 import pandas as pd
 import numpy as np
-import sys
 
 
 def fit_on_complete_dataset(model, input_full_dataset, writer):
@@ -156,7 +155,7 @@ def produce_results_from_cf_matrix(y_test, y_pred, gw_id, writer):
     writer.writerow(out_row)
 
 
-def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", model_out_prefix=""):
+def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", model_out_prefix="", model_persistency=False):
     output_filename = model_out_prefix+'lora_all_gw_ml_results_'+input_full_dataset
 
 
@@ -172,9 +171,22 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     header = ["gw_id","accuracy","precision","recall","fscore","false_positive_rate","true_negatives","false_positives","false_negatives","true_positives"]
     writer.writerow(header)
 
-    # we first fit the model on the complete dataset and save the fitted model back
-    model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer)
-    # sys.exit(1)
+    if (model_persistency):
+        print("Model persistency ENABLED")
+        output_filename_full_fitted_model = model_out_prefix + input_full_dataset.replace(".csv",
+                                                                                          "") + '_full_fit_model.joblib'
+
+        if os.path.exists(output_filename_full_fitted_model):
+            print("Full fitted model already exists. Loading " + output_filename_full_fitted_model + "...")
+            model_fitted = load(output_filename_full_fitted_model)
+        else:
+            # we first fit the model on the complete dataset and save the fitted model back
+            model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer)
+            dump(model_fitted, output_filename_full_fitted_model)
+            print("Model saved to: " + output_filename_full_fitted_model)
+    else:
+        print("Model persistency DISABLED")
+        model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer)
 
     # we have to iterate each gateway and produce a report from its prediction
     for gw_id in range(2000):
@@ -192,19 +204,21 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
 if __name__ == "__main__":
     print("Lora GW ML benchmark started...\n")
 
+    model_persistency = False
+
     # DECISION TREE
 
     input_full_dataset = "1M_one_res_small_nodes_output.csv"
     folder_prefix = "lora_gw_datasets/"
 
     model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_")
+    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_", model_persistency=model_persistency)
 
     input_full_dataset = "1M_one_res_large_nodes_output.csv"
     folder_prefix = "lora_gw_datasets/"
 
     model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_")
+    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_", model_persistency=model_persistency)
 
     # input_full_dataset = "1M_two_res_large_nodes_output.csv"
     # folder_prefix = "lora_gw_datasets/"
