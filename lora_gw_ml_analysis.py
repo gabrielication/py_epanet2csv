@@ -1,3 +1,5 @@
+import sys
+
 from sklearnex import patch_sklearn
 patch_sklearn()
 
@@ -15,7 +17,7 @@ import pandas as pd
 import numpy as np
 
 
-def fit_on_complete_dataset(model, input_full_dataset, writer):
+def fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting):
     print("Loading " + input_full_dataset + "...")
 
     data_full = pd.read_csv(input_full_dataset,
@@ -33,7 +35,7 @@ def fit_on_complete_dataset(model, input_full_dataset, writer):
     y = data_full["has_leak"].astype(int)
 
     # train dataset represents only the first three weeks
-    end_index_train = len(data_full["nodeID"].unique()) * 24 * 14
+    end_index_train = len(data_full["nodeID"].unique()) * 24 * days_of_fitting
 
     X_train = X.iloc[:end_index_train]
     y_train = y.iloc[:end_index_train]
@@ -44,21 +46,32 @@ def fit_on_complete_dataset(model, input_full_dataset, writer):
 
     print("Predicting on full dataset...")
 
-    start_index_test = len(data_full["nodeID"].unique()) * 24 * 23
-    stop_index_test = (len(data_full["nodeID"].unique()) * 24 * 23) + len(data_full["nodeID"].unique())
-    # stop_index_test = len(data_full["nodeID"].unique()) * 24 * 27
+    accuracy = 0.0
+    i = 0
 
-    X_test = X.iloc[start_index_test:stop_index_test]
-    y_test = y.iloc[start_index_test:stop_index_test]
+    for day_of_the_week in range (21,28):
+        start_index_test = len(data_full["nodeID"].unique()) * 24 * day_of_the_week
+        stop_index_test = len(data_full["nodeID"].unique()) * 24 * (day_of_the_week+1)
 
-    print(len(X_test))
-    # print(X_test.head())
+        X_test = X.iloc[start_index_test:stop_index_test]
+        y_test = y.iloc[start_index_test:stop_index_test]
 
-    y_pred = model.predict(X_test)
+        #print(len(X_test))
+        #print(days_of_fitting,day_of_the_week)
+        # print(X_test.head())
 
-    produce_results_from_cf_matrix(y_test, y_pred, "full", writer)
+        y_pred = model.predict(X_test)
 
-    return model
+        results = produce_results_from_cf_matrix(y_test, y_pred, "full", writer)
+
+        accuracy += results[1]
+        i += 1
+
+    avg_accuracy = accuracy / i
+    print(days_of_fitting, avg_accuracy)
+
+    #todo: will have to return the best model
+    return model, avg_accuracy
 
 def execute_classifier(model, input_gw_dataset, gw_id, writer):
 
@@ -149,10 +162,12 @@ def produce_results_from_cf_matrix(y_test, y_pred, gw_id, writer):
         calc_accuracy = 1
         false_positive_rate = 1
 
-    print(gw_id,calc_accuracy,precision,recall,fscore,support,false_positive_rate)
+    #print(gw_id,calc_accuracy,precision,recall,fscore,support,false_positive_rate)
 
     out_row = [gw_id, calc_accuracy, precision, recall, fscore, false_positive_rate, true_negatives, false_positives, false_negatives, true_positives]
     writer.writerow(out_row)
+
+    return out_row
 
 
 def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", model_out_prefix="", model_persistency=False):
@@ -171,22 +186,38 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     header = ["gw_id","accuracy","precision","recall","fscore","false_positive_rate","true_negatives","false_positives","false_negatives","true_positives"]
     writer.writerow(header)
 
-    if (model_persistency):
-        print("Model persistency ENABLED")
-        output_filename_full_fitted_model = model_out_prefix + input_full_dataset.replace(".csv",
-                                                                                          "") + '_full_fit_model.joblib'
+    #if (model_persistency):
+    #    print("Model persistency ENABLED")
+    #    output_filename_full_fitted_model = model_out_prefix + input_full_dataset.replace(".csv",
+    #                                                                                      "") + '_full_fit_model.joblib'
 
-        if os.path.exists(output_filename_full_fitted_model):
-            print("Full fitted model already exists. Loading " + output_filename_full_fitted_model + "...")
-            model_fitted = load(output_filename_full_fitted_model)
-        else:
-            # we first fit the model on the complete dataset and save the fitted model back
-            model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer)
-            dump(model_fitted, output_filename_full_fitted_model)
-            print("Model saved to: " + output_filename_full_fitted_model)
-    else:
-        print("Model persistency DISABLED")
-        model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer)
+    #    if os.path.exists(output_filename_full_fitted_model):
+    #        print("Full fitted model already exists. Loading " + output_filename_full_fitted_model + "...")
+    #        model_fitted = load(output_filename_full_fitted_model)
+    #    else:
+    #        # we first fit the model on the complete dataset and save the fitted model back
+    #        model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting)
+    #        dump(model_fitted, output_filename_full_fitted_model)
+    #        print("Model saved to: " + output_filename_full_fitted_model)
+    #else:
+    #    print("Model persistency DISABLED")
+    #    model_fitted = fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting)
+
+    max_accuracy = 0.0
+    max_model_fitted = None
+    max_days_of_fitting = 0
+
+    for days_of_fitting in range(4,21):
+
+        results = fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting)
+        accuracy = round(results[1],2)
+
+        if(accuracy > max_accuracy):
+            max_model_fitted = results[0]
+            max_accuracy = accuracy
+            max_days_of_fitting = days_of_fitting
+
+    print(max_days_of_fitting,max_accuracy)
 
     # we have to iterate each gateway and produce a report from its prediction
     for gw_id in range(2000):
@@ -195,7 +226,7 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
         # print("\n\n *******input_gw_dataset : ", input_gw_dataset)
         # print(gw_id)
         if os.path.exists(input_gw_dataset):
-            execute_classifier(model_fitted, input_gw_dataset, gw_id, writer)
+            execute_classifier(max_model_fitted, input_gw_dataset, gw_id, writer)
         else:
             break
 
@@ -212,13 +243,15 @@ if __name__ == "__main__":
     folder_prefix = "lora_gw_datasets/"
 
     model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_", model_persistency=model_persistency)
 
-    input_full_dataset = "1M_one_res_large_nodes_output.csv"
-    folder_prefix = "lora_gw_datasets/"
+    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
+                                   model_persistency=model_persistency)
 
-    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_", model_persistency=model_persistency)
+    #input_full_dataset = "1M_one_res_large_nodes_output.csv"
+    #folder_prefix = "lora_gw_datasets/"
+
+    #model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    #execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_", model_persistency=model_persistency)
 
     # input_full_dataset = "1M_two_res_large_nodes_output.csv"
     # folder_prefix = "lora_gw_datasets/"
