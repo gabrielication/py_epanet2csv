@@ -1,5 +1,3 @@
-import sys
-
 from sklearnex import patch_sklearn
 patch_sklearn()
 
@@ -62,7 +60,7 @@ def fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting):
 
         y_pred = model.predict(X_test)
 
-        results = produce_results_from_cf_matrix(y_test, y_pred, "full", writer)
+        results = produce_results_from_cf_matrix(y_test, y_pred, "full")
 
         accuracy += results[1]
         i += 1
@@ -73,7 +71,7 @@ def fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting):
     #todo: will have to return the best model
     return model, avg_accuracy
 
-def execute_classifier(model, input_gw_dataset, gw_id, writer):
+def execute_classifier(model, input_gw_dataset, gw_id, days_of_fitting, writer):
 
     # print("Loading " + input_gw_dataset + "...")
 
@@ -88,14 +86,7 @@ def execute_classifier(model, input_gw_dataset, gw_id, writer):
     stop_index_test = len(data_gw["nodeID"].unique()) * 24 * 28
 
     data_gw = data_gw.iloc[start_index_test:stop_index_test]
-    #data_gw.reset_index(inplace=True, drop=True)
-
-    # print("Dividing X_gw and y_gw matrices...")
-    X_gw = data_gw[["demand_value", "head_value", "pressure_value"]].copy()
-    y_gw = data_gw["has_leak"].astype(int)
-
-    accuracy = 0.0
-    i = 0
+    data_gw.reset_index(inplace=True, drop=True)
 
     for day_of_the_week in range(7):
         start_index_test = len(data_gw["nodeID"].unique()) * 24 * day_of_the_week
@@ -106,27 +97,34 @@ def execute_classifier(model, input_gw_dataset, gw_id, writer):
             start_index_hour_test = start_index_test + (len(data_gw["nodeID"].unique()) * hour_of_the_day)
             stop_index_hour_test = start_index_test + (len(data_gw["nodeID"].unique()) * (hour_of_the_day + 1))
 
-            X_test_gw = X_gw.iloc[start_index_hour_test:stop_index_hour_test]
-            y_test_gw = y_gw.iloc[start_index_hour_test:stop_index_hour_test]
+            data_gw_temp = data_gw.iloc[start_index_hour_test:stop_index_hour_test]
+            data_gw_temp.reset_index(inplace=True, drop=True)
 
-            print("len x test", len(X_test_gw))
-            print("len y test", len(y_test_gw))
+            # print("Dividing X_gw and y_gw matrices...")
+            X_test_gw = data_gw_temp[["demand_value", "head_value", "pressure_value"]].copy()
+            y_test_gw = data_gw_temp["has_leak"].astype(int)
+
+            #print("len x test", len(X_test_gw))
+            #print("len y test", len(y_test_gw))
 
             y_pred_test_gw = model.predict(X_test_gw)
-            # data_gw['y_pred_test_gw'] = y_pred_test_gw
-            # print("len all : ", len(y_pred_test_gw), " - ", len(X_test_gw))
-            # print("len all dataset : ", len(data_gw))
 
-            produce_results_from_cf_matrix(y_test_gw, y_pred_test_gw, gw_id, writer)
+            idx = data_gw_temp.index[data_gw_temp['gw_sf'] == 7].tolist()
 
-            #accuracy += results[1]
-            i += 1
+            y_test_gw = y_test_gw.iloc[idx]
+            y_pred_test_gw = y_pred_test_gw[idx]
 
-    avg_accuracy = accuracy / i
+            results = produce_results_from_cf_matrix(y_test_gw, y_pred_test_gw, gw_id)
 
+            results.append(day_of_the_week)
+            results.append(hour_of_the_day)
+            results.append(days_of_fitting)
 
+            writer.writerow(results)
 
-def produce_results_from_cf_matrix(y_test, y_pred, gw_id, writer):
+            #print(results)
+
+def produce_results_from_cf_matrix(y_test, y_pred, gw_id):
     cf_matrix = confusion_matrix(y_test, y_pred)
 
     group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos']
@@ -169,7 +167,7 @@ def produce_results_from_cf_matrix(y_test, y_pred, gw_id, writer):
     #print(gw_id,calc_accuracy,precision,recall,fscore,support,false_positive_rate)
 
     out_row = [gw_id, calc_accuracy, precision, recall, fscore, false_positive_rate, true_negatives, false_positives, false_negatives, true_positives]
-    writer.writerow(out_row)
+    #writer.writerow(out_row)
 
     return out_row
 
@@ -187,7 +185,9 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ["gw_id","accuracy","precision","recall","fscore","false_positive_rate","true_negatives","false_positives","false_negatives","true_positives"]
+    header = ["gw_id","accuracy","precision","recall","fscore","false_positive_rate","true_negatives",
+              "false_positives","false_negatives","true_positives","day_of_the_week","hour_of_the_day","days_of_fitting"]
+
     writer.writerow(header)
 
     #if (model_persistency):
@@ -211,10 +211,28 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     max_model_fitted = None
     max_days_of_fitting = 0
 
+    output_full_filename = model_out_prefix + 'lora_full_dataset_ml_results_' + input_full_dataset
+
+    # open the file in the write mode
+    f_full = open(output_full_filename, "w", newline='', encoding='utf-8')
+
+    # create the csv writer
+    writer_full = csv.writer(f_full)
+
+    header_full = ["model","days_of_fitting","avg_accuracy"]
+
+    writer_full.writerow(header_full)
+
     for days_of_fitting in range(4,21):
 
         results = fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting)
         accuracy = round(results[1],2)
+
+        model_name = type(model).__name__
+
+        output_row_full = [model_name, days_of_fitting, accuracy]
+
+        writer_full.writerow(output_row_full)
 
         if(accuracy > max_accuracy):
             max_model_fitted = results[0]
@@ -223,6 +241,8 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
 
     print(max_days_of_fitting,max_accuracy)
 
+    f_full.close()
+
     # we have to iterate each gateway and produce a report from its prediction
     for gw_id in range(2000):
         index = str(gw_id)
@@ -230,7 +250,7 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
         # print("\n\n *******input_gw_dataset : ", input_gw_dataset)
         # print(gw_id)
         if os.path.exists(input_gw_dataset):
-            execute_classifier(max_model_fitted, input_gw_dataset, gw_id, writer)
+            execute_classifier(max_model_fitted, input_gw_dataset, gw_id, max_days_of_fitting, writer)
         else:
             break
 
@@ -240,29 +260,30 @@ if __name__ == "__main__":
     print("Lora GW ML benchmark started...\n")
 
     model_persistency = False
+    folder_prefix = "lora_gw_datasets/"
 
     # DECISION TREE
 
     input_full_dataset = "1M_one_res_small_nodes_output.csv"
-    folder_prefix = "lora_gw_datasets/"
 
     model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-
     execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
                                    model_persistency=model_persistency)
 
-    #input_full_dataset = "1M_one_res_large_nodes_output.csv"
-    #folder_prefix = "lora_gw_datasets/"
 
-    #model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    #execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_", model_persistency=model_persistency)
+    input_full_dataset = "1M_one_res_large_nodes_output.csv"
 
-    # input_full_dataset = "1M_two_res_large_nodes_output.csv"
-    # folder_prefix = "lora_gw_datasets/"
-    #
-    # model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    # execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix, "dt_")
-    #
+    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
+                                   model_persistency=model_persistency)
+
+
+    input_full_dataset = "1M_two_res_large_nodes_output.csv"
+
+    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
+                                   model_persistency=model_persistency)
+
     # # MLP
     #
     # input_full_dataset = "1M_one_res_small_nodes_output.csv"
