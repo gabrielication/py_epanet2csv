@@ -155,14 +155,14 @@ def produce_results_from_cf_matrix(y_test, y_pred, gw_id):
     except:
         print("All true negatives")
 
-    if not  true_positives + true_negatives + false_negatives + false_positives == 0:
+    if not true_positives + true_negatives + false_negatives + false_positives == 0:
         calc_accuracy = (true_positives + true_negatives) / (
             true_positives + true_negatives + false_negatives + false_positives)
         false_positive_rate = false_positives / (false_positives + true_negatives)
 
     else:
-        calc_accuracy = 1
-        false_positive_rate = 1
+        calc_accuracy = -1
+        false_positive_rate = -1
 
     #print(gw_id,calc_accuracy,precision,recall,fscore,support,false_positive_rate)
 
@@ -219,24 +219,25 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     # create the csv writer
     writer_full = csv.writer(f_full)
 
-    header_full = ["model","days_of_fitting","avg_accuracy"]
+    header_full = ["model","days_of_fitting","avg_accuracy_rounded","avg_accuracy"]
 
     writer_full.writerow(header_full)
 
     for days_of_fitting in range(4,21):
 
         results = fit_on_complete_dataset(model, input_full_dataset, writer, days_of_fitting)
-        accuracy = round(results[1],2)
+        accuracy = results[1]
+        accuracy_rounded = round(results[1],2)
 
-        model_name = type(model).__name__
+        model_name = "DecisionTree"
 
-        output_row_full = [model_name, days_of_fitting, accuracy]
+        output_row_full = [model_name, days_of_fitting, accuracy_rounded, accuracy]
 
         writer_full.writerow(output_row_full)
 
-        if(accuracy > max_accuracy):
+        if(accuracy_rounded > max_accuracy):
             max_model_fitted = results[0]
-            max_accuracy = accuracy
+            max_accuracy = accuracy_rounded
             max_days_of_fitting = days_of_fitting
 
     print(max_days_of_fitting,max_accuracy)
