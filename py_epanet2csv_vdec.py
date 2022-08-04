@@ -96,7 +96,7 @@ def links_to_csv(wn, results, link_names, output_file_name, proc_name):
     indexes = flow_results.index
 
     outName = output_file_name+"links_output.csv"
-    out = open(outName, "w")
+    out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
     debug = False
@@ -148,7 +148,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
     indexes = demand_results.index
 
     outName = output_file_name+"nodes_output.csv"
-    out = open(outName, "w")
+    out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
     debug = False
@@ -274,7 +274,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
     time_spent_on_sim = wn.options.time.duration / 3600
 
     outName = output_file_name + "nodes_simulation_stats.csv"
-    out = open(outName, "w")
+    out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
     header = ["tot_nodes_demand","leak_percentage","number_of_nodes","number_of_junctions",
@@ -322,13 +322,13 @@ if __name__ == "__main__":
     number_of_nodes_with_sensors3 = 0
 
     wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
-    wn_1.options.time.duration = 24 * 3600
+    wn_1.options.time.duration = 744 * 3600
 
     wn_2 = wntr.network.WaterNetworkModel(input_file_inp2)
-    wn_2.options.time.duration = 24 * 3600
+    wn_2.options.time.duration = 744 * 3600
 
     wn_3 = wntr.network.WaterNetworkModel(input_file_inp3)
-    wn_3.options.time.duration = 24 * 3600
+    wn_3.options.time.duration = 744 * 3600
 
     smart_sensor_junctions = []
 
@@ -344,6 +344,8 @@ if __name__ == "__main__":
         assign_leaks(wn_1, 0.000002, selected_junctions1, "1D_one_res_small")
         assign_leaks(wn_2, 0.000006, selected_junctions2, "1D_one_res_large")
         assign_leaks(wn_3, 0.000006, selected_junctions3, "1D_two_res_large")
+    else:
+        print("LEAKAGES NOT ENABLED")
 
     if (smart_sensors_enabled):
         number_of_nodes_with_sensors1 = int(len(wn_1.junction_name_list) / 4)
@@ -356,13 +358,13 @@ if __name__ == "__main__":
 
     #Code to be ran with a single execution
 
-    run_sim(wn_1, smart_sensor_junctions1, output_file_name="1D_one_res_small_", proc_name="1D_one_res_small: ",
+    run_sim(wn_1, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_", proc_name="1M_one_res_small_alt_with_leaks: ",
             number_of_nodes_with_sensors= number_of_nodes_with_sensors1, number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
 
-    run_sim(wn_2, smart_sensor_junctions2, output_file_name="1D_one_res_large_", proc_name="1D_one_res_large: ",
+    run_sim(wn_2, smart_sensor_junctions2, output_file_name="1M_one_res_large_alt_with_leaks_", proc_name="1M_one_res_large_alt_with_leaks: ",
             number_of_nodes_with_sensors= number_of_nodes_with_sensors2, number_of_nodes_with_leaks=number_of_junctions_with_leaks2)
 
-    run_sim(wn_3, smart_sensor_junctions3, output_file_name="1D_two_res_large_", proc_name="1D_two_res_large: ",
+    run_sim(wn_3, smart_sensor_junctions3, output_file_name="1M_two_res_large_alt_with_leaks_", proc_name="1M_two_res_large_alt_with_leaks: ",
             number_of_nodes_with_sensors= number_of_nodes_with_sensors3, number_of_nodes_with_leaks=number_of_junctions_with_leaks3)
 
     #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
