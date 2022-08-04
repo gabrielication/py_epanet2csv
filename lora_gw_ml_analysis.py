@@ -172,8 +172,9 @@ def produce_results_from_cf_matrix(y_test, y_pred, gw_id):
     return out_row
 
 
-def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", model_out_prefix="", model_persistency=False):
-    output_filename = model_out_prefix+'lora_all_gw_ml_results_'+input_full_dataset
+def execute_classifier_for_each_gw(model, input_full_dataset, input_gw_dataset, folder_prefix="", model_out_prefix="", model_persistency=False):
+
+    output_filename = "alternative_networks/lora_gw/results/"+model_out_prefix+'lora_all_gw_ml_results_'+input_full_dataset
 
 
     print("output_filename : ",output_filename)
@@ -211,7 +212,7 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     max_model_fitted = None
     max_days_of_fitting = 0
 
-    output_full_filename = model_out_prefix + 'lora_full_dataset_ml_results_' + input_full_dataset
+    output_full_filename = "alternative_networks/lora_gw/results/"+model_out_prefix + 'lora_full_dataset_ml_results_' + input_full_dataset
 
     # open the file in the write mode
     f_full = open(output_full_filename, "w", newline='', encoding='utf-8')
@@ -247,11 +248,11 @@ def execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix="", 
     # we have to iterate each gateway and produce a report from its prediction
     for gw_id in range(2000):
         index = str(gw_id)
-        input_gw_dataset = folder_prefix + "gw_" + index + "_lora" + input_full_dataset
-        # print("\n\n *******input_gw_dataset : ", input_gw_dataset)
+        input_prediction_dataset = folder_prefix + "gw_" + index + "_lora" + input_gw_dataset
+        # print("\n\n *******input_prediction_dataset : ", input_prediction_dataset)
         # print(gw_id)
-        if os.path.exists(input_gw_dataset):
-            execute_classifier(max_model_fitted, input_gw_dataset, gw_id, max_days_of_fitting, writer)
+        if os.path.exists(input_prediction_dataset):
+            execute_classifier(max_model_fitted, input_prediction_dataset, gw_id, max_days_of_fitting, writer)
         else:
             break
 
@@ -261,28 +262,55 @@ if __name__ == "__main__":
     print("Lora GW ML benchmark started...\n")
 
     model_persistency = False
-    folder_prefix = "lora_gw_datasets/"
+    folder_prefix = "alternative_networks/lora_gw/"
 
     # DECISION TREE
 
     input_full_dataset = "1M_one_res_small_nodes_output.csv"
+    input_gw_dataset = "1M_one_res_small_alt_no_leaks_nodes_output.csv"
 
     model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
+    execute_classifier_for_each_gw(model, input_full_dataset, input_gw_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
                                    model_persistency=model_persistency)
 
+    input_full_dataset = "1M_one_res_small_nodes_output.csv"
+    input_gw_dataset = "1M_one_res_small_alt_with_leaks_nodes_output.csv"
+
+    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    execute_classifier_for_each_gw(model, input_full_dataset, input_gw_dataset, folder_prefix=folder_prefix,
+                                   model_out_prefix="dt_",
+                                   model_persistency=model_persistency)
 
     input_full_dataset = "1M_one_res_large_nodes_output.csv"
+    input_gw_dataset = "1M_one_res_large_alt_no_leaks_nodes_output.csv"
 
     model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
+    execute_classifier_for_each_gw(model, input_full_dataset, input_gw_dataset, folder_prefix=folder_prefix,
+                                   model_out_prefix="dt_",
                                    model_persistency=model_persistency)
 
-
-    input_full_dataset = "1M_two_res_large_nodes_output.csv"
+    input_full_dataset = "1M_one_res_large_nodes_output.csv"
+    input_gw_dataset = "1M_one_res_large_alt_with_leaks_nodes_output.csv"
 
     model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
-    execute_classifier_for_each_gw(model, input_full_dataset, folder_prefix=folder_prefix, model_out_prefix="dt_",
+    execute_classifier_for_each_gw(model, input_full_dataset, input_gw_dataset, folder_prefix=folder_prefix,
+                                   model_out_prefix="dt_",
+                                   model_persistency=model_persistency)
+
+    input_full_dataset = "1M_two_res_large_nodes_output.csv"
+    input_gw_dataset = "1M_two_res_large_alt_no_leaks_nodes_output.csv"
+
+    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    execute_classifier_for_each_gw(model, input_full_dataset, input_gw_dataset, folder_prefix=folder_prefix,
+                                   model_out_prefix="dt_",
+                                   model_persistency=model_persistency)
+
+    input_full_dataset = "1M_two_res_large_nodes_output.csv"
+    input_gw_dataset = "1M_two_res_large_alt_with_leaks_nodes_output.csv"
+
+    model = Pipeline([('scaler', StandardScaler()), ('DTC', DecisionTreeClassifier())])
+    execute_classifier_for_each_gw(model, input_full_dataset, input_gw_dataset, folder_prefix=folder_prefix,
+                                   model_out_prefix="dt_",
                                    model_persistency=model_persistency)
 
     # # MLP
