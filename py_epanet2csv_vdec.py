@@ -13,6 +13,7 @@ leaks_enabled = True
 
 lock = Lock()
 
+#MULTIPROCESS GENERATION CURRENTLY DEPRECATED
 class WNTR_Process (Process):
 
     def __init__(self, name, wn, smart_sensor_junctions):
@@ -29,6 +30,20 @@ class WNTR_Process (Process):
         lock.release()
         run_sim(self.wn, self.smart_sensor_junctions, output_file_name=self.name+"_", proc_name=self.name + ": ")
 
+def create_custom_pattern(wn, name, min, max, step, duration):
+    timeops = wntr.network.options.TimeOptions(duration)
+
+    multipliers = []
+
+    for multiplier_step in range(min,max+step,step):
+        multipliers.append(multiplier_step)
+
+    out_pattern = wntr.network.Pattern("custom", multipliers, time_options=timeops)
+
+    wn.add_pattern(name, out_pattern)
+
+    return out_pattern
+
 def run_sim(wn, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_nodes_with_sensors=0, output_file_name="", proc_name=""):
     print(proc_name + "Configuring simulation...")
 
@@ -42,9 +57,6 @@ def run_sim(wn, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_
 
     sim_duration_in_seconds = wn.options.time.duration
 
-    #print(dict(wn.options.hydraulic))
-
-    #results = wntr.sim.EpanetSimulator(wn).run_sim()
     print(proc_name + "Running simulation...")
 
     results = wntr.sim.WNTRSimulator(wn).run_sim()
@@ -321,8 +333,13 @@ if __name__ == "__main__":
     number_of_nodes_with_sensors2 = 0
     number_of_nodes_with_sensors3 = 0
 
+    sim_duration = 744 * 3600
+
     wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
-    wn_1.options.time.duration = 744 * 3600
+    wn_1.options.time.duration = sim_duration
+
+    #TODO!
+    create_custom_pattern(wn_1, "custom_1", 0, 1800, 100, sim_duration)
 
     wn_2 = wntr.network.WaterNetworkModel(input_file_inp2)
     wn_2.options.time.duration = 744 * 3600
@@ -361,11 +378,11 @@ if __name__ == "__main__":
     run_sim(wn_1, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_", proc_name="1M_one_res_small_alt_with_leaks: ",
             number_of_nodes_with_sensors= number_of_nodes_with_sensors1, number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
 
-    run_sim(wn_2, smart_sensor_junctions2, output_file_name="1M_one_res_large_alt_with_leaks_", proc_name="1M_one_res_large_alt_with_leaks: ",
-            number_of_nodes_with_sensors= number_of_nodes_with_sensors2, number_of_nodes_with_leaks=number_of_junctions_with_leaks2)
-
-    run_sim(wn_3, smart_sensor_junctions3, output_file_name="1M_two_res_large_alt_with_leaks_", proc_name="1M_two_res_large_alt_with_leaks: ",
-            number_of_nodes_with_sensors= number_of_nodes_with_sensors3, number_of_nodes_with_leaks=number_of_junctions_with_leaks3)
+    # run_sim(wn_2, smart_sensor_junctions2, output_file_name="1M_one_res_large_alt_with_leaks_", proc_name="1M_one_res_large_alt_with_leaks: ",
+    #         number_of_nodes_with_sensors= number_of_nodes_with_sensors2, number_of_nodes_with_leaks=number_of_junctions_with_leaks2)
+    #
+    # run_sim(wn_3, smart_sensor_junctions3, output_file_name="1M_two_res_large_alt_with_leaks_", proc_name="1M_two_res_large_alt_with_leaks: ",
+    #         number_of_nodes_with_sensors= number_of_nodes_with_sensors3, number_of_nodes_with_leaks=number_of_junctions_with_leaks3)
 
     #Code to be ran with multiple execution (useful for producing parallel multiple leaks)
     #proc1 = WNTR_Process("1D_one_res_small", wn_1, smart_sensor_junctions1)
