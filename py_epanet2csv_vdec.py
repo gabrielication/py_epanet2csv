@@ -71,12 +71,7 @@ def run_sim(wn, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_
 def pick_rand_leaks(wn, number_of_junctions_with_leaks):
     node_names = wn.junction_name_list
 
-    #selected_junctions = random.sample(node_names, 3)
-
     selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
-
-    #print(len_nodes)
-    #print(len(selected_junctions))
 
     return selected_junctions
 
@@ -93,10 +88,10 @@ def pick_rand_smart_sensors(wn,number_of_nodes_with_sensors):
 
     selected_junctions = random.sample(node_names, number_of_nodes_with_sensors)
 
-    #print(len_nodes)
-    #print(len(selected_junctions))
-
     return selected_junctions
+
+def how_much_leak_demand(tot_demand, leak_percentage, number_of_leak_nodes):
+    print("TODO")
 
 def links_to_csv(wn, results, link_names, output_file_name, proc_name):
     print(proc_name + "Writing Links' CSV...")
@@ -162,6 +157,12 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
     outName = output_file_name+"nodes_output.csv"
     out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
+
+    header = ["hour", "nodeID", "demand_value", "head_value", "pressure_value", "x_pos", "y_pos",
+                  "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value",
+                  "smart_sensor_is_present","tot_network_demand"]
+
+    writer.writerow(header)
 
     debug = False
 
@@ -256,7 +257,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
                     print(" ")
 
             output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos,
-                          node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value, smart_sensor_is_present]
+                          node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value, smart_sensor_is_present, tot_demand]
 
             # print(nodeID)
             # print(demand_value)
@@ -309,7 +310,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
 
     # print(nodeID)
     # print(demand_value)
-    # print(tot_demand)
+    print(tot_demand)
     # print("Node (" + str(nodeID) + ") demand is: "+str(demand_value)+" so Tot demand is now: " + str(tot_demand))
     # print("Node ({}) demand is: {} so Tot demand is now: {}".format(nodeID,demand_value,tot_demand))
 
@@ -322,18 +323,19 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
 if __name__ == "__main__":
 
     input_file_inp1 = "./networks/exported_month_large_complete_one_reservoirs_small.inp"
-    input_file_inp2 = "./networks/exported_month_large_complete_one_reservoirs_large.inp"
-    input_file_inp3 = "./networks/exported_month_large_complete_two_reservoirs.inp"
+    # input_file_inp2 = "./networks/exported_month_large_complete_one_reservoirs_large.inp"
+    # input_file_inp3 = "./networks/exported_month_large_complete_two_reservoirs.inp"
 
     number_of_junctions_with_leaks1 = 0
-    number_of_junctions_with_leaks2 = 0
-    number_of_junctions_with_leaks3 = 0
+    # number_of_junctions_with_leaks2 = 0
+    # number_of_junctions_with_leaks3 = 0
 
     number_of_nodes_with_sensors1 = 0
-    number_of_nodes_with_sensors2 = 0
-    number_of_nodes_with_sensors3 = 0
+    # number_of_nodes_with_sensors2 = 0
+    # number_of_nodes_with_sensors3 = 0
 
-    sim_duration = 744 * 3600
+    # sim_duration = 744 * 3600
+    sim_duration = 200 * 3600
 
     wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
     wn_1.options.time.duration = sim_duration
@@ -341,37 +343,37 @@ if __name__ == "__main__":
     #TODO!
     create_custom_pattern(wn_1, "custom_1", 0, 1800, 100, sim_duration)
 
-    wn_2 = wntr.network.WaterNetworkModel(input_file_inp2)
-    wn_2.options.time.duration = 744 * 3600
-
-    wn_3 = wntr.network.WaterNetworkModel(input_file_inp3)
-    wn_3.options.time.duration = 744 * 3600
+    # wn_2 = wntr.network.WaterNetworkModel(input_file_inp2)
+    # wn_2.options.time.duration = 744 * 3600
+    #
+    # wn_3 = wntr.network.WaterNetworkModel(input_file_inp3)
+    # wn_3.options.time.duration = 744 * 3600
 
     smart_sensor_junctions = []
 
     if (leaks_enabled):
         number_of_junctions_with_leaks1 = int(len(wn_1.junction_name_list) / 2)
-        number_of_junctions_with_leaks2 = int(len(wn_2.junction_name_list) / 2)
-        number_of_junctions_with_leaks3 = int(len(wn_3.junction_name_list) / 2)
+        # number_of_junctions_with_leaks2 = int(len(wn_2.junction_name_list) / 2)
+        # number_of_junctions_with_leaks3 = int(len(wn_3.junction_name_list) / 2)
 
         selected_junctions1 = pick_rand_leaks(wn_1,number_of_junctions_with_leaks1)
-        selected_junctions2 = pick_rand_leaks(wn_2,number_of_junctions_with_leaks2)
-        selected_junctions3 = pick_rand_leaks(wn_3,number_of_junctions_with_leaks3)
+        # selected_junctions2 = pick_rand_leaks(wn_2,number_of_junctions_with_leaks2)
+        # selected_junctions3 = pick_rand_leaks(wn_3,number_of_junctions_with_leaks3)
 
         assign_leaks(wn_1, 0.000002, selected_junctions1, "1D_one_res_small")
-        assign_leaks(wn_2, 0.000006, selected_junctions2, "1D_one_res_large")
-        assign_leaks(wn_3, 0.000006, selected_junctions3, "1D_two_res_large")
+        # assign_leaks(wn_2, 0.000006, selected_junctions2, "1D_one_res_large")
+        # assign_leaks(wn_3, 0.000006, selected_junctions3, "1D_two_res_large")
     else:
         print("LEAKAGES NOT ENABLED")
 
     if (smart_sensors_enabled):
         number_of_nodes_with_sensors1 = int(len(wn_1.junction_name_list) / 4)
-        number_of_nodes_with_sensors2 = int(len(wn_2.junction_name_list) / 4)
-        number_of_nodes_with_sensors3 = int(len(wn_3.junction_name_list) / 4)
+        # number_of_nodes_with_sensors2 = int(len(wn_2.junction_name_list) / 4)
+        # number_of_nodes_with_sensors3 = int(len(wn_3.junction_name_list) / 4)
 
         smart_sensor_junctions1 = pick_rand_smart_sensors(wn_1,number_of_nodes_with_sensors1)
-        smart_sensor_junctions2 = pick_rand_smart_sensors(wn_2,number_of_nodes_with_sensors2)
-        smart_sensor_junctions3 = pick_rand_smart_sensors(wn_3,number_of_nodes_with_sensors3)
+        # smart_sensor_junctions2 = pick_rand_smart_sensors(wn_2,number_of_nodes_with_sensors2)
+        # smart_sensor_junctions3 = pick_rand_smart_sensors(wn_3,number_of_nodes_with_sensors3)
 
     #Code to be ran with a single execution
 
