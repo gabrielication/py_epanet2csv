@@ -8,8 +8,8 @@ import random
 
 from multiprocessing import Process, Lock
 
-smart_sensors_enabled = True
-leaks_enabled = True
+smart_sensors_enabled = False
+leaks_enabled = False
 
 lock = Lock()
 
@@ -29,20 +29,6 @@ class WNTR_Process (Process):
         # Free lock
         lock.release()
         run_sim(self.wn, self.smart_sensor_junctions, output_file_name=self.name+"_", proc_name=self.name + ": ")
-
-def create_custom_pattern(wn, name, min, max, step, duration):
-    timeops = wntr.network.options.TimeOptions(duration)
-
-    multipliers = []
-
-    for multiplier_step in range(min,max+step,step):
-        multipliers.append(multiplier_step)
-
-    out_pattern = wntr.network.Pattern("custom", multipliers, time_options=timeops)
-
-    wn.add_pattern(name, out_pattern)
-
-    return out_pattern
 
 def run_sim(wn, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_nodes_with_sensors=0, output_file_name="", proc_name=""):
     print(proc_name + "Configuring simulation...")
@@ -90,8 +76,37 @@ def pick_rand_smart_sensors(wn,number_of_nodes_with_sensors):
 
     return selected_junctions
 
-def how_much_leak_demand(tot_demand, leak_percentage, number_of_leak_nodes):
-    print("TODO")
+def create_custom_pattern(wn, name, min, max, step, duration):
+    timeops = wntr.network.options.TimeOptions(duration)
+
+    multipliers = []
+
+    for multiplier_step in range(min,max+step,step):
+        multipliers.append(multiplier_step)
+
+    out_pattern = wntr.network.Pattern("custom", multipliers, time_options=timeops)
+
+    wn.add_pattern(name, out_pattern)
+
+    return out_pattern
+
+def assign_rand_demand_to_junctions(wn, min, max, pattern=None):
+    node_names = wn.junction_name_list
+
+    for juncID in node_names:
+        junc_obj = wn.get_node(juncID)
+
+        # old = junc_obj.demand_timeseries_list[0].base_value
+        new_demand = random.uniform(min,max)
+
+        # junc_obj.demand_timeseries_list[0].base_value = new_demand
+
+        # you can't apparently just change the old pattern like the base demand, it seems to be a read only field.
+        # for now we just create a new timeseries and delete the old one
+        # junc_obj.demand_timeseries_list[0].pattern = pattern
+
+        junc_obj.add_demand(base=new_demand, pattern_name=pattern)
+        del junc_obj.demand_timeseries_list[0]
 
 def links_to_csv(wn, results, link_names, output_file_name, proc_name):
     print(proc_name + "Writing Links' CSV...")
@@ -310,7 +325,7 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
 
     # print(nodeID)
     # print(demand_value)
-    print(tot_demand)
+    # print(tot_demand)
     # print("Node (" + str(nodeID) + ") demand is: "+str(demand_value)+" so Tot demand is now: " + str(tot_demand))
     # print("Node ({}) demand is: {} so Tot demand is now: {}".format(nodeID,demand_value,tot_demand))
 
@@ -335,13 +350,13 @@ if __name__ == "__main__":
     # number_of_nodes_with_sensors3 = 0
 
     # sim_duration = 744 * 3600
-    sim_duration = 200 * 3600
+    sim_duration = 24 * 3600
 
     wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
     wn_1.options.time.duration = sim_duration
 
-    #TODO!
-    create_custom_pattern(wn_1, "custom_1", 0, 1800, 100, sim_duration)
+    new_pat = create_custom_pattern(wn_1, "custom_1", 1, 1, 1, sim_duration)
+    assign_rand_demand_to_junctions(wn_1, 0, 5, "custom_1")
 
     # wn_2 = wntr.network.WaterNetworkModel(input_file_inp2)
     # wn_2.options.time.duration = 744 * 3600
@@ -365,6 +380,10 @@ if __name__ == "__main__":
         # assign_leaks(wn_3, 0.000006, selected_junctions3, "1D_two_res_large")
     else:
         print("LEAKAGES NOT ENABLED")
+
+    smart_sensor_junctions1 = []
+    # smart_sensor_junctions2 = []
+    # smart_sensor_junctions3 = []
 
     if (smart_sensors_enabled):
         number_of_nodes_with_sensors1 = int(len(wn_1.junction_name_list) / 4)
