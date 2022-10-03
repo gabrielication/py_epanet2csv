@@ -367,6 +367,8 @@ if __name__ == "__main__":
     smart_sensor_junctions = []
 
     if (leaks_enabled):
+        print("LEAKAGES ENABLED")
+
         number_of_junctions_with_leaks1 = int(len(wn_1.junction_name_list) / 2)
         # number_of_junctions_with_leaks2 = int(len(wn_2.junction_name_list) / 2)
         # number_of_junctions_with_leaks3 = int(len(wn_3.junction_name_list) / 2)
@@ -386,6 +388,8 @@ if __name__ == "__main__":
     # smart_sensor_junctions3 = []
 
     if (smart_sensors_enabled):
+        print("SMART SENSORS ENABLED")
+
         number_of_nodes_with_sensors1 = int(len(wn_1.junction_name_list) / 4)
         # number_of_nodes_with_sensors2 = int(len(wn_2.junction_name_list) / 4)
         # number_of_nodes_with_sensors3 = int(len(wn_3.junction_name_list) / 4)
@@ -393,6 +397,8 @@ if __name__ == "__main__":
         smart_sensor_junctions1 = pick_rand_smart_sensors(wn_1,number_of_nodes_with_sensors1)
         # smart_sensor_junctions2 = pick_rand_smart_sensors(wn_2,number_of_nodes_with_sensors2)
         # smart_sensor_junctions3 = pick_rand_smart_sensors(wn_3,number_of_nodes_with_sensors3)
+    else:
+        print("SMART SENSORS NOT ENABLED")
 
     #Code to be ran with a single execution
 
