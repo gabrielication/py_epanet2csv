@@ -53,7 +53,7 @@ def run_sim(wn, sim_duration, smart_sensor_junctions, number_of_nodes_with_leaks
     print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
 
     nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions,number_of_nodes_with_leaks,number_of_nodes_with_sensors)
-    links_to_csv(wn, results, link_names, output_file_name, proc_name)
+    #links_to_csv(wn, results, link_names, output_file_name, proc_name)
 
     print(proc_name + "Finished!")
 
@@ -88,7 +88,7 @@ def run_sim_with_random_base_demands(wn, sim_duration, smart_sensor_junctions, n
     print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
 
     nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions,number_of_nodes_with_leaks,number_of_nodes_with_sensors)
-    links_to_csv(wn, results, link_names, output_file_name, proc_name)
+    #links_to_csv(wn, results, link_names, output_file_name, proc_name)
 
     print(proc_name + "Finished!")
 
@@ -339,8 +339,11 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
 
     out.close()
 
-    leak_percentage = (tot_leak_demand/tot_nodes_demand) * 100
-    leak_percentage = round(leak_percentage, 4)
+    if(tot_nodes_demand > 0):
+        leak_percentage = (tot_leak_demand / tot_nodes_demand) * 100
+        leak_percentage = round(leak_percentage, 4)
+    else:
+        leak_percentage = 0.0
 
     number_of_nodes = len(wn.node_name_list)
     number_of_junctions = len(wn.junction_name_list)
@@ -445,13 +448,17 @@ if __name__ == "__main__":
 
     #Code to be ran with a single execution
 
-    # run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_",
-    #         proc_name="1M_one_res_small_alt_with_leaks: ",
-    #         number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
-    #         number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+    run_sim(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_no_leaks_same_base_dem_",
+            proc_name="1M_one_res_small_no_leaks_same_base_dem: ",
+            number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
+            number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
 
-    run_sim(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_", proc_name="1M_one_res_small_alt_with_leaks: ",
-            number_of_nodes_with_sensors= number_of_nodes_with_sensors1, number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+    wn_1.reset_initial_values()
+
+    run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_no_leaks_rand_base_dem_",
+            proc_name="1M_one_res_small_no_leaks_rand_base_dem: ",
+            number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
+            number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
 
     # run_sim(wn_2, smart_sensor_junctions2, output_file_name="1M_one_res_large_alt_with_leaks_", proc_name="1M_one_res_large_alt_with_leaks: ",
     #         number_of_nodes_with_sensors= number_of_nodes_with_sensors2, number_of_nodes_with_leaks=number_of_junctions_with_leaks2)
