@@ -40,8 +40,8 @@ def run_sim(wn, sim_duration, smart_sensor_junctions, number_of_nodes_with_leaks
 
     wn.options.time.duration = sim_duration
 
-    # new_pat = create_custom_pattern(wn, "custom_1", 1, 1, 1, sim_duration)
-    # assign_rand_demand_to_junctions(wn, 0, 5, "custom_1")
+    new_pat = create_custom_pattern(wn, "custom_1", 1, 1, 1, sim_duration)
+    assign_rand_demand_to_junctions(wn, 0, 5, "custom_1")
 
     node_names = wn.node_name_list
     link_names = wn.link_name_list
@@ -205,7 +205,7 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
     out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
-    header = ["hour", "nodeID", "demand_value", "head_value", "pressure_value", "x_pos", "y_pos",
+    header = ["hour", "nodeID", "base_demand", "demand_value", "head_value", "pressure_value", "x_pos", "y_pos",
                   "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value",
                   "smart_sensor_is_present","tot_network_demand"]
 
@@ -245,7 +245,13 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
                 pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
                 pressure_value = round(pressure_value, 8)
 
-                base_demand = node_obj.demand_timeseries_list[0].base_value
+                base_demand = 0.0
+
+                node_type = node_obj.__class__.__name__
+
+                if node_type == "Junction":
+                    base_demand = Decimal(str(node_obj.demand_timeseries_list[0].base_value))
+                    base_demand = round(base_demand, 8)
 
                 smart_sensor_is_present = 0  # can be 0,1,2
 
@@ -299,8 +305,6 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
                 x_pos = node_obj.coordinates[0]
                 y_pos = node_obj.coordinates[1]
 
-                node_type = node_obj.__class__.__name__
-
                 if (node_type == "Junction"):
                     tot_leak_demand = tot_leak_demand + current_leak_demand_value
 
@@ -313,7 +317,7 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
                         print("Tot leak demand: " + str(tot_leak_demand))
                         print(" ")
 
-                output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos,
+                output_row = [hour, nodeID, base_demand, demand_value, head_value, pressure_value, x_pos, y_pos,
                               node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value,
                               smart_sensor_is_present, tot_demand]
 
@@ -441,13 +445,13 @@ if __name__ == "__main__":
 
     #Code to be ran with a single execution
 
-    run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_",
-            proc_name="1M_one_res_small_alt_with_leaks: ",
-            number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
-            number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+    # run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_",
+    #         proc_name="1M_one_res_small_alt_with_leaks: ",
+    #         number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
+    #         number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
 
-    # run_sim(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_", proc_name="1M_one_res_small_alt_with_leaks: ",
-    #         number_of_nodes_with_sensors= number_of_nodes_with_sensors1, number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+    run_sim(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_", proc_name="1M_one_res_small_alt_with_leaks: ",
+            number_of_nodes_with_sensors= number_of_nodes_with_sensors1, number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
 
     # run_sim(wn_2, smart_sensor_junctions2, output_file_name="1M_one_res_large_alt_with_leaks_", proc_name="1M_one_res_large_alt_with_leaks: ",
     #         number_of_nodes_with_sensors= number_of_nodes_with_sensors2, number_of_nodes_with_leaks=number_of_junctions_with_leaks2)
