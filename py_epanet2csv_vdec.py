@@ -30,7 +30,7 @@ class WNTR_Process (Process):
         lock.release()
         run_sim(self.wn, self.smart_sensor_junctions, output_file_name=self.name+"_", proc_name=self.name + ": ")
 
-def run_sim(wn, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_nodes_with_sensors=0, output_file_name="", proc_name=""):
+def run_sim(wn, sim_duration, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_nodes_with_sensors=0, output_file_name="", proc_name=""):
     print(proc_name + "Configuring simulation...")
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
@@ -38,14 +38,52 @@ def run_sim(wn, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_
     wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
+    wn.options.time.duration = sim_duration
+
+    # new_pat = create_custom_pattern(wn, "custom_1", 1, 1, 1, sim_duration)
+    # assign_rand_demand_to_junctions(wn, 0, 5, "custom_1")
+
     node_names = wn.node_name_list
     link_names = wn.link_name_list
 
-    sim_duration_in_seconds = wn.options.time.duration
+    print(proc_name + "Running simulation...")
+
+    results = [wntr.sim.WNTRSimulator(wn).run_sim()]
+
+    print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
+
+    nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions,number_of_nodes_with_leaks,number_of_nodes_with_sensors)
+    links_to_csv(wn, results, link_names, output_file_name, proc_name)
+
+    print(proc_name + "Finished!")
+
+def run_sim_with_random_base_demands(wn, sim_duration, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_nodes_with_sensors=0, output_file_name="", proc_name=""):
+    print(proc_name + "Configuring simulation...")
+
+    wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
+
+    wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
+    wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
+
+    new_pat = create_custom_pattern(wn, "custom_1", 1, 1, 1, sim_duration)
+
+    sim_duration_in_hours = int(sim_duration / 3600)
+
+    node_names = wn.node_name_list
+    link_names = wn.link_name_list
 
     print(proc_name + "Running simulation...")
 
-    results = wntr.sim.WNTRSimulator(wn).run_sim()
+    results = []
+
+    for hour in range(sim_duration_in_hours):
+        wn.options.time.duration = (hour+1) * 3600
+
+        assign_rand_demand_to_junctions(wn, 0, 5, "custom_1")
+
+        temp = wntr.sim.WNTRSimulator(wn).run_sim()
+
+        results.append(temp)
 
     print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
 
@@ -160,14 +198,8 @@ def links_to_csv(wn, results, link_names, output_file_name, proc_name):
 
     print(proc_name + "Links' CSV written.")
 
-def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions, number_of_nodes_with_leaks, number_of_nodes_with_sensors):
+def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smart_sensor_junctions, number_of_nodes_with_leaks, number_of_nodes_with_sensors):
     print(proc_name + "Writing Nodes' CSV...")
-
-    demand_results = results.node['demand']
-    head_results = results.node['head']
-    pressure_results = results.node['pressure']
-
-    indexes = demand_results.index
 
     outName = output_file_name+"nodes_output.csv"
     out = open(outName, "w", newline='', encoding='utf-8')
@@ -181,114 +213,125 @@ def nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sen
 
     debug = False
 
-    for timestamp in indexes:
-        tot_demand = Decimal('0')
+    for results in list_results:
+        demand_results = results.node['demand']
+        head_results = results.node['head']
+        pressure_results = results.node['pressure']
 
-        tot_leak_demand = Decimal('0')
-        tot_nodes_demand = Decimal('0')
+        indexes = demand_results.index
 
-        demand_value = Decimal('0')
+        for timestamp in indexes:
+            tot_demand = Decimal('0')
 
-        #hour = pd.to_datetime(timestamp, unit='s').time()
+            tot_leak_demand = Decimal('0')
+            tot_nodes_demand = Decimal('0')
 
-        hour = str(int(timestamp/3600))+":00:00" #cheap way to calculate timestamps. if we choose an interval != 1h then it will break
+            demand_value = Decimal('0')
 
-        #print(hour)
+            # hour = pd.to_datetime(timestamp, unit='s').time()
 
-        for nodeID in node_names:
-            node_obj = wn.get_node(nodeID)
+            hour = str(
+                int(timestamp / 3600)) + ":00:00"  # cheap way to calculate timestamps. if we choose an interval != 1h then it will break
 
-            demand_value = Decimal(str(demand_results.loc[timestamp, nodeID]))
-            demand_value = round(demand_value,8)
-            head_value = Decimal(str(head_results.loc[timestamp, nodeID]))
-            head_value = round(head_value,8)
-            pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
-            pressure_value = round(pressure_value,8)
+            # print(hour)
 
-            smart_sensor_is_present = 0 #can be 0,1,2
+            for nodeID in node_names:
+                node_obj = wn.get_node(nodeID)
 
-            #has_leak = node_obj._leak #this leak-flag represents if a leak was set to the node but not if the leak is flowing now on this timestamp
-            has_leak = False
+                demand_value = Decimal(str(demand_results.loc[timestamp, nodeID]))
+                demand_value = round(demand_value, 8)
+                head_value = Decimal(str(head_results.loc[timestamp, nodeID]))
+                head_value = round(head_value, 8)
+                pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
+                pressure_value = round(pressure_value, 8)
 
-            leak_area_value = node_obj.leak_area #I think that this does not require an approximation... right?
+                base_demand = node_obj.demand_timeseries_list[0].base_value
 
-            leak_discharge_value = node_obj.leak_discharge_coeff #Same as above...?
+                smart_sensor_is_present = 0  # can be 0,1,2
 
-            current_leak_demand_value = results.node["leak_demand"].at[timestamp, nodeID]
-            '''
-            if(current_leak_demand_value > 0.0):
-                has_leak = True #this leak-flag is set to true if the leak is flowing now on this timestamp
-            '''
-            if (leak_area_value > 0.0):
-                has_leak = True  # this leak-flag is set to true if we see a hole in the node
+                # has_leak = node_obj._leak #this leak-flag represents if a leak was set to the node but not if the leak is flowing now on this timestamp
+                has_leak = False
 
-            if(smart_sensors_enabled):
-                if(nodeID in smart_sensor_junctions):
-                    if(has_leak):
-                        smart_sensor_is_present = 2
+                leak_area_value = node_obj.leak_area  # I think that this does not require an approximation... right?
+
+                leak_discharge_value = node_obj.leak_discharge_coeff  # Same as above...?
+
+                current_leak_demand_value = results.node["leak_demand"].at[timestamp, nodeID]
+                '''
+                if(current_leak_demand_value > 0.0):
+                    has_leak = True #this leak-flag is set to true if the leak is flowing now on this timestamp
+                '''
+                if (leak_area_value > 0.0):
+                    has_leak = True  # this leak-flag is set to true if we see a hole in the node
+
+                if (smart_sensors_enabled):
+                    if (nodeID in smart_sensor_junctions):
+                        if (has_leak):
+                            smart_sensor_is_present = 2
+                        else:
+                            smart_sensor_is_present = 1
                     else:
-                        smart_sensor_is_present = 1
-                else:
-                    smart_sensor_is_present = 0
+                        smart_sensor_is_present = 0
 
-            current_leak_demand_value = Decimal(str(current_leak_demand_value))
-            current_leak_demand_value = round(current_leak_demand_value, 8)
-
-            if debug:
-                print("--------")
-                print(nodeID)
-                print("demand")
-                print("{:4.15}".format(demand_value))
-                print("tot_d")
-                print("{:4.15f}".format(tot_demand))
-
-            tot_demand = tot_demand + demand_value + current_leak_demand_value
-            tot_demand = round(tot_demand,8)
-
-            if debug:
-                print("tot_d")
-                print("{:4.15f}".format(tot_demand))
-
-            if debug:
-                if nodeID=="101":
-                    print("test")
-                    sys.exit(1)
-
-            x_pos = node_obj.coordinates[0]
-            y_pos = node_obj.coordinates[1]
-
-            node_type = node_obj.__class__.__name__
-
-            if(node_type == "Junction"):
-                tot_leak_demand = tot_leak_demand + current_leak_demand_value
-
-                tot_nodes_demand = tot_nodes_demand + demand_value + current_leak_demand_value
+                current_leak_demand_value = Decimal(str(current_leak_demand_value))
+                current_leak_demand_value = round(current_leak_demand_value, 8)
 
                 if debug:
-                    print("Node ID: "+str(nodeID))
-                    print("Demand is: "+str(demand_value)+" Leak demand is: "+str(current_leak_demand_value))
-                    print("Tot node demand: "+str(tot_nodes_demand))
-                    print("Tot leak demand: " + str(tot_leak_demand))
-                    print(" ")
+                    print("--------")
+                    print(nodeID)
+                    print("demand")
+                    print("{:4.15}".format(demand_value))
+                    print("tot_d")
+                    print("{:4.15f}".format(tot_demand))
 
-            output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos,
-                          node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value, smart_sensor_is_present, tot_demand]
+                tot_demand = tot_demand + demand_value + current_leak_demand_value
+                tot_demand = round(tot_demand, 8)
 
-            # print(nodeID)
-            # print(demand_value)
-            # print(tot_demand)
-            # print("Node (" + str(nodeID) + ") demand is: "+str(demand_value)+" so Tot demand is now: " + str(tot_demand))
-            # print("Node ({}) demand is: {} so Tot demand is now: {}".format(nodeID,demand_value,tot_demand))
+                if debug:
+                    print("tot_d")
+                    print("{:4.15f}".format(tot_demand))
 
-            writer.writerow(output_row)
+                if debug:
+                    if nodeID == "101":
+                        print("test")
+                        sys.exit(1)
 
-        # print(timestamp)
-        if debug:
-            if tot_demand<1e-6:
-                print("Tot demand at "+str(hour)+" is: 0 ("+str(tot_demand)+")")
-            else:
-                print("Tot demand at "+str(hour)+" is: "+str(tot_demand))
-        # break
+                x_pos = node_obj.coordinates[0]
+                y_pos = node_obj.coordinates[1]
+
+                node_type = node_obj.__class__.__name__
+
+                if (node_type == "Junction"):
+                    tot_leak_demand = tot_leak_demand + current_leak_demand_value
+
+                    tot_nodes_demand = tot_nodes_demand + demand_value + current_leak_demand_value
+
+                    if debug:
+                        print("Node ID: " + str(nodeID))
+                        print("Demand is: " + str(demand_value) + " Leak demand is: " + str(current_leak_demand_value))
+                        print("Tot node demand: " + str(tot_nodes_demand))
+                        print("Tot leak demand: " + str(tot_leak_demand))
+                        print(" ")
+
+                output_row = [hour, nodeID, demand_value, head_value, pressure_value, x_pos, y_pos,
+                              node_type, has_leak, leak_area_value, leak_discharge_value, current_leak_demand_value,
+                              smart_sensor_is_present, tot_demand]
+
+                # print(nodeID)
+                # print(demand_value)
+                # print(tot_demand)
+                # print("Node (" + str(nodeID) + ") demand is: "+str(demand_value)+" so Tot demand is now: " + str(tot_demand))
+                # print("Node ({}) demand is: {} so Tot demand is now: {}".format(nodeID,demand_value,tot_demand))
+
+                writer.writerow(output_row)
+
+            # print(timestamp)
+            if debug:
+                if tot_demand < 1e-6:
+                    print("Tot demand at " + str(hour) + " is: 0 (" + str(tot_demand) + ")")
+                else:
+                    print("Tot demand at " + str(hour) + " is: " + str(tot_demand))
+            # break
 
     out.close()
 
@@ -350,13 +393,9 @@ if __name__ == "__main__":
     # number_of_nodes_with_sensors3 = 0
 
     # sim_duration = 744 * 3600
-    sim_duration = 24 * 3600
+    sim_duration = 24 * 3600 #TODO: 200 hours simulation
 
     wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
-    wn_1.options.time.duration = sim_duration
-
-    new_pat = create_custom_pattern(wn_1, "custom_1", 1, 1, 1, sim_duration)
-    assign_rand_demand_to_junctions(wn_1, 0, 5, "custom_1")
 
     # wn_2 = wntr.network.WaterNetworkModel(input_file_inp2)
     # wn_2.options.time.duration = 744 * 3600
@@ -402,8 +441,13 @@ if __name__ == "__main__":
 
     #Code to be ran with a single execution
 
-    run_sim(wn_1, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_", proc_name="1M_one_res_small_alt_with_leaks: ",
-            number_of_nodes_with_sensors= number_of_nodes_with_sensors1, number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+    run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_",
+            proc_name="1M_one_res_small_alt_with_leaks: ",
+            number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
+            number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+
+    # run_sim(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_alt_with_leaks_", proc_name="1M_one_res_small_alt_with_leaks: ",
+    #         number_of_nodes_with_sensors= number_of_nodes_with_sensors1, number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
 
     # run_sim(wn_2, smart_sensor_junctions2, output_file_name="1M_one_res_large_alt_with_leaks_", proc_name="1M_one_res_large_alt_with_leaks: ",
     #         number_of_nodes_with_sensors= number_of_nodes_with_sensors2, number_of_nodes_with_leaks=number_of_junctions_with_leaks2)
