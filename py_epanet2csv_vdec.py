@@ -74,21 +74,40 @@ def run_sim_with_random_base_demands(wn, sim_duration, smart_sensor_junctions, n
 
     print(proc_name + "Running simulation...")
 
-    results = []
+    head_temp = create_header_nodes_to_csv(proc_name, output_file_name)
+
+    writer = head_temp[0]
+    out = head_temp[1]
+
+    # results = []
+
+    tot_leak_demand = Decimal('0')
+    tot_nodes_demand = Decimal('0')
 
     for hour in range(sim_duration_in_hours):
         wn.options.time.duration = (hour+1) * 3600
 
         assign_rand_demand_to_junctions(wn, 0, 5, "custom_1")
 
-        temp = wntr.sim.WNTRSimulator(wn).run_sim()
+        node_obj = wn.get_node("4922")
+        print(node_obj.demand_timeseries_list[0].base_value)
 
-        results.append(temp)
+        results = wntr.sim.WNTRSimulator(wn).run_sim()
+
+        csv_res = write_body_nodes_to_csv_func(wn, node_names, [results], writer, False)
+
+        tot_nodes_demand += csv_res[0]
+        tot_leak_demand += csv_res[1]
 
     print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
 
-    nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions,number_of_nodes_with_leaks,number_of_nodes_with_sensors)
-    #links_to_csv(wn, results, link_names, output_file_name, proc_name)
+    write_bottom_nodes_to_csv_func(wn, out, tot_nodes_demand, tot_leak_demand, output_file_name, proc_name,
+                                   number_of_nodes_with_leaks, number_of_nodes_with_sensors)
+
+    # cheap fix for generating csv is to use its function directly into the simulation... not good but works
+
+    # nodes_to_csv(wn, results, node_names, output_file_name, proc_name, smart_sensor_junctions,number_of_nodes_with_leaks,number_of_nodes_with_sensors)
+    # links_to_csv(wn, results, link_names, output_file_name, proc_name)
 
     print(proc_name + "Finished!")
 
@@ -198,21 +217,22 @@ def links_to_csv(wn, results, link_names, output_file_name, proc_name):
 
     print(proc_name + "Links' CSV written.")
 
-def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smart_sensor_junctions, number_of_nodes_with_leaks, number_of_nodes_with_sensors):
+def create_header_nodes_to_csv(proc_name, output_file_name):
     print(proc_name + "Writing Nodes' CSV...")
 
-    outName = output_file_name+"nodes_output.csv"
+    outName = output_file_name + "nodes_output.csv"
     out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
     header = ["hour", "nodeID", "base_demand", "demand_value", "head_value", "pressure_value", "x_pos", "y_pos",
-                  "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value",
-                  "smart_sensor_is_present","tot_network_demand"]
+              "node_type", "has_leak", "leak_area_value", "leak_discharge_value", "current_leak_demand_value",
+              "smart_sensor_is_present", "tot_network_demand"]
 
     writer.writerow(header)
 
-    debug = False
+    return writer, out
 
+def write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug):
     for results in list_results:
         demand_results = results.node['demand']
         head_results = results.node['head']
@@ -252,6 +272,9 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
                 if node_type == "Junction":
                     base_demand = Decimal(str(node_obj.demand_timeseries_list[0].base_value))
                     base_demand = round(base_demand, 8)
+
+                    if(nodeID=="4922"):
+                        print(node_obj.demand_timeseries_list[0].base_value)
 
                 smart_sensor_is_present = 0  # can be 0,1,2
 
@@ -337,9 +360,13 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
                     print("Tot demand at " + str(hour) + " is: " + str(tot_demand))
             # break
 
+    return tot_nodes_demand, tot_leak_demand
+
+def write_bottom_nodes_to_csv_func(wn, out, tot_nodes_demand, tot_leak_demand, output_file_name, proc_name, number_of_nodes_with_leaks, number_of_nodes_with_sensors):
+
     out.close()
 
-    if(tot_nodes_demand > 0):
+    if (tot_nodes_demand > 0):
         leak_percentage = (tot_leak_demand / tot_nodes_demand) * 100
         leak_percentage = round(leak_percentage, 4)
     else:
@@ -355,23 +382,26 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
     out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
-    header = ["tot_nodes_demand","leak_percentage","number_of_nodes","number_of_junctions",
-                  "number_of_reservoirs","number_of_tanks","number_of_nodes_with_leaks","number_of_nodes_with_sensors","time_spent_on_sim"]
+    header = ["tot_nodes_demand", "leak_percentage", "number_of_nodes", "number_of_junctions",
+              "number_of_reservoirs", "number_of_tanks", "number_of_nodes_with_leaks", "number_of_nodes_with_sensors",
+              "time_spent_on_sim"]
 
     writer.writerow(header)
 
-    print("\n\nTot demand for Nodes only is: "+str(tot_nodes_demand)+" and tot_leak_demand is: "+str(tot_leak_demand))
-    print("Total leak demand for nodes is:  "+str(leak_percentage)+"% of the Total Nodes' demand")
-    print("Number of nodes inside of the network is: "+str(number_of_nodes))
+    print("\n\nTot demand for Nodes only is: " + str(tot_nodes_demand) + " and tot_leak_demand is: " + str(
+        tot_leak_demand))
+    print("Total leak demand for nodes is:  " + str(leak_percentage) + "% of the Total Nodes' demand")
+    print("Number of nodes inside of the network is: " + str(number_of_nodes))
     print("Number of Junctions only: " + str(number_of_junctions))
     print("Number of Reservoirs only: " + str(number_of_reservoirs))
     print("Number of Tanks only: " + str(number_of_tanks))
-    print("Number of Junctions with leaks: "+str(number_of_nodes_with_leaks))
-    print("Number of Junctions with sensors: "+str(number_of_nodes_with_sensors))
-    print("Total hours simulated: " + str(time_spent_on_sim)+"\n\n")
+    print("Number of Junctions with leaks: " + str(number_of_nodes_with_leaks))
+    print("Number of Junctions with sensors: " + str(number_of_nodes_with_sensors))
+    print("Total hours simulated: " + str(time_spent_on_sim) + "\n\n")
 
-    output_row = [tot_nodes_demand,leak_percentage,number_of_nodes,number_of_junctions,
-                  number_of_reservoirs,number_of_tanks,number_of_nodes_with_leaks,number_of_nodes_with_sensors,time_spent_on_sim]
+    output_row = [tot_nodes_demand, leak_percentage, number_of_nodes, number_of_junctions,
+                  number_of_reservoirs, number_of_tanks, number_of_nodes_with_leaks, number_of_nodes_with_sensors,
+                  time_spent_on_sim]
 
     # print(nodeID)
     # print(demand_value)
@@ -384,6 +414,23 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
     out.close()
 
     print(proc_name + "Nodes' CSV written.")
+
+def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smart_sensor_junctions, number_of_nodes_with_leaks, number_of_nodes_with_sensors):
+    print(proc_name + "Writing Nodes' CSV...")
+
+    debug = False
+
+    temp = create_header_nodes_to_csv(proc_name, output_file_name)
+
+    writer = temp[0]
+    out = temp[1]
+
+    results = write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug)
+
+    tot_nodes_demand = results[0]
+    tot_leak_demand = results[1]
+
+    write_bottom_nodes_to_csv_func(wn, out, tot_nodes_demand, tot_leak_demand, output_file_name, proc_name, number_of_nodes_with_leaks, number_of_nodes_with_sensors)
 
 if __name__ == "__main__":
 
@@ -448,12 +495,12 @@ if __name__ == "__main__":
 
     #Code to be ran with a single execution
 
-    run_sim(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_no_leaks_same_base_dem_",
-            proc_name="1M_one_res_small_no_leaks_same_base_dem: ",
-            number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
-            number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
-
-    wn_1.reset_initial_values()
+    # run_sim(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_no_leaks_same_base_dem_",
+    #         proc_name="1M_one_res_small_no_leaks_same_base_dem: ",
+    #         number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
+    #         number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+    #
+    # wn_1.reset_initial_values()
 
     run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_no_leaks_rand_base_dem_",
             proc_name="1M_one_res_small_no_leaks_rand_base_dem: ",
