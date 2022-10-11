@@ -4,6 +4,7 @@ patch_sklearn()
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn import metrics
 
 from sklearn.neural_network import MLPRegressor
 
@@ -37,8 +38,6 @@ X["nodeID"] = le.fit_transform(data["nodeID"])
 X["node_type"] = le.fit_transform(data["node_type"])
 X["has_leak"] = le.fit_transform(data["has_leak"])
 
-X = X.values
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, shuffle=False)
 
 # we have to use a REGRESSOR now, not classificator, since it is not a classification problem anymore because we
@@ -47,9 +46,12 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, shuffl
 # https://www.springboard.com/blog/data-science/regression-vs-classification/
 
 model = Pipeline([('scaler', StandardScaler()),
-                      ('MLPC', MLPRegressor(random_state=1, max_iter=500))])
+                      ('MLPR', MLPRegressor(random_state=1, max_iter=500))])
 
 model.fit(X_train, y_train)
 
-# TODO: why y_test fails?
-# model.predict(y_test)
+y_pred = model.predict(X_test)
+
+print(model.score(X_test, y_test))
+print(metrics.r2_score(y_test, y_pred))
+#print(metrics.mean_squared_log_error(y_test, y_pred))
