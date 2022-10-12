@@ -5,6 +5,7 @@ from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn import metrics
+from sklearn.model_selection import cross_val_score
 
 from sklearn.neural_network import MLPRegressor
 
@@ -45,13 +46,26 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, shuffl
 # https://www.projectpro.io/article/classification-vs-regression-in-machine-learning/545
 # https://www.springboard.com/blog/data-science/regression-vs-classification/
 
+print("Using StandardScaler to the data...")
+
 model = Pipeline([('scaler', StandardScaler()),
                       ('MLPR', MLPRegressor(random_state=1, max_iter=500))])
 
+print("Fitting without k-fold...")
+
 model.fit(X_train, y_train)
+
+print("Predicting...")
 
 y_pred = model.predict(X_test)
 
-print(model.score(X_test, y_test))
-print(metrics.r2_score(y_test, y_pred))
-#print(metrics.mean_squared_log_error(y_test, y_pred))
+print("\nPredict finished! Results:\n")
+
+# summary of the model
+print("Score: ",model.score(X_test, y_test))
+print("r2 score: ",metrics.r2_score(y_test, y_pred))
+print()
+
+print("Executing k-fold...")
+scores = cross_val_score(model, X, y, cv=5)
+print("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
