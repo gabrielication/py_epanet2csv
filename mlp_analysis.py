@@ -21,6 +21,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+from pathlib import Path
+
 def fit_model(X_train, y_train):
     print("Using StandardScaler to the data...")
 
@@ -38,7 +40,7 @@ def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persist
     model_fitted = None
 
     if (model_persistency):
-        print("Model persistency ENABLED")
+        print("\nModel persistency ENABLED")
         output_filename_full_fitted_model = model_prefix + input_full_dataset.replace(".csv", "") + '_full_fit_model.joblib'
 
         if os.path.exists(output_filename_full_fitted_model):
@@ -51,13 +53,15 @@ def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persist
             dump(model_fitted, output_filename_full_fitted_model)
             print("Model saved to: " + output_filename_full_fitted_model)
     else:
-        print("Model persistency DISABLED")
+        print("\nModel persistency DISABLED")
         model_fitted = fit_model(X_train, y_train)
+
+    print("")
 
     return model_fitted
 
-def fit_and_predict_on_full_dataset(input_full_dataset):
-    print("Loading csv...")
+def fit_and_predict_on_full_dataset(input_full_dataset, model_persistency):
+    print("LOADING "+input_full_dataset+"...")
 
     # hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,
     # has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
@@ -84,7 +88,7 @@ def fit_and_predict_on_full_dataset(input_full_dataset):
     # https://www.projectpro.io/article/classification-vs-regression-in-machine-learning/545
     # https://www.springboard.com/blog/data-science/regression-vs-classification/
 
-    model = load_model(model_prefix, X_train, y_train, input_full_dataset, model_persistency=True)
+    model = load_model(model_prefix, X_train, y_train, input_full_dataset, model_persistency=model_persistency)
 
     print("Predicting...")
 
@@ -101,13 +105,37 @@ def fit_and_predict_on_full_dataset(input_full_dataset):
     scores = cross_val_score(model, X, y, cv=5)
     print("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
 
-if __name__ == "__main__":
-    print("Lora GW ML benchmark started...\n")
+def run_fresh(fresh_start):
+    if (fresh_start):
+        print("\nFresh start ENABLED. Deleting old models...\n")
 
-    model_persistency = False
+        for filename in Path(".").glob("*.joblib"):
+            try:
+                os.remove(filename)
+                print(str(filename) + " deleted")
+            except OSError:
+                print("\nError while deleting " + str(filename) + "\n")
+        print("All models deleted.\n")
+    else:
+        print("\nFresh start NOT ENABLED. Will reuse old models if present.\n")
+
+if __name__ == "__main__":
+    print("MLP Regression analysis started!")
+
+    model_persistency = True
+    fresh_start = True
+
     model_prefix = "MLP_model_"
 
-    input_full_dataset = '1M_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    run_fresh(fresh_start)
 
-    fit_and_predict_on_full_dataset(input_full_dataset)
+    input_full_dataset = '1d_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+
+    fit_and_predict_on_full_dataset(input_full_dataset, model_persistency)
+
+    input_alt_dataset = '1d_alt_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+
+    fit_and_predict_on_full_dataset(input_full_dataset, model_persistency)
+
+    print("\nMLP Regression analysis finished!")
 
