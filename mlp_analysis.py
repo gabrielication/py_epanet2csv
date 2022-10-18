@@ -41,7 +41,8 @@ def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persist
 
         for filename in Path(".").glob("*.joblib"):
             input_filename_full_fitted_model = str(filename)
-            print(input_filename_full_fitted_model)
+
+            # cheap hack. we just have one model file. break at first finding.
             break
 
         # output_filename_full_fitted_model = model_prefix + input_full_dataset.replace(".csv", "") + '_full_fit_model.joblib'
@@ -143,4 +144,3 @@ if __name__ == "__main__":
     fit_and_predict_on_full_dataset(input_alt_dataset, model_persistency)
 
     print("\nMLP Regression analysis finished!")
-
