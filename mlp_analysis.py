@@ -34,13 +34,24 @@ def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persist
 
     if (model_persistency):
         print("\nModel persistency ENABLED")
-        output_filename_full_fitted_model = model_prefix + input_full_dataset.replace(".csv", "") + '_full_fit_model.joblib'
 
-        if os.path.exists(output_filename_full_fitted_model):
-            print("Full fitted model already exists. Loading " + output_filename_full_fitted_model + "...")
-            model_fitted = load(output_filename_full_fitted_model)
+        input_filename_full_fitted_model = ""
+        output_filename_full_fitted_model = model_prefix + input_full_dataset.replace(".csv",
+                                                                                      "") + '_full_fit_model.joblib'
+
+        for filename in Path(".").glob("*.joblib"):
+            input_filename_full_fitted_model = str(filename)
+            print(input_filename_full_fitted_model)
+            break
+
+        # output_filename_full_fitted_model = model_prefix + input_full_dataset.replace(".csv", "") + '_full_fit_model.joblib'
+
+        if input_filename_full_fitted_model != "":
+            print("Full fitted model already exists. Loading " + input_filename_full_fitted_model + "...")
+            model_fitted = load(input_filename_full_fitted_model)
         else:
             # we first fit the model on the complete dataset and save the fitted model back
+            print("No old model found. Fitting...")
             model_fitted = fit_model(X_train, y_train)
 
             dump(model_fitted, output_filename_full_fitted_model)
@@ -97,6 +108,7 @@ def fit_and_predict_on_full_dataset(input_full_dataset, model_persistency):
     print("Executing k-fold...")
     scores = cross_val_score(model, X, y, cv=5)
     print("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
+    print("")
 
 def run_fresh(fresh_start):
     if (fresh_start):
@@ -128,7 +140,7 @@ if __name__ == "__main__":
 
     input_alt_dataset = '1d_alt_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
 
-    fit_and_predict_on_full_dataset(input_full_dataset, model_persistency)
+    fit_and_predict_on_full_dataset(input_alt_dataset, model_persistency)
 
     print("\nMLP Regression analysis finished!")
 
