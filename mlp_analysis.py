@@ -1,27 +1,20 @@
-import os
-
 from sklearnex import patch_sklearn
 patch_sklearn()
 
-from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
-
 from sklearn.neural_network import MLPRegressor
-
 from sklearn.model_selection import KFold, train_test_split
 from sklearn import preprocessing
 
 from joblib import dump, load
 
-import seaborn as sns
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-
 from pathlib import Path
+
+import pandas as pd
+import os
 
 def fit_model(X_train, y_train):
     print("Using StandardScaler to the data...")
