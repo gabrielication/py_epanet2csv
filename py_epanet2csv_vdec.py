@@ -57,7 +57,7 @@ def run_sim(wn, sim_duration, smart_sensor_junctions, number_of_nodes_with_leaks
 
     print(proc_name + "Finished!")
 
-def run_sim_with_random_base_demands(wn, sim_duration, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_nodes_with_sensors=0, output_file_name="", proc_name=""):
+def run_sim_with_random_base_demands(wn, sim_duration, smart_sensor_junctions, number_of_nodes_with_leaks=0, number_of_nodes_with_sensors=0, output_file_name="", proc_name="", list_of_demands=None):
     print(proc_name + "Configuring simulation...")
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
@@ -85,12 +85,12 @@ def run_sim_with_random_base_demands(wn, sim_duration, smart_sensor_junctions, n
     tot_nodes_demand = Decimal('0')
 
     for hour in range(sim_duration_in_hours):
-        wn.options.time.duration = (hour+1) * 3600
+        wn.options.time.duration = (hour) * 3600
 
-        assign_rand_demand_to_junctions(wn, 0, 5, "custom_1")
+        assign_rand_demand_to_junctions(wn, 0, 5, "custom_1", list_of_demands)
 
         node_obj = wn.get_node("4922")
-        print(node_obj.demand_timeseries_list[0].base_value)
+        #print(node_obj.demand_timeseries_list[0].base_value)
 
         results = wntr.sim.WNTRSimulator(wn).run_sim()
 
@@ -98,6 +98,8 @@ def run_sim_with_random_base_demands(wn, sim_duration, smart_sensor_junctions, n
 
         tot_nodes_demand += csv_res[0]
         tot_leak_demand += csv_res[1]
+
+        #print("hour is ",hour)
 
     print(proc_name + "Simulation finished. Writing to csv (can take a while)...")
 
@@ -147,14 +149,48 @@ def create_custom_pattern(wn, name, min, max, step, duration):
 
     return out_pattern
 
-def assign_rand_demand_to_junctions(wn, min, max, pattern=None):
+def generate_rand_demand_array(min, max, number_of_junctions, hours_of_simulation):
+
+    output = []
+
+    hours_index = int(hours_of_simulation)
+
+    #print(hours_index)
+
+    for hour in range(0,hours_index):
+
+        demands_in_a_hour = []
+
+        for junc in range(0,number_of_junctions):
+            new_demand = random.uniform(min, max)
+
+            demands_in_a_hour.append(new_demand)
+
+        output.append(demands_in_a_hour)
+
+    return output
+
+def assign_rand_demand_to_junctions(wn, min, max, pattern=None, list_of_demands=None):
     node_names = wn.junction_name_list
+
+    i = 0
 
     for juncID in node_names:
         junc_obj = wn.get_node(juncID)
 
-        # old = junc_obj.demand_timeseries_list[0].base_value
-        new_demand = random.uniform(min,max)
+        if(list_of_demands is None):
+            # old = junc_obj.demand_timeseries_list[0].base_value
+            new_demand = random.uniform(min, max)
+
+            #print(wn.sim_time / 3600)
+        else:
+            timestamp = int(wn.sim_time / 3600)
+
+            #print(i,timestamp)
+
+            new_demand = list_of_demands[timestamp][i]
+
+            i += 1
 
         # junc_obj.demand_timeseries_list[0].base_value = new_demand
 
@@ -273,8 +309,8 @@ def write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug):
                     base_demand = Decimal(str(node_obj.demand_timeseries_list[0].base_value))
                     base_demand = round(base_demand, 8)
 
-                    if(nodeID=="4922"):
-                        print(node_obj.demand_timeseries_list[0].base_value)
+                    #if(nodeID=="4922"):
+                        #print(node_obj.demand_timeseries_list[0].base_value)
 
                 smart_sensor_is_present = 0  # can be 0,1,2
 
@@ -376,7 +412,7 @@ def write_bottom_nodes_to_csv_func(wn, out, tot_nodes_demand, tot_leak_demand, o
     number_of_junctions = len(wn.junction_name_list)
     number_of_reservoirs = len(wn.reservoir_name_list)
     number_of_tanks = len(wn.tank_name_list)
-    time_spent_on_sim = wn.options.time.duration / 3600
+    time_spent_on_sim = (wn.options.time.duration / 3600) + 1
 
     outName = output_file_name + "nodes_simulation_stats.csv"
     out = open(outName, "w", newline='', encoding='utf-8')
@@ -397,7 +433,7 @@ def write_bottom_nodes_to_csv_func(wn, out, tot_nodes_demand, tot_leak_demand, o
     print("Number of Tanks only: " + str(number_of_tanks))
     print("Number of Junctions with leaks: " + str(number_of_nodes_with_leaks))
     print("Number of Junctions with sensors: " + str(number_of_nodes_with_sensors))
-    print("Total hours simulated: " + str(time_spent_on_sim) + "\n\n")
+    print("Total hours simulated (remember that 0:00 is included): " + str(time_spent_on_sim) + "\n\n")
 
     output_row = [tot_nodes_demand, leak_percentage, number_of_nodes, number_of_junctions,
                   number_of_reservoirs, number_of_tanks, number_of_nodes_with_leaks, number_of_nodes_with_sensors,
@@ -459,23 +495,6 @@ if __name__ == "__main__":
 
     smart_sensor_junctions = []
 
-    if (leaks_enabled):
-        print("LEAKAGES ENABLED")
-
-        number_of_junctions_with_leaks1 = int(len(wn_1.junction_name_list) / 2)
-        # number_of_junctions_with_leaks2 = int(len(wn_2.junction_name_list) / 2)
-        # number_of_junctions_with_leaks3 = int(len(wn_3.junction_name_list) / 2)
-
-        selected_junctions1 = pick_rand_leaks(wn_1,number_of_junctions_with_leaks1)
-        # selected_junctions2 = pick_rand_leaks(wn_2,number_of_junctions_with_leaks2)
-        # selected_junctions3 = pick_rand_leaks(wn_3,number_of_junctions_with_leaks3)
-
-        assign_leaks(wn_1, 0.000002, selected_junctions1, "1D_one_res_small")
-        # assign_leaks(wn_2, 0.000006, selected_junctions2, "1D_one_res_large")
-        # assign_leaks(wn_3, 0.000006, selected_junctions3, "1D_two_res_large")
-    else:
-        print("LEAKAGES NOT ENABLED")
-
     smart_sensor_junctions1 = []
     # smart_sensor_junctions2 = []
     # smart_sensor_junctions3 = []
@@ -487,11 +506,44 @@ if __name__ == "__main__":
         # number_of_nodes_with_sensors2 = int(len(wn_2.junction_name_list) / 4)
         # number_of_nodes_with_sensors3 = int(len(wn_3.junction_name_list) / 4)
 
-        smart_sensor_junctions1 = pick_rand_smart_sensors(wn_1,number_of_nodes_with_sensors1)
+        smart_sensor_junctions1 = pick_rand_smart_sensors(wn_1, number_of_nodes_with_sensors1)
         # smart_sensor_junctions2 = pick_rand_smart_sensors(wn_2,number_of_nodes_with_sensors2)
         # smart_sensor_junctions3 = pick_rand_smart_sensors(wn_3,number_of_nodes_with_sensors3)
     else:
         print("SMART SENSORS NOT ENABLED")
+
+    print("FIRST RUN WITHOUT LEAKS")
+
+    list_of_demands = generate_rand_demand_array(0, 5, wn_1.num_junctions, (sim_duration / 3600))
+
+    run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1,
+                                     output_file_name="1M_one_res_small_no_leaks_rand_base_dem_",
+                                     proc_name="1M_one_res_small_no_leaks_rand_base_dem: ",
+                                     number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
+                                     number_of_nodes_with_leaks=number_of_junctions_with_leaks1,
+                                     list_of_demands=list_of_demands)
+
+    wn_1.reset_initial_values()
+
+    leaks_enabled = True
+
+
+    if (leaks_enabled):
+        print("LEAKAGES ENABLED")
+
+        number_of_junctions_with_leaks1 = int(len(wn_1.junction_name_list) / 2)
+        # number_of_junctions_with_leaks2 = int(len(wn_2.junction_name_list) / 2)
+        # number_of_junctions_with_leaks3 = int(len(wn_3.junction_name_list) / 2)
+
+        selected_junctions1 = pick_rand_leaks(wn_1,number_of_junctions_with_leaks1)
+        # selected_junctions2 = pick_rand_leaks(wn_2,number_of_junctions_with_leaks2)
+        # selected_junctions3 = pick_rand_leaks(wn_3,number_of_junctions_with_leaks3)
+
+        assign_leaks(wn_1, 0.169, selected_junctions1, "1D_one_res_small")
+        # assign_leaks(wn_2, 0.000006, selected_junctions2, "1D_one_res_large")
+        # assign_leaks(wn_3, 0.000006, selected_junctions3, "1D_two_res_large")
+    else:
+        print("LEAKAGES NOT ENABLED")
 
     #Code to be ran with a single execution
 
@@ -502,10 +554,12 @@ if __name__ == "__main__":
     #
     # wn_1.reset_initial_values()
 
-    run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1, output_file_name="1M_one_res_small_no_leaks_rand_base_dem_",
-            proc_name="1M_one_res_small_no_leaks_rand_base_dem: ",
-            number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
-            number_of_nodes_with_leaks=number_of_junctions_with_leaks1)
+    run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1,
+                                     output_file_name="1M_ALT_one_res_small_with_leaks_rand_base_dem_",
+                                     proc_name="1M_ALT_one_res_small_with_leaks_rand_base_dem: ",
+                                     number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
+                                     number_of_nodes_with_leaks=number_of_junctions_with_leaks1,
+                                     list_of_demands=list_of_demands)
 
     # run_sim(wn_2, smart_sensor_junctions2, output_file_name="1M_one_res_large_alt_with_leaks_", proc_name="1M_one_res_large_alt_with_leaks: ",
     #         number_of_nodes_with_sensors= number_of_nodes_with_sensors2, number_of_nodes_with_leaks=number_of_junctions_with_leaks2)
