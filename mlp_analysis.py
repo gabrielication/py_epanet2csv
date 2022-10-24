@@ -8,6 +8,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import KFold, train_test_split
 from sklearn import preprocessing
+from sklearn.metrics import mean_squared_error
 
 from joblib import dump, load
 
@@ -65,13 +66,16 @@ def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persist
 
     return model_fitted
 
-def fit_and_predict_on_full_dataset(input_full_dataset, model_persistency):
-    print("LOADING "+input_full_dataset+"...")
+def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, model_prefix=""):
 
     # hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,
     # has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
 
-    data = pd.read_csv(input_full_dataset)
+    complete_path = folder_input+input_full_dataset
+
+    print("LOADING " + complete_path + "...")
+
+    data = pd.read_csv(complete_path)
 
     print("Dividing X and y matrices...")
 
@@ -104,6 +108,7 @@ def fit_and_predict_on_full_dataset(input_full_dataset, model_persistency):
     # summary of the model
     print("Score: ", model.score(X_test, y_test))
     print("r2 score: ", metrics.r2_score(y_test, y_pred))
+    print("Mean Squared Error: ", mean_squared_error(y_test, y_pred))
     print()
 
     print("Executing k-fold...")
@@ -135,12 +140,16 @@ if __name__ == "__main__":
 
     run_fresh(fresh_start)
 
-    input_full_dataset = '1d_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    folder_input = "datasets_for_mlp/"
 
-    fit_and_predict_on_full_dataset(input_full_dataset, model_persistency)
+    input_full_dataset = '1M_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
 
-    input_alt_dataset = '1d_alt_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, model_prefix)
 
-    fit_and_predict_on_full_dataset(input_alt_dataset, model_persistency)
+    input_alt_dataset = '1M_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
+
+    fit_and_predict_on_full_dataset(folder_input, input_alt_dataset, model_persistency, model_prefix)
+    #
+    # fit_and_predict_on_full_dataset(input_alt_dataset, model_persistency)
 
     print("\nMLP Regression analysis finished!")
