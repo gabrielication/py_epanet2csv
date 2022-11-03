@@ -26,7 +26,7 @@ def fit_model(X_train, y_train):
     print("Using StandardScaler to the data...")
 
     model = Pipeline([('scaler', StandardScaler()),
-                      ('MLPR', MLPRegressor(random_state=1, max_iter=1500))])
+                      ('MLPR', MLPRegressor(random_state=1, max_iter=3000))])
 
     print("Fitting without k-fold...")
 
@@ -97,7 +97,7 @@ def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_pers
         X["node_type"] = le.fit_transform(data["node_type"])
         X["has_leak"] = le.fit_transform(data["has_leak"])
 
-        # print("X_input is none")
+        print("X_input is none")
     else:
         X = X_input
 
@@ -126,16 +126,71 @@ def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_pers
 
     print("\nPredict finished! Results:\n")
 
+    model_score = model.score(X_test, y_test)
+    metrics_r2_score = metrics.r2_score(y_test, y_pred)
+    msq_err = mean_squared_error(y_test, y_pred)
+
+    cv_score = cross_val_score(model, X, y, cv=5)
+    cv_score_mean = cv_score.mean()
+    cv_score_std = cv_score.std()
+
     # summary of the model
-    print("Score: ", model.score(X_test, y_test))
-    print("r2 score: ", metrics.r2_score(y_test, y_pred))
-    print("Mean Squared Error: ", mean_squared_error(y_test, y_pred))
+    print("Score: ", model_score)
+    print("r2 score: ", metrics_r2_score)
+    print("Mean Squared Error: ", msq_err)
     print()
 
     print("Executing k-fold...")
-    scores = cross_val_score(model, X, y, cv=5)
-    print("%0.2f accuracy with a standard deviation of %0.2f" % (scores.mean(), scores.std()))
+
+    print("%0.2f accuracy with a standard deviation of %0.2f" % (cv_score_mean, cv_score_std))
     print("")
+
+    if(writer != None):
+        write_to_csv(X, writer, model_score, metrics_r2_score, msq_err, cv_score_mean, cv_score_std, input_full_dataset)
+
+def write_to_csv(X, writer, model_score, metrics_r2_score, msq_err, cv_score_mean, cv_score_std, input_full_dataset):
+
+    print("printing to csv...")
+
+    base_demand = head_value = pressure_value = x_pos = y_pos = leak_area_value = leak_discharge_value = current_leak_demand_value = False
+    smart_sensor_is_present = tot_network_demand = hour = nodeID = node_type = has_leak = False
+
+    if "base_demand" in X.columns:
+        base_demand = True
+    if "head_value" in X.columns:
+        head_value = True
+    if "pressure_value" in X.columns:
+        pressure_value = True
+    if "x_pos" in X.columns:
+        x_pos = True
+    if "y_pos" in X.columns:
+        y_pos = True
+    if "leak_area_value" in X.columns:
+        leak_area_value = True
+    if "leak_discharge_value" in X.columns:
+        leak_discharge_value = True
+    if "current_leak_demand_value" in X.columns:
+        current_leak_demand_value = True
+    if "smart_sensor_is_present" in X.columns:
+        smart_sensor_is_present = True
+    if "tot_network_demand" in X.columns:
+        tot_network_demand = True
+    if "hour" in X.columns:
+        hour = True
+    if "nodeID" in X.columns:
+        nodeID = True
+    if "node_type" in X.columns:
+        node_type = True
+    if "has_leak" in X.columns:
+        has_leak = True
+
+    output_row = [base_demand, head_value, pressure_value, x_pos, y_pos, leak_area_value,
+                  leak_discharge_value, current_leak_demand_value, smart_sensor_is_present,
+                  tot_network_demand, hour, nodeID, node_type, has_leak, model_score,
+                  metrics_r2_score, msq_err, cv_score_mean, cv_score_std, input_full_dataset]
+
+    writer.writerow(output_row)
+
 
 def check_if_fresh_model_is_required(fresh_start):
     if (fresh_start):
@@ -151,7 +206,7 @@ def check_if_fresh_model_is_required(fresh_start):
     else:
         print("\nFresh start NOT ENABLED. Will reuse old models if present.\n")
 
-def run_with_different_inputs(folder_input, input_full_dataset):
+def run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start):
 
     complete_path = folder_input + input_full_dataset
 
@@ -166,10 +221,10 @@ def run_with_different_inputs(folder_input, input_full_dataset):
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ['base_demand', 'head_value', 'pressure_value', 'x_pos', 'y_pos',
-              'leak_area_value', 'leak_discharge_value', 'current_leak_demand_value',
-              'smart_sensor_is_present', 'tot_network_demand',
-              'hour', 'nodeID', 'node_type', 'has_leak','r2_score','mser','dataset']
+    header = ["base_demand", "head_value", "pressure_value", "x_pos", "y_pos", "leak_area_value",
+                  "leak_discharge_value", "current_leak_demand_value", "smart_sensor_is_present",
+                  "tot_network_demand", "hour", "nodeID", "node_type", "has_leak", "model_score",
+                  "r2_score", "msq_err", "cv_score_mean", "cv_score_std", "dataset"]
 
     writer.writerow(header)
 
@@ -198,27 +253,14 @@ def run_with_different_inputs(folder_input, input_full_dataset):
 
             X = data[cols].copy()
 
-            # print(list(X.columns))
-
-            model_persistency = True
-            fresh_start = True
-
-            folder_input = "datasets_for_mlp/"
-
-            input_full_dataset = '1M_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
-
-            input_alt_dataset = '1M_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
-
-            model_prefix = "MLP_model_"
+            print(list(X.columns))
 
             execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer, X_input=X)
-
-
 
     f.close()
 
 
-def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer, X_input = None):
+def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer=None, X_input = None):
     print("MLP Regression analysis started!")
 
     check_if_fresh_model_is_required(fresh_start)
@@ -242,6 +284,6 @@ if __name__ == "__main__":
 
     model_prefix = "MLP_model_"
 
-    execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix)
+    # execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix)
 
-    # run_with_different_inputs(folder_input, input_full_dataset)
+    run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start)
