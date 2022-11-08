@@ -405,7 +405,7 @@ def write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug):
 
             # print(timestamp)
 
-            print("count is: ",count," max is: ",max_count_is, " n. junctions: ",wn.num_junctions)
+
 
             if debug:
                 if tot_demand < 1e-6:
@@ -413,6 +413,8 @@ def write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug):
                 else:
                     print("Tot demand at " + str(hour) + " is: " + str(tot_demand))
             # break
+
+    print("max is: ", max_count_is, " n. junctions: ", wn.num_junctions)
 
     return tot_nodes_demand, tot_leak_demand
 
@@ -501,7 +503,7 @@ if __name__ == "__main__":
     # number_of_nodes_with_sensors3 = 0
 
     # sim_duration = 744 * 3600
-    sim_duration = 24 * 3600 #TODO: 200 hours simulation
+    sim_duration = 168 * 3600 #TODO: 200 hours simulation
 
     wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
 
@@ -535,8 +537,8 @@ if __name__ == "__main__":
     list_of_demands = generate_rand_demand_array(0, 0.005, wn_1.num_junctions, (sim_duration / 3600))
 
     run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1,
-                                     output_file_name="1D_one_res_small_no_leaks_rand_base_dem_",
-                                     proc_name="1D_one_res_small_no_leaks_rand_base_dem: ",
+                                     output_file_name="1W_one_res_small_no_leaks_rand_base_dem_",
+                                     proc_name="1W_one_res_small_no_leaks_rand_base_dem: ",
                                      number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
                                      number_of_nodes_with_leaks=number_of_junctions_with_leaks1,
                                      list_of_demands=list_of_demands)
@@ -573,8 +575,8 @@ if __name__ == "__main__":
     # wn_1.reset_initial_values()
 
     run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1,
-                                     output_file_name="1D_ALT_one_res_small_with_leaks_rand_base_dem_",
-                                     proc_name="1D_ALT_one_res_small_with_leaks_rand_base_dem: ",
+                                     output_file_name="1W_ALT_one_res_small_with_leaks_rand_base_dem_",
+                                     proc_name="1W_ALT_one_res_small_with_leaks_rand_base_dem: ",
                                      number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
                                      number_of_nodes_with_leaks=number_of_junctions_with_leaks1,
                                      list_of_demands=list_of_demands)

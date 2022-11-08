@@ -170,6 +170,8 @@ def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_pers
     if(writer != None):
         write_to_csv(X, writer, model_score, metrics_r2_score, msq_err, cv_score_mean, cv_score_std, input_full_dataset)
 
+    return model_score, metrics_r2_score, msq_err, cv_score_mean, cv_score_std
+
 def write_to_csv(X, writer, model_score, metrics_r2_score, msq_err, cv_score_mean, cv_score_std, input_full_dataset):
 
     print("printing to csv...")
@@ -282,14 +284,40 @@ def run_with_different_inputs(folder_input, input_full_dataset, input_alt_datase
     f.close()
 
 
-def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer=None, X_input = None, input_stat_full_dataset= "", input_stat_alt_dataset= ""):
+def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer=None, X_input = None, input_stat_full_dataset= "", input_stat_alt_dataset= "", single_execution = False):
     print("MLP Regression analysis started!")
 
     check_if_fresh_model_is_required(fresh_start)
 
-    fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input, input_stat_dataset=input_stat_full_dataset)
+    if(single_execution):
 
-    fit_and_predict_on_full_dataset(folder_input, input_alt_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input, input_stat_dataset=input_stat_alt_dataset)
+        output_filename = "mlp_results.csv"
+
+        print("output_filename : ", output_filename)
+
+        # open the file in the write mode
+        f_out = open(output_filename, "w", newline='', encoding='utf-8')
+
+        # create the csv writer
+        mlp_writer = csv.writer(f_out)
+
+        header = ["model_score", "metrics_r2_score", "msq_err", "cv_score_mean", "cv_score_std","dataset"]
+
+        mlp_writer.writerow(header)
+
+    results = fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input, input_stat_dataset=input_stat_full_dataset)
+
+    if(single_execution):
+        output_row = [results[0], results[1], results[2], results[3], results[4], input_full_dataset]
+        mlp_writer.writerow(output_row)
+
+    results = fit_and_predict_on_full_dataset(folder_input, input_alt_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input, input_stat_dataset=input_stat_alt_dataset)
+
+    if (single_execution):
+        output_row = [results[0], results[1], results[2], results[3], results[4], input_full_dataset]
+        mlp_writer.writerow(output_row)
+
+        f_out.close()
 
     print("\nMLP Regression analysis finished!")
 
@@ -310,6 +338,6 @@ if __name__ == "__main__":
 
     model_prefix = "MLP_model_"
 
-    execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset)
+    execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset, single_execution=True)
 
     #run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start)
