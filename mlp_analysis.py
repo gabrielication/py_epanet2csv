@@ -1,5 +1,3 @@
-import csv
-
 from sklearnex import patch_sklearn
 patch_sklearn()
 
@@ -21,9 +19,10 @@ import os
 
 from itertools import combinations
 
+import csv
 
 def fit_model(X_train, y_train, complete_path_input_stat_dataset= ""):
-    print("Fit with StandardScaler started...")
+    print("\nFit with StandardScaler started...")
 
     if complete_path_input_stat_dataset == "":
         print("No simulation stats loaded.")
@@ -42,9 +41,13 @@ def fit_model(X_train, y_train, complete_path_input_stat_dataset= ""):
         model = Pipeline([('scaler', StandardScaler()),
                           ('MLPR', MLPRegressor(random_state=1, max_iter=3000, hidden_layer_sizes=(fst_level, snd_level, trd_level)))])
 
+        print("MLP Regressor model with layers: ",fst_level, snd_level, trd_level," n_junctions is: ",n_junc)
+
     print("Fitting without k-fold...")
 
     model.fit(X_train, y_train)
+
+    print("Fit finished!\n")
 
     return model
 
