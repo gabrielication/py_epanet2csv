@@ -268,13 +268,20 @@ def create_header_nodes_to_csv(proc_name, output_file_name):
 
     return writer, out
 
+max_count_is = 0
+
 def write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug):
+
+    global max_count_is
+
     for results in list_results:
         demand_results = results.node['demand']
         head_results = results.node['head']
         pressure_results = results.node['pressure']
 
         indexes = demand_results.index
+
+
 
         for timestamp in indexes:
             tot_demand = Decimal('0')
@@ -291,11 +298,19 @@ def write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug):
 
             # print(hour)
 
+            count = 0
+
             for nodeID in node_names:
                 node_obj = wn.get_node(nodeID)
 
                 demand_value = Decimal(str(demand_results.loc[timestamp, nodeID]))
                 demand_value = round(demand_value, 8)
+
+                if demand_value > 0:
+                    count += 1
+
+                max_count_is = max(count, max_count_is)
+
                 head_value = Decimal(str(head_results.loc[timestamp, nodeID]))
                 head_value = round(head_value, 8)
                 pressure_value = Decimal(str(pressure_results.loc[timestamp, nodeID]))
@@ -389,6 +404,9 @@ def write_body_nodes_to_csv_func(wn, node_names, list_results, writer, debug):
                 writer.writerow(output_row)
 
             # print(timestamp)
+
+            print("count is: ",count," max is: ",max_count_is, " n. junctions: ",wn.num_junctions)
+
             if debug:
                 if tot_demand < 1e-6:
                     print("Tot demand at " + str(hour) + " is: 0 (" + str(tot_demand) + ")")
@@ -514,11 +532,11 @@ if __name__ == "__main__":
 
     print("FIRST RUN WITHOUT LEAKS")
 
-    list_of_demands = generate_rand_demand_array(0, 5, wn_1.num_junctions, (sim_duration / 3600))
+    list_of_demands = generate_rand_demand_array(0, 0.005, wn_1.num_junctions, (sim_duration / 3600))
 
     run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1,
-                                     output_file_name="1M_one_res_small_no_leaks_rand_base_dem_",
-                                     proc_name="1M_one_res_small_no_leaks_rand_base_dem: ",
+                                     output_file_name="1D_one_res_small_no_leaks_rand_base_dem_",
+                                     proc_name="1D_one_res_small_no_leaks_rand_base_dem: ",
                                      number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
                                      number_of_nodes_with_leaks=number_of_junctions_with_leaks1,
                                      list_of_demands=list_of_demands)
@@ -539,7 +557,7 @@ if __name__ == "__main__":
         # selected_junctions2 = pick_rand_leaks(wn_2,number_of_junctions_with_leaks2)
         # selected_junctions3 = pick_rand_leaks(wn_3,number_of_junctions_with_leaks3)
 
-        assign_leaks(wn_1, 0.169, selected_junctions1, "1D_one_res_small")
+        assign_leaks(wn_1, 0.0002, selected_junctions1, "1D_one_res_small")
         # assign_leaks(wn_2, 0.000006, selected_junctions2, "1D_one_res_large")
         # assign_leaks(wn_3, 0.000006, selected_junctions3, "1D_two_res_large")
     else:
@@ -555,8 +573,8 @@ if __name__ == "__main__":
     # wn_1.reset_initial_values()
 
     run_sim_with_random_base_demands(wn_1, sim_duration, smart_sensor_junctions1,
-                                     output_file_name="1M_ALT_one_res_small_with_leaks_rand_base_dem_",
-                                     proc_name="1M_ALT_one_res_small_with_leaks_rand_base_dem: ",
+                                     output_file_name="1D_ALT_one_res_small_with_leaks_rand_base_dem_",
+                                     proc_name="1D_ALT_one_res_small_with_leaks_rand_base_dem: ",
                                      number_of_nodes_with_sensors=number_of_nodes_with_sensors1,
                                      number_of_nodes_with_leaks=number_of_junctions_with_leaks1,
                                      list_of_demands=list_of_demands)

@@ -1,9 +1,10 @@
 # Ignore outputs
-*.csv
+#*.csv
 *.bin
 *.rpt
 *.inp
 *.png
+*.joblib
 
 !deprecated/sample_nodes_output_one_week.csv
 

@@ -278,12 +278,12 @@ if __name__ == "__main__":
 
     folder_input = "datasets_for_mlp/"
 
-    input_full_dataset = '1M_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    input_full_dataset = '1D_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
 
-    input_alt_dataset = '1M_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
+    input_alt_dataset = '1D_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
 
     model_prefix = "MLP_model_"
 
-    # execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix)
+    execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix)
 
-    run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start)
+    #run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start)
