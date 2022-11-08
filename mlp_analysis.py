@@ -22,11 +22,25 @@ import os
 from itertools import combinations
 
 
-def fit_model(X_train, y_train):
-    print("Using StandardScaler to the data...")
+def fit_model(X_train, y_train, complete_path_input_stat_dataset= ""):
+    print("Fit with StandardScaler started...")
 
-    model = Pipeline([('scaler', StandardScaler()),
-                      ('MLPR', MLPRegressor(random_state=1, max_iter=3000))])
+    if complete_path_input_stat_dataset == "":
+        print("No simulation stats loaded.")
+        model = Pipeline([('scaler', StandardScaler()),
+                          ('MLPR', MLPRegressor(random_state=1, max_iter=3000))])
+    else:
+        print("LOADING Simulation stats: ",complete_path_input_stat_dataset)
+
+        df = pd.read_csv(complete_path_input_stat_dataset)
+        n_junc = int(df['number_of_junctions'].iloc[0])
+
+        fst_level = n_junc * 5
+        snd_level = n_junc * 3
+        trd_level = n_junc
+
+        model = Pipeline([('scaler', StandardScaler()),
+                          ('MLPR', MLPRegressor(random_state=1, max_iter=3000, hidden_layer_sizes=(fst_level, snd_level, trd_level)))])
 
     print("Fitting without k-fold...")
 
@@ -34,7 +48,7 @@ def fit_model(X_train, y_train):
 
     return model
 
-def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persistency=False):
+def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persistency=False, complete_path_input_stat_dataset= ""):
 
     model_fitted = None
 
@@ -59,30 +73,35 @@ def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persist
         else:
             # we first fit the model on the complete dataset and save the fitted model back
             print("No old model found. Fitting...")
-            model_fitted = fit_model(X_train, y_train)
+            model_fitted = fit_model(X_train, y_train, complete_path_input_stat_dataset= complete_path_input_stat_dataset)
 
             dump(model_fitted, output_filename_full_fitted_model)
             print("Model saved to: " + output_filename_full_fitted_model)
     else:
         print("\nModel persistency DISABLED")
-        model_fitted = fit_model(X_train, y_train)
+        model_fitted = fit_model(X_train, y_train, complete_path_input_stat_dataset= complete_path_input_stat_dataset)
 
     print("")
 
     return model_fitted
 
-def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, writer, model_prefix="", X_input=None):
+def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, writer, model_prefix="", X_input=None, input_stat_dataset=""):
 
     # hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,
     # has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
 
     #TODO: write a csv for different features stats!!!
 
-    complete_path = folder_input+input_full_dataset
+    complete_path_input_full_dataset = folder_input+input_full_dataset
 
-    print("LOADING " + complete_path + "...")
+    if input_stat_dataset != "":
+        complete_path_input_stat_dataset = folder_input+input_stat_dataset
+    else:
+        complete_path_input_stat_dataset = ""
 
-    data = pd.read_csv(complete_path)
+    print("LOADING " + complete_path_input_full_dataset + "...")
+
+    data = pd.read_csv(complete_path_input_full_dataset)
 
     print("Dividing X and y matrices...")
 
@@ -116,7 +135,7 @@ def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_pers
     # https://www.projectpro.io/article/classification-vs-regression-in-machine-learning/545
     # https://www.springboard.com/blog/data-science/regression-vs-classification/
 
-    model = load_model(model_prefix, X_train, y_train, input_full_dataset, model_persistency=model_persistency)
+    model = load_model(model_prefix, X_train, y_train, input_full_dataset, model_persistency=model_persistency, complete_path_input_stat_dataset= complete_path_input_stat_dataset)
 
     # print(X.columns)
 
@@ -260,14 +279,14 @@ def run_with_different_inputs(folder_input, input_full_dataset, input_alt_datase
     f.close()
 
 
-def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer=None, X_input = None):
+def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer=None, X_input = None, input_stat_full_dataset= "", input_stat_alt_dataset= ""):
     print("MLP Regression analysis started!")
 
     check_if_fresh_model_is_required(fresh_start)
 
-    fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input)
+    fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input, input_stat_dataset=input_stat_full_dataset)
 
-    fit_and_predict_on_full_dataset(folder_input, input_alt_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input)
+    fit_and_predict_on_full_dataset(folder_input, input_alt_dataset, model_persistency, writer, model_prefix=model_prefix, X_input=X_input, input_stat_dataset=input_stat_alt_dataset)
 
     print("\nMLP Regression analysis finished!")
 
@@ -282,8 +301,12 @@ if __name__ == "__main__":
 
     input_alt_dataset = '1D_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
 
+    input_stat_full_dataset = "1D_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+
+    input_stat_alt_dataset = "1D_ALT_one_res_small_with_leaks_rand_base_dem_nodes_simulation_stats.csv"
+
     model_prefix = "MLP_model_"
 
-    execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix)
+    execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset)
 
     #run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start)
