@@ -230,11 +230,11 @@ def check_if_fresh_model_is_required(fresh_start):
     else:
         print("\nFresh start NOT ENABLED. Will reuse old models if present.\n")
 
-def run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start):
+def run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start, input_stat_full_dataset= "", input_stat_alt_dataset= ""):
 
     complete_path = folder_input + input_full_dataset
 
-    output_filename = "multiple_features_mlp_results.csv"
+    output_filename = "multiple_features_mlp_results_"+input_full_dataset[0:2]+".csv"
 
     print("output_filename : ", output_filename)
     print("input dataset path : ", complete_path)
@@ -279,19 +279,19 @@ def run_with_different_inputs(folder_input, input_full_dataset, input_alt_datase
 
             print(list(X.columns))
 
-            execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer, X_input=X)
+            execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer, X_input=X, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset)
 
     f.close()
 
 
-def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer=None, X_input = None, input_stat_full_dataset= "", input_stat_alt_dataset= "", single_execution = False):
+def execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, writer=None, X_input = None, input_stat_full_dataset= "", input_stat_alt_dataset= "", single_execution=False):
     print("MLP Regression analysis started!")
 
     check_if_fresh_model_is_required(fresh_start)
 
     if(single_execution):
 
-        output_filename = "mlp_results.csv"
+        output_filename = "mlp_results_"+input_stat_full_dataset[0:2]+".csv"
 
         print("output_filename : ", output_filename)
 
@@ -338,6 +338,19 @@ if __name__ == "__main__":
 
     model_prefix = "MLP_model_"
 
-    execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset, single_execution=True)
+    # execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset, single_execution=True)
+    #
+    #
+    #
+    # input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    #
+    # input_alt_dataset = '1W_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
+    #
+    # input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    #
+    # input_stat_alt_dataset = "1W_ALT_one_res_small_with_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    #
+    # execute_analysis(model_persistency, fresh_start, folder_input, input_full_dataset, input_alt_dataset, model_prefix, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset, single_execution=True)
+    #
 
-    #run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start)
+    run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start, input_stat_full_dataset= input_stat_full_dataset, input_stat_alt_dataset= input_stat_alt_dataset)
