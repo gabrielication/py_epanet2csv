@@ -19,6 +19,8 @@ import os
 
 from itertools import combinations
 
+from datetime import datetime
+
 import csv
 
 def fit_model(X_train, y_train, complete_path_input_stat_dataset= ""):
@@ -172,6 +174,25 @@ def fit_and_predict_on_full_dataset(folder_input, input_full_dataset, model_pers
 
     return model_score, metrics_r2_score, msq_err, cv_score_mean, cv_score_std
 
+def check_if_file_exists_and_return_a_new_filename(output_filename):
+
+    if os.path.isfile(output_filename+".csv"):
+        print("found")
+
+        # current date and time
+        now = str(datetime.now())
+        now = now.replace(" ","_")
+        now = now.replace(".","_")
+        now = now.replace(":", "_")
+
+        output_filename = output_filename+"_"+now+".csv"
+    else:
+        output_filename = output_filename+".csv"
+
+    print("output_filename : ", output_filename)
+
+    return output_filename
+
 def write_to_csv(X, writer, model_score, metrics_r2_score, msq_err, cv_score_mean, cv_score_std, input_full_dataset):
 
     print("printing to csv...")
@@ -230,14 +251,17 @@ def check_if_fresh_model_is_required(fresh_start):
     else:
         print("\nFresh start NOT ENABLED. Will reuse old models if present.\n")
 
+
+
 def run_with_different_inputs(folder_input, input_full_dataset, input_alt_dataset, model_prefix, model_persistency, fresh_start, input_stat_full_dataset= "", input_stat_alt_dataset= ""):
 
     complete_path = folder_input + input_full_dataset
 
-    output_filename = "multiple_features_mlp_results_"+input_full_dataset[0:2]+".csv"
+    output_filename = "multiple_features_mlp_results_"+input_full_dataset[0:2]
 
-    print("output_filename : ", output_filename)
     print("input dataset path : ", complete_path)
+
+    output_filename = check_if_file_exists_and_return_a_new_filename(output_filename)
 
     # open the file in the write mode
     f = open(output_filename, "w", newline='', encoding='utf-8')
@@ -291,7 +315,9 @@ def execute_analysis(model_persistency, fresh_start, folder_input, input_full_da
 
     if(single_execution):
 
-        output_filename = "mlp_results_"+input_stat_full_dataset[0:2]+".csv"
+        output_filename = "mlp_results_"+input_stat_full_dataset[0:2]
+
+        output_filename = check_if_file_exists_and_return_a_new_filename(output_filename)
 
         print("output_filename : ", output_filename)
 
