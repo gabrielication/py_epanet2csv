@@ -12,11 +12,10 @@ from datetime import datetime
 import tensorflow as tf
 import tensorflow_addons as tfa
 
+from keras_visualizer import visualizer
+
 from tensorflow import keras
 from tensorflow.keras import layers
-
-print('Tensorflow ',tf.__version__)
-print('Keras ',tf.keras.__version__)
 
 def formatted_datetime():
     # current date and time
@@ -26,6 +25,27 @@ def formatted_datetime():
     now = now.replace(":", "_")
 
     return now
+
+def visualize_model(model):
+    print("Generating model visualization...")
+
+    now = formatted_datetime()
+
+    output_filename = "model_simple_"+now+".png"
+
+    tf.keras.utils.plot_model(model, to_file=output_filename, show_shapes=True)
+
+    print(output_filename + " saved.")
+
+    try:
+        output_filename = "model_graph_" + now + ".png"
+
+        # keras_visualizer will work only with normalizer disabled
+        visualizer(model, format='png', view=True, filename=output_filename)
+
+        print(output_filename + " saved.")
+    except:
+        print("PNG for keras_visualizer not saved! works only without Normalization layer.")
 
 def is_gpu_supported():
     gpu_list = tf.config.list_physical_devices('GPU')
@@ -42,6 +62,8 @@ def load_dataset(complete_path, cols, scaling=False, pairplot=False):
     data = pd.read_csv(complete_path)
 
     # We drop these columns because they are strings, booleans and other incompatible types. We will convert them later
+
+    print("Extracting only columns: ",cols)
 
     data_trans = data[cols].copy()
 
@@ -85,11 +107,11 @@ def load_dataset(complete_path, cols, scaling=False, pairplot=False):
 
     return train_dataset, test_dataset, train_features, test_features, train_labels, test_labels
 
-def create_neural_network_model(train_features, normalize=False):
-
-    input_layer = None
+def create_neural_network_model(train_features, complete_path_stat, normalize=False):
+    print("Building Neural Network Model...")
 
     if(normalize):
+        print("NORMALIZATION IS ENABLED!")
         # We want to Normalize (scale) the data since it can be too different in ranges
         # These lines will create a NORMALIZATION layer (TODO: cerca) adapted to our data
         normalizer = tf.keras.layers.Normalization(axis=-1)
@@ -100,14 +122,15 @@ def create_neural_network_model(train_features, normalize=False):
 
         input_layer = normalizer
     else:
-        print("Not implemented yet. TODO!")
-        exit()
+        print("NORMALIZATION IS DISABLED!")
+
+        feat_shape = train_features.shape[1]
+
+        input_layer = layers.Input(shape=(feat_shape,))
 
     # These lines will just calculate the levels for the Deep Neural Net
     df = pd.read_csv(complete_path_stat)
     n_junc = int(df['number_of_junctions'].iloc[0])
-
-    #TODO
 
     fst_level = n_junc * 5
     snd_level = n_junc * 3
@@ -125,18 +148,15 @@ def create_neural_network_model(train_features, normalize=False):
         layers.Dense(1)
     ])
 
-    dot_img_file = 'model_1.png'
-    tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)
-
     lossfn = 'mean_squared_error'
     # lossfn = 'mean_absolute_error'
 
     # opt = tf.keras.optimizers.SGD(learning_rate=0.1, momentum=0.9)
     opt = tf.keras.optimizers.Adam()
 
-    # metrics = ['mse', 'mae', 'r_square']
+    metrics = ['mse', 'mae', tfa.metrics.r_square.RSquare()]
 
-    metrics = [tfa.metrics.r_square.RSquare()]
+    #metrics = []
 
     # In regression we use mserr as loss funct
     # Adam is a good optimizer since it just do the calculation for SGD's parameters automatically starting from a fixed value
@@ -149,19 +169,18 @@ def create_neural_network_model(train_features, normalize=False):
 
     return model
 
-def perform_neural_network_fit(model, train_features, train_labels):
-    # callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
-
-    batch_size = 1024
-
+def perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size=None, validation_split=0.0, callbacks=None):
     # This array saves all the values obtained through the epochs
+
+    print("epochs: ",epochs,"batch_size: ",batch_size, "validation_split: ", validation_split)
+
     history = model.fit(
         train_features,
         train_labels,
-        validation_split=0.2,
+        epochs=epochs,
         batch_size=batch_size,
-        # callbacks=[callback],
-        epochs=5)
+        validation_split=validation_split
+    )
 
     return history
 
@@ -182,40 +201,65 @@ def plot_fit_results(history):
     plt.ylabel('Error [demand_value]')
     plt.legend()
     plt.grid(True)
-    plt.savefig("loss_plot.png")
+
+    now = formatted_datetime()
+    output_filename = "loss_plot_"+now+".png"
+
+    plt.savefig(output_filename)
+
+    print(output_filename+" saved.")
 
 def evaluate_network_after_fit(model, test_features, test_labels):
+    print("Evaluation started...")
+
     evl = model.evaluate(test_features, test_labels, verbose=0)
 
-    return evl
+    loss = evl[0]
+    mse = evl[1]
+    mae = evl[2]
+    r_square = evl[3]
 
-def run_analysis(complete_path, complete_path_stat):
+    print("loss: ",loss)
+    print("mse: ",mse)
+    print("mae: ",mae)
+    print("r_square: ",r_square)
+
+    return loss, mse, mae, r_square
+
+def run_analysis(complete_path, complete_path_stat, epochs):
+    print('Tensorflow ', tf.__version__)
+    print('Keras ', tf.keras.__version__)
     is_gpu_supported()
+
+    validation_split = 0.2
+    batch_size = None
+    # not implemented callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
 
     cols = ["pressure_value", "base_demand", "demand_value"]
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,scaling=False, pairplot=False)
 
-    model = create_neural_network_model(train_features,normalize=True)
+    model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
 
-    history = perform_neural_network_fit(model,train_features, train_labels)
+    history = perform_neural_network_fit(model,train_features, train_labels, epochs,
+                                         validation_split=validation_split, batch_size=batch_size)
 
     plot_fit_results(history)
 
-    evl = evaluate_network_after_fit(model,test_features,test_labels)
+    visualize_model(model)
 
-    print(evl)
+    loss, mse, mae, r_square = evaluate_network_after_fit(model,test_features,test_labels)
 
     print("Done.")
 
 if __name__ == "__main__":
     folder_input = "datasets_for_mlp/"
 
-    input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
-    input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    input_full_dataset = '1D_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    input_stat_full_dataset = "1D_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
 
     complete_path = folder_input + input_full_dataset
 
     complete_path_stat = folder_input + input_stat_full_dataset
 
-    run_analysis(complete_path, complete_path_stat)
+    run_analysis(complete_path, complete_path_stat, 5)
