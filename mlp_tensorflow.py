@@ -10,6 +10,8 @@ import shutil
 
 import csv
 
+from itertools import combinations
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -318,9 +320,6 @@ def evaluate_network_after_fit(model, test_features, test_labels):
     return loss, mse, mae, r_square
 
 def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
-    print('Tensorflow ', tf.__version__)
-    print('Keras ', tf.keras.__version__)
-    is_gpu_supported()
 
     validation_split = 0.2
     earlystop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
@@ -345,8 +344,49 @@ def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=Non
 
     return loss, mse, mae, r_square, stop
 
-def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, epochs):
-    now = formatted_datetime()
+def write_to_csv(X, writer, loss, mse, mae, r_square, input_full_dataset, stop):
+
+    base_demand = head_value = pressure_value = x_pos = y_pos = leak_area_value = leak_discharge_value = current_leak_demand_value = False
+    smart_sensor_is_present = tot_network_demand = hour = nodeID = node_type = has_leak = False
+
+    if "base_demand" in X:
+        base_demand = True
+    if "head_value" in X:
+        head_value = True
+    if "pressure_value" in X:
+        pressure_value = True
+    if "x_pos" in X:
+        x_pos = True
+    if "y_pos" in X:
+        y_pos = True
+    if "leak_area_value" in X:
+        leak_area_value = True
+    if "leak_discharge_value" in X:
+        leak_discharge_value = True
+    if "current_leak_demand_value" in X:
+        current_leak_demand_value = True
+    if "smart_sensor_is_present" in X:
+        smart_sensor_is_present = True
+    if "tot_network_demand" in X:
+        tot_network_demand = True
+    if "hour" in X:
+        hour = True
+    if "nodeID" in X:
+        nodeID = True
+    if "node_type" in X:
+        node_type = True
+    if "has_leak" in X:
+        has_leak = True
+
+    #short CSV
+    out_row = [base_demand, pressure_value, loss, mse, mae, r_square, input_full_dataset, stop]
+
+    writer.writerow(out_row)
+
+
+def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=False):
+
+    #now = formatted_datetime()
 
     output_filename = input_full_dataset[0:3]+"tensorflow_report.csv"
 
@@ -360,85 +400,40 @@ def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, 
 
     writer.writerow(header)
 
-    # cols = ["pressure_value", "base_demand", "demand_value"]
-    cols = ["base_demand", "demand_value"]
+    for i in range(len(cols)):
+        oc = combinations(cols, i + 1)
+        for c in oc:
+            if (fresh_start):
+                print("FRESH START ENABLED. Cleaning ALL old models and their files...")
+                clean_old_files()
 
-    complete_path = folder_input + input_full_dataset
-    complete_path_stat = folder_input + input_stat_full_dataset
+            new_cols = list(c)
+            new_cols.append(label)
 
-    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+            print(new_cols)
 
-    out_row = [True, False, loss, mse, mae, r_square, input_full_dataset, stop]
+            complete_path = folder_input + input_full_dataset
+            complete_path_stat = folder_input + input_stat_full_dataset
 
-    writer.writerow(out_row)
+            loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
-    ##########
+            write_to_csv(new_cols, writer, loss, mse, mae, r_square, input_full_dataset, stop)
 
-    complete_path = folder_input + input_alt_dataset
-    complete_path_stat = folder_input + input_stat_full_dataset
+            ##########
 
-    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+            complete_path = folder_input + input_alt_dataset
+            complete_path_stat = folder_input + input_stat_full_dataset
 
-    out_row = [True, False, loss, mse, mae, r_square, input_alt_dataset, stop]
+            loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
-    writer.writerow(out_row)
-
-    ###########
-
-    clean_old_files()
-
-    cols = ["pressure_value", "demand_value"]
-
-    complete_path = folder_input + input_full_dataset
-    complete_path_stat = folder_input + input_stat_full_dataset
-
-    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
-
-    out_row = [False, True, loss, mse, mae, r_square, input_full_dataset, stop]
-
-    writer.writerow(out_row)
-
-    ##########
-
-    complete_path = folder_input + input_alt_dataset
-    complete_path_stat = folder_input + input_stat_full_dataset
-
-    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
-
-    out_row = [False, True, loss, mse, mae, r_square, input_alt_dataset, stop]
-
-    writer.writerow(out_row)
-
-    ###########
-
-    clean_old_files()
-
-    cols = ["pressure_value", "base_demand", "demand_value"]
-
-    complete_path = folder_input + input_full_dataset
-    complete_path_stat = folder_input + input_stat_full_dataset
-
-    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
-
-    out_row = [True, True, loss, mse, mae, r_square, input_full_dataset, stop]
-
-    writer.writerow(out_row)
-
-    ##########
-
-    complete_path = folder_input + input_alt_dataset
-    complete_path_stat = folder_input + input_stat_full_dataset
-
-    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
-
-    out_row = [True, True, loss, mse, mae, r_square, input_alt_dataset, stop]
-
-    writer.writerow(out_row)
+            write_to_csv(new_cols, writer, loss, mse, mae, r_square, input_full_dataset, stop)
 
     f.close()
 
 if __name__ == "__main__":
-    clean_old_files()
+    print('Tensorflow ', tf.__version__)
+    print('Keras ', tf.keras.__version__)
+    is_gpu_supported()
 
     folder_input = ""
 
@@ -446,14 +441,7 @@ if __name__ == "__main__":
     input_stat_full_dataset = "1D_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
     input_alt_dataset = '1D_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
 
-    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, 100)
-    # #################################
-    #
-    # input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
-    # input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-    #
-    # complete_path = folder_input + input_full_dataset
-    #
-    # complete_path_stat = folder_input + input_stat_full_dataset
-    #
-    # run_analysis(complete_path, complete_path_stat, 1000, batch_size=32)
+    cols = ["pressure_value", "base_demand"]
+    label = "demand_value"
+
+    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, 100, fresh_start=True)
