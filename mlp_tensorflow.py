@@ -71,7 +71,7 @@ def load_model(model_persistency, train_features, train_labels, epochs, validati
 
         history = perform_neural_network_fit(model, train_features, train_labels, epochs,
                                              validation_split=validation_split, batch_size=batch_size,
-                                             callbacks=callbacks)
+                                             callbacks=callbacks, verbose=0)
 
         np.save('my_history.npy',history.history)
 
@@ -254,10 +254,12 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 
     return model
 
-def perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size=None, validation_split=0.0, callbacks=[None]):
+def perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size=None, validation_split=0.0, callbacks=[None], verbose = 1):
     # This array saves all the values obtained through the epochs
 
     print("epochs: ",epochs,"batch_size: ",batch_size, "validation_split: ", validation_split)
+
+    print("Fitting...")
 
     history = model.fit(
         train_features,
@@ -265,8 +267,11 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
         epochs=epochs,
         batch_size=batch_size,
         validation_split=validation_split,
+        verbose=verbose,
         callbacks=callbacks
     )
+
+    print("Fitting finished.")
 
     return history
 
@@ -315,7 +320,7 @@ def evaluate_network_after_fit(model, test_features, test_labels):
 def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
 
     validation_split = 0.2
-    earlystop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
     callbacks = [earlystop]
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,scaling=False, pairplot=False)
@@ -379,9 +384,9 @@ def write_to_csv(X, writer, loss, mse, mae, r_square, input_full_dataset, stop):
 
 def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=False):
 
-    #now = formatted_datetime()
+    now = formatted_datetime()
 
-    output_filename = input_full_dataset[0:3]+"tensorflow_report.csv"
+    output_filename = input_full_dataset[0:3]+"tensorflow_report_"+now+".csv"
 
     # open the file in the write mode
     f = open(output_filename, "w", newline='', encoding='utf-8')
@@ -403,7 +408,7 @@ def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, 
             new_cols = list(c)
             new_cols.append(label)
 
-            print(new_cols)
+            #print(new_cols)
 
             complete_path = folder_input + input_full_dataset
             complete_path_stat = folder_input + input_stat_full_dataset
@@ -430,9 +435,9 @@ if __name__ == "__main__":
 
     folder_input = ""
 
-    input_full_dataset = '1D_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
-    input_stat_full_dataset = "1D_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-    input_alt_dataset = '1D_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
+    input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    input_alt_dataset = '1W_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
 
     cols = ["pressure_value", "base_demand"]
     label = "demand_value"
