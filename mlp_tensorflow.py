@@ -4,6 +4,12 @@ from sklearn.preprocessing import StandardScaler
 
 import pandas as pd
 
+import os
+
+import shutil
+
+import csv
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -12,10 +18,76 @@ from datetime import datetime
 import tensorflow as tf
 import tensorflow_addons as tfa
 
+from pathlib import Path
 from keras_visualizer import visualizer
 
 from tensorflow import keras
 from tensorflow.keras import layers
+
+def clean_old_files():
+
+    for filename in Path(".").glob("*.png"):
+        try:
+            os.remove(filename)
+            print(str(filename) + " deleted")
+        except OSError:
+            print("\nError while deleting " + str(filename) + "\n")
+
+    for filename in Path(".").glob("my_model"):
+        try:
+            shutil.rmtree(filename)
+
+            print(str(filename) + " deleted")
+        except OSError:
+            print("\nError while deleting " + str(filename) + "\n")
+
+    for filename in Path(".").glob("my_history.npy"):
+        try:
+            os.remove(filename)
+            print(str(filename) + " deleted")
+        except OSError:
+            print("\nError while deleting " + str(filename) + "\n")
+
+    print("All old files deleted.\n")
+
+def load_model(model_persistency, train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat):
+    input_filename_full_fitted_model = ""
+
+    for filename in Path(".").glob("my_model"):
+        input_filename_full_fitted_model = str(filename)
+
+        # cheap hack. we just have one model file. break at first finding.
+        break
+
+    if input_filename_full_fitted_model != "":
+        print("Full fitted model already exists. Loading " + input_filename_full_fitted_model + "...")
+        # model_fitted = load(input_filename_full_fitted_model)
+
+        model = tf.keras.models.load_model('my_model')
+
+        history = np.load('my_history.npy', allow_pickle='TRUE').item()
+
+        return model, history
+    else:
+        # we first fit the model on the complete dataset and save the fitted model back
+        print("No old model found. Creating and Fitting...")
+
+        model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
+
+        history = perform_neural_network_fit(model, train_features, train_labels, epochs,
+                                             validation_split=validation_split, batch_size=batch_size,
+                                             callbacks=callbacks)
+
+        np.save('my_history.npy',history.history)
+
+        output_filename_full_fitted_model = 'my_model'
+        model.save(output_filename_full_fitted_model)
+
+        print("Model saved to: " + output_filename_full_fitted_model)
+
+        visualize_model(model)
+
+        return model, history
 
 def formatted_datetime():
     # current date and time
@@ -52,8 +124,12 @@ def is_gpu_supported():
 
     if(len(gpu_list) == 0):
         print("GPU IS NOT SUPPORTED/ACTIVE/DETECTED!")
+
+        return False
     else:
         print("GPU SUPPORTED: ",gpu_list)
+
+        return True
 
 def load_dataset(complete_path, cols, scaling=False, pairplot=False):
     print("LOADING " + complete_path + "...")
@@ -94,7 +170,13 @@ def load_dataset(complete_path, cols, scaling=False, pairplot=False):
     train_dataset = data_scaled.sample(frac=0.8, random_state=0)
     test_dataset = data_scaled.drop(train_dataset.index)
 
-    # sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig("pairplot.png")
+    if(pairplot):
+        now = formatted_datetime()
+        output_filename = "pairplot_"+now+".png"
+
+        sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig(output_filename)
+
+        print(output_filename+" saved.")
 
     # Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
     # says that the features are the columns that we want our network to train and labels is the value(s) to predict
@@ -114,11 +196,19 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
         print("NORMALIZATION IS ENABLED!")
         # We want to Normalize (scale) the data since it can be too different in ranges
         # These lines will create a NORMALIZATION layer (TODO: cerca) adapted to our data
-        normalizer = tf.keras.layers.Normalization(axis=-1)
-        #
-        normalizer.adapt(np.array(train_features))
-        #
-        normalizer.mean.numpy()
+
+        if (len(train_features.columns) == 1):
+            col = train_features.columns[0]
+            bdem = np.array(train_features[col])
+
+            normalizer = layers.Normalization(input_shape=[1, ], axis=None)
+            normalizer.adapt(bdem)
+        else:
+            normalizer = tf.keras.layers.Normalization(axis=-1)
+            #
+            normalizer.adapt(np.array(train_features))
+            #
+            normalizer.mean.numpy()
 
         input_layer = normalizer
     else:
@@ -169,7 +259,7 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 
     return model
 
-def perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size=None, validation_split=0.0, callbacks=None):
+def perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size=None, validation_split=0.0, callbacks=[None]):
     # This array saves all the values obtained through the epochs
 
     print("epochs: ",epochs,"batch_size: ",batch_size, "validation_split: ", validation_split)
@@ -179,7 +269,8 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
         train_labels,
         epochs=epochs,
         batch_size=batch_size,
-        validation_split=validation_split
+        validation_split=validation_split,
+        callbacks=callbacks
     )
 
     return history
@@ -226,40 +317,143 @@ def evaluate_network_after_fit(model, test_features, test_labels):
 
     return loss, mse, mae, r_square
 
-def run_analysis(complete_path, complete_path_stat, epochs):
+def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
     print('Tensorflow ', tf.__version__)
     print('Keras ', tf.keras.__version__)
     is_gpu_supported()
 
     validation_split = 0.2
-    batch_size = None
-    # not implemented callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
-
-    cols = ["pressure_value", "base_demand", "demand_value"]
+    earlystop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+    callbacks = [earlystop]
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,scaling=False, pairplot=False)
 
-    model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
+    model, history = load_model(True,train_features,train_labels,epochs,validation_split,batch_size,callbacks, complete_path_stat)
 
-    history = perform_neural_network_fit(model,train_features, train_labels, epochs,
-                                         validation_split=validation_split, batch_size=batch_size)
-
-    plot_fit_results(history)
-
-    visualize_model(model)
+    try:
+        plot_fit_results(history)
+    except:
+        print("don't need to print fit loss.")
 
     loss, mse, mae, r_square = evaluate_network_after_fit(model,test_features,test_labels)
 
     print("Done.")
 
+    stop = earlystop.stopped_epoch
+
+    print("STOP : ", stop)
+
+    return loss, mse, mae, r_square, stop
+
+def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, epochs):
+    now = formatted_datetime()
+
+    output_filename = input_full_dataset[0:3]+"tensorflow_report.csv"
+
+    # open the file in the write mode
+    f = open(output_filename, "w", newline='', encoding='utf-8')
+
+    # create the csv writer
+    writer = csv.writer(f)
+
+    header = ["base_demand", "pressure_value", "loss", "mse", "mae", "r_square", "dataset","epochs"]
+
+    writer.writerow(header)
+
+    # cols = ["pressure_value", "base_demand", "demand_value"]
+    cols = ["base_demand", "demand_value"]
+
+    complete_path = folder_input + input_full_dataset
+    complete_path_stat = folder_input + input_stat_full_dataset
+
+    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+
+    out_row = [True, False, loss, mse, mae, r_square, input_full_dataset, stop]
+
+    writer.writerow(out_row)
+
+    ##########
+
+    complete_path = folder_input + input_alt_dataset
+    complete_path_stat = folder_input + input_stat_full_dataset
+
+    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+
+    out_row = [True, False, loss, mse, mae, r_square, input_alt_dataset, stop]
+
+    writer.writerow(out_row)
+
+    ###########
+
+    clean_old_files()
+
+    cols = ["pressure_value", "demand_value"]
+
+    complete_path = folder_input + input_full_dataset
+    complete_path_stat = folder_input + input_stat_full_dataset
+
+    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+
+    out_row = [False, True, loss, mse, mae, r_square, input_full_dataset, stop]
+
+    writer.writerow(out_row)
+
+    ##########
+
+    complete_path = folder_input + input_alt_dataset
+    complete_path_stat = folder_input + input_stat_full_dataset
+
+    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+
+    out_row = [False, True, loss, mse, mae, r_square, input_alt_dataset, stop]
+
+    writer.writerow(out_row)
+
+    ###########
+
+    clean_old_files()
+
+    cols = ["pressure_value", "base_demand", "demand_value"]
+
+    complete_path = folder_input + input_full_dataset
+    complete_path_stat = folder_input + input_stat_full_dataset
+
+    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+
+    out_row = [True, True, loss, mse, mae, r_square, input_full_dataset, stop]
+
+    writer.writerow(out_row)
+
+    ##########
+
+    complete_path = folder_input + input_alt_dataset
+    complete_path_stat = folder_input + input_stat_full_dataset
+
+    loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, cols)
+
+    out_row = [True, True, loss, mse, mae, r_square, input_alt_dataset, stop]
+
+    writer.writerow(out_row)
+
+    f.close()
+
 if __name__ == "__main__":
-    folder_input = "datasets_for_mlp/"
+    clean_old_files()
+
+    folder_input = ""
 
     input_full_dataset = '1D_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
     input_stat_full_dataset = "1D_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    input_alt_dataset = '1D_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
 
-    complete_path = folder_input + input_full_dataset
-
-    complete_path_stat = folder_input + input_stat_full_dataset
-
-    run_analysis(complete_path, complete_path_stat, 5)
+    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, 100)
+    # #################################
+    #
+    # input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    # input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    #
+    # complete_path = folder_input + input_full_dataset
+    #
+    # complete_path_stat = folder_input + input_stat_full_dataset
+    #
+    # run_analysis(complete_path, complete_path_stat, 1000, batch_size=32)
