@@ -1,30 +1,23 @@
 import numpy as np
-
-from sklearn.preprocessing import StandardScaler
-
 import pandas as pd
-
 import os
-
 import shutil
-
 import csv
-
 from itertools import combinations
-
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 from datetime import datetime
+from pathlib import Path
+
+from sklearn.preprocessing import StandardScaler
 
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from pathlib import Path
-from keras_visualizer import visualizer
-
 from tensorflow import keras
 from tensorflow.keras import layers
+
+from keras_visualizer import visualizer
 
 def clean_old_files():
 
