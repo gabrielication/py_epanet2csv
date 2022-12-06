@@ -365,10 +365,12 @@ def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=Non
 
     print("STOP : ", stop)
 
-    return loss, mse, mae, r_square, stop, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square
+    return loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square
 
-def write_to_csv(X, writer, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae,
-                 fit_val_r_square, input_full_dataset, stop):
+def write_to_csv(X, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae,
+                 fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
+              delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+              delta_fit_val_mae, delta_fit_val_r_square, input_full_dataset, stop):
 
     base_demand = head_value = pressure_value = x_pos = y_pos = leak_area_value = leak_discharge_value = current_leak_demand_value = False
     smart_sensor_is_present = tot_network_demand = hour = nodeID = node_type = has_leak = False
@@ -403,8 +405,12 @@ def write_to_csv(X, writer, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_sq
         has_leak = True
 
     #short CSV
-    out_row = [base_demand, pressure_value, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae,
-                 fit_val_r_square, input_full_dataset, stop]
+    out_row = [base_demand, pressure_value, loss, mse, mae, r_square, fit_loss,
+              fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square,
+              delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
+              delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+              delta_fit_val_mae, delta_fit_val_r_square,
+              input_full_dataset,stop]
 
     writer.writerow(out_row)
 
@@ -421,8 +427,11 @@ def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, 
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ["base_demand", "pressure_value", "loss", "mse", "mae", "r_square",
-              "fit_mse", "fit_mae", "fit_r_square", "fit_val_mse", "fit_val_mae", "fit_val_r_square",
+    header = ["base_demand", "pressure_value", "loss", "mse", "mae", "r_square", "fit_loss",
+              "fit_mse", "fit_mae", "fit_r_square", "fit_val_loss", "fit_val_mse", "fit_val_mae", "fit_val_r_square",
+              "delta_loss", "delta_mse", "delta_mae", "delta_r_square", "delta_fit_loss", "delta_fit_mse",
+              "delta_fit_mae", "delta_fit_r_square", "delta_fit_val_loss", "delta_fit_val_mse",
+              "delta_fit_val_mae", "delta_fit_val_r_square",
               "dataset","epochs"]
 
     writer.writerow(header)
@@ -442,18 +451,43 @@ def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, 
             complete_path = folder_input + input_full_dataset
             complete_path_stat = folder_input + input_stat_full_dataset
 
-            loss, mse, mae, r_square, stop, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
+            loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss,\
+            fit_val_mse, fit_val_mae, fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
-            write_to_csv(new_cols, writer, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square, input_full_dataset, stop)
+            write_to_csv(new_cols, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae,
+                         fit_r_square, fit_val_loss,fit_val_mse, fit_val_mae, fit_val_r_square,
+                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, input_full_dataset, stop)
 
             ##########
 
             complete_path = folder_input + input_alt_dataset
             complete_path_stat = folder_input + input_stat_full_dataset
 
-            loss, mse, mae, r_square, stop, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
+            alt_loss, alt_mse, alt_mae, alt_r_square, alt_stop, alt_fit_loss, alt_fit_mse, alt_fit_mae, alt_fit_r_square,\
+            alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae, alt_fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
-            write_to_csv(new_cols, writer, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square, input_full_dataset, stop)
+            delta_loss = alt_loss - loss
+            delta_mse = alt_mse - mse
+            delta_mae = alt_mae - mae
+            delta_r_square = alt_r_square - r_square
+
+            delta_fit_loss = alt_loss - fit_loss
+            delta_fit_mse = alt_mse - fit_mse
+            delta_fit_mae = alt_mae - fit_mae
+            delta_fit_r_square = alt_r_square - fit_r_square
+
+            delta_fit_val_loss = alt_loss - fit_val_loss
+            delta_fit_val_mse = alt_mse - fit_val_mse
+            delta_fit_val_mae = alt_mae - fit_val_mae
+            delta_fit_val_r_square = alt_r_square - fit_val_r_square
+
+            write_to_csv(new_cols, writer, alt_loss, alt_mse, alt_mae, alt_r_square, alt_fit_loss, alt_fit_mse,
+                         alt_fit_mae, alt_fit_r_square, alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae,
+                         alt_fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
+                         delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+                         delta_fit_val_mae, delta_fit_val_r_square, input_full_dataset, alt_stop)
+
+            # print()
 
     f.close()
 
@@ -471,6 +505,6 @@ if __name__ == "__main__":
     cols = ["pressure_value", "base_demand"]
     label = "demand_value"
 
-    epochs = 100
+    epochs = 1
 
     create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=True)
