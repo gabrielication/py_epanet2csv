@@ -45,7 +45,7 @@ def clean_old_files():
 
     print("All old files deleted.\n")
 
-def load_model(model_persistency, train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat):
+def fit_and_or_load_model(model_persistency, train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat):
     input_filename_full_fitted_model = ""
 
     for filename in Path(".").glob("my_model"):
@@ -71,7 +71,7 @@ def load_model(model_persistency, train_features, train_labels, epochs, validati
 
         history = perform_neural_network_fit(model, train_features, train_labels, epochs,
                                              validation_split=validation_split, batch_size=batch_size,
-                                             callbacks=callbacks, verbose=0)
+                                             callbacks=callbacks, verbose=1)
 
         np.save('my_history.npy',history.history)
 
@@ -325,7 +325,32 @@ def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=Non
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,scaling=False, pairplot=False)
 
-    model, history = load_model(True,train_features,train_labels,epochs,validation_split,batch_size,callbacks, complete_path_stat)
+    model, history = fit_and_or_load_model(True, train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat)
+
+    # last_fit_loss = history
+
+    fit_loss = 0
+    fit_mse = 0
+    fit_mae = 0
+    fit_r_square = 0
+
+    fit_val_loss = 0
+    fit_val_mse = 0
+    fit_val_mae = 0
+    fit_val_r_square = 0
+
+    try:
+        fit_loss = history.history['loss'][-1]
+        fit_mse = history.history['mse'][-1]
+        fit_mae = history.history['mae'][-1]
+        fit_r_square = history.history['r_square'][-1]
+
+        fit_val_loss = history.history['val_loss'][-1]
+        fit_val_mse = history.history['val_mse'][-1]
+        fit_val_mae = history.history['val_mae'][-1]
+        fit_val_r_square = history.history['val_r_square'][-1]
+    except:
+        print("history is a dict.")
 
     try:
         plot_fit_results(history)
@@ -340,9 +365,10 @@ def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=Non
 
     print("STOP : ", stop)
 
-    return loss, mse, mae, r_square, stop
+    return loss, mse, mae, r_square, stop, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square
 
-def write_to_csv(X, writer, loss, mse, mae, r_square, input_full_dataset, stop):
+def write_to_csv(X, writer, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae,
+                 fit_val_r_square, input_full_dataset, stop):
 
     base_demand = head_value = pressure_value = x_pos = y_pos = leak_area_value = leak_discharge_value = current_leak_demand_value = False
     smart_sensor_is_present = tot_network_demand = hour = nodeID = node_type = has_leak = False
@@ -377,7 +403,8 @@ def write_to_csv(X, writer, loss, mse, mae, r_square, input_full_dataset, stop):
         has_leak = True
 
     #short CSV
-    out_row = [base_demand, pressure_value, loss, mse, mae, r_square, input_full_dataset, stop]
+    out_row = [base_demand, pressure_value, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae,
+                 fit_val_r_square, input_full_dataset, stop]
 
     writer.writerow(out_row)
 
@@ -394,7 +421,9 @@ def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, 
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ["base_demand", "pressure_value", "loss", "mse", "mae", "r_square", "dataset","epochs"]
+    header = ["base_demand", "pressure_value", "loss", "mse", "mae", "r_square",
+              "fit_mse", "fit_mae", "fit_r_square", "fit_val_mse", "fit_val_mae", "fit_val_r_square",
+              "dataset","epochs"]
 
     writer.writerow(header)
 
@@ -413,18 +442,18 @@ def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, 
             complete_path = folder_input + input_full_dataset
             complete_path_stat = folder_input + input_stat_full_dataset
 
-            loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
+            loss, mse, mae, r_square, stop, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
-            write_to_csv(new_cols, writer, loss, mse, mae, r_square, input_full_dataset, stop)
+            write_to_csv(new_cols, writer, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square, input_full_dataset, stop)
 
             ##########
 
             complete_path = folder_input + input_alt_dataset
             complete_path_stat = folder_input + input_stat_full_dataset
 
-            loss, mse, mae, r_square, stop = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
+            loss, mse, mae, r_square, stop, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
-            write_to_csv(new_cols, writer, loss, mse, mae, r_square, input_full_dataset, stop)
+            write_to_csv(new_cols, writer, loss, mse, mae, r_square, fit_mse, fit_mae, fit_r_square, fit_val_mse, fit_val_mae, fit_val_r_square, input_full_dataset, stop)
 
     f.close()
 
@@ -433,13 +462,15 @@ if __name__ == "__main__":
     print('Keras ', tf.keras.__version__)
     is_gpu_supported()
 
-    folder_input = ""
+    folder_input = "tensorflow_datasets/"
 
-    input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
-    input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-    input_alt_dataset = '1W_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
+    input_full_dataset = '1M_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    input_stat_full_dataset = "1M_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    input_alt_dataset = '1M_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
 
     cols = ["pressure_value", "base_demand"]
     label = "demand_value"
 
-    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, 100, fresh_start=True)
+    epochs = 100
+
+    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=True)
