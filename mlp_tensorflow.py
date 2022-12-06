@@ -415,7 +415,7 @@ def write_to_csv(X, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae
     writer.writerow(out_row)
 
 
-def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=False):
+def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_datasets, input_stat_full_dataset, cols, label, epochs, fresh_start=False):
 
     now = formatted_datetime()
 
@@ -460,32 +460,38 @@ def create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, 
 
             ##########
 
-            complete_path = folder_input + input_alt_dataset
-            complete_path_stat = folder_input + input_stat_full_dataset
+            for input_alt_dataset in input_list_of_alt_datasets:
 
-            alt_loss, alt_mse, alt_mae, alt_r_square, alt_stop, alt_fit_loss, alt_fit_mse, alt_fit_mae, alt_fit_r_square,\
-            alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae, alt_fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
+                complete_path = folder_input + input_alt_dataset
+                complete_path_stat = folder_input + input_stat_full_dataset
 
-            delta_loss = alt_loss - loss
-            delta_mse = alt_mse - mse
-            delta_mae = alt_mae - mae
-            delta_r_square = alt_r_square - r_square
+                alt_loss, alt_mse, alt_mae, alt_r_square, alt_stop, alt_fit_loss, alt_fit_mse, alt_fit_mae, alt_fit_r_square, \
+                alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae, alt_fit_val_r_square = run_analysis(complete_path,
+                                                                                                        complete_path_stat,
+                                                                                                        epochs,
+                                                                                                        new_cols)
 
-            delta_fit_loss = alt_loss - fit_loss
-            delta_fit_mse = alt_mse - fit_mse
-            delta_fit_mae = alt_mae - fit_mae
-            delta_fit_r_square = alt_r_square - fit_r_square
+                delta_loss = alt_loss - loss
+                delta_mse = alt_mse - mse
+                delta_mae = alt_mae - mae
+                delta_r_square = alt_r_square - r_square
 
-            delta_fit_val_loss = alt_loss - fit_val_loss
-            delta_fit_val_mse = alt_mse - fit_val_mse
-            delta_fit_val_mae = alt_mae - fit_val_mae
-            delta_fit_val_r_square = alt_r_square - fit_val_r_square
+                delta_fit_loss = alt_loss - fit_loss
+                delta_fit_mse = alt_mse - fit_mse
+                delta_fit_mae = alt_mae - fit_mae
+                delta_fit_r_square = alt_r_square - fit_r_square
 
-            write_to_csv(new_cols, writer, alt_loss, alt_mse, alt_mae, alt_r_square, alt_fit_loss, alt_fit_mse,
-                         alt_fit_mae, alt_fit_r_square, alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae,
-                         alt_fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
-                         delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
-                         delta_fit_val_mae, delta_fit_val_r_square, input_full_dataset, alt_stop)
+                delta_fit_val_loss = alt_loss - fit_val_loss
+                delta_fit_val_mse = alt_mse - fit_val_mse
+                delta_fit_val_mae = alt_mae - fit_val_mae
+                delta_fit_val_r_square = alt_r_square - fit_val_r_square
+
+                write_to_csv(new_cols, writer, alt_loss, alt_mse, alt_mae, alt_r_square, alt_fit_loss, alt_fit_mse,
+                             alt_fit_mae, alt_fit_r_square, alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae,
+                             alt_fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss,
+                             delta_fit_mse,
+                             delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+                             delta_fit_val_mae, delta_fit_val_r_square, input_alt_dataset, alt_stop)
 
             # print()
 
@@ -498,9 +504,14 @@ if __name__ == "__main__":
 
     folder_input = "tensorflow_datasets/"
 
-    input_full_dataset = '1M_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
-    input_stat_full_dataset = "1M_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-    input_alt_dataset = '1M_ALT_one_res_small_with_leaks_rand_base_dem_nodes_output.csv'
+    input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+
+    input_alt_dataset = ["1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
+                         "1W_ALT_one_res_small_with_1_at_8_leaks_rand_base_dem_nodes_output.csv",
+                         "1W_ALT_one_res_small_with_1_at_4_leaks_rand_base_dem_nodes_output.csv",
+                         "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
+                         ]
 
     cols = ["pressure_value", "base_demand"]
     label = "demand_value"
