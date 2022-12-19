@@ -45,7 +45,7 @@ def clean_old_files():
 
     print("All old files deleted.\n")
 
-def fit_and_or_load_model(model_persistency, train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat):
+def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat):
     input_filename_full_fitted_model = ""
 
     for filename in Path(".").glob("my_model"):
@@ -317,6 +317,13 @@ def evaluate_network_after_fit(model, test_features, test_labels):
 
     return loss, mse, mae, r_square
 
+def predict_and_collect_results(model, test_features):
+    print("Prediction started...")
+
+    test_predictions = model.predict(test_features).flatten()
+
+    return test_predictions
+
 def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
 
     validation_split = 0.2
@@ -325,7 +332,7 @@ def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=Non
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,scaling=False, pairplot=False)
 
-    model, history = fit_and_or_load_model(True, train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat)
+    model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat)
 
     # last_fit_loss = history
 
@@ -496,6 +503,9 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
             # print()
 
     f.close()
+
+def create_prediction_report():
+    print("TODO")
 
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
