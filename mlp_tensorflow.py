@@ -45,7 +45,7 @@ def clean_old_files():
 
     print("All old files deleted.\n")
 
-def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat):
+def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat, save_model=True, visualize_model_bool=True):
     input_filename_full_fitted_model = ""
 
     for filename in Path(".").glob("my_model"):
@@ -73,14 +73,21 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
                                              validation_split=validation_split, batch_size=batch_size,
                                              callbacks=callbacks, verbose=1)
 
-        np.save('my_history.npy',history.history)
+        if(save_model):
+            np.save('my_history.npy', history.history)
 
-        output_filename_full_fitted_model = 'my_model'
-        model.save(output_filename_full_fitted_model)
+            output_filename_full_fitted_model = 'my_model'
+            model.save(output_filename_full_fitted_model)
 
-        print("Model saved to: " + output_filename_full_fitted_model)
+            print("Model saved to: " + output_filename_full_fitted_model)
+        else:
+            print("Model and History NOT SAVED!")
 
-        visualize_model(model)
+
+        if(visualize_model_bool):
+            visualize_model(model)
+        else:
+            print("Model NOT VISUALIZED!")
 
         return model, history
 
@@ -324,7 +331,39 @@ def predict_and_collect_results(model, test_features):
 
     return test_predictions
 
-def run_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
+def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
+    print("PREDICT ANALYSIS:\n")
+
+    validation_split = 0.2
+    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
+    callbacks = [earlystop]
+
+    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
+                                                                                                         cols,
+                                                                                                         scaling=False,
+                                                                                                         pairplot=False)
+
+    model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
+                                           callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
+
+    test_predictions = predict_and_collect_results(model, test_features)
+
+    plot_predictions(test_predictions, test_labels)
+
+    print("end")
+
+def plot_predictions(test_predictions, test_labels):
+
+    x = list(range(0,len(test_predictions)))
+    plt.plot(x, test_predictions, label = "predictions")
+    plt.plot(x, test_labels, label = "test_labels", linestyle=":")
+    plt.legend()
+    plt.show()
+
+
+
+def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
+    print("EVALUATION ANALYSIS:\n")
 
     validation_split = 0.2
     earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
@@ -459,7 +498,7 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
             complete_path_stat = folder_input + input_stat_full_dataset
 
             loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss,\
-            fit_val_mse, fit_val_mae, fit_val_r_square = run_analysis(complete_path, complete_path_stat, epochs, new_cols)
+            fit_val_mse, fit_val_mae, fit_val_r_square = run_evaluation_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
             write_to_csv(new_cols, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae,
                          fit_r_square, fit_val_loss,fit_val_mse, fit_val_mae, fit_val_r_square,
@@ -473,10 +512,10 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
                 complete_path_stat = folder_input + input_stat_full_dataset
 
                 alt_loss, alt_mse, alt_mae, alt_r_square, alt_stop, alt_fit_loss, alt_fit_mse, alt_fit_mae, alt_fit_r_square, \
-                alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae, alt_fit_val_r_square = run_analysis(complete_path,
-                                                                                                        complete_path_stat,
-                                                                                                        epochs,
-                                                                                                        new_cols)
+                alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae, alt_fit_val_r_square = run_evaluation_analysis(complete_path,
+                                                                                                                   complete_path_stat,
+                                                                                                                   epochs,
+                                                                                                                   new_cols)
 
                 delta_loss = alt_loss - loss
                 delta_mse = alt_mse - mse
@@ -504,8 +543,26 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
 
     f.close()
 
-def create_prediction_report():
-    print("TODO")
+def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
+                             input_stat_full_dataset, cols, label, epochs, fresh_start=False):
+
+    complete_path = folder_input + input_full_dataset
+    complete_path_stat = folder_input + input_stat_full_dataset
+
+    if (fresh_start):
+        print("FRESH START ENABLED. Cleaning ALL old models and their files...")
+        clean_old_files()
+
+    # new_cols = list(c) TODO: combination
+
+    new_cols = cols
+    new_cols.append(label)
+
+    run_predict_analysis(complete_path,complete_path_stat,epochs,cols)
+
+    #TODO: this will have to output a csv or similar. plot have to be added in a separate file
+
+
 
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
@@ -526,6 +583,8 @@ if __name__ == "__main__":
     cols = ["pressure_value", "base_demand"]
     label = "demand_value"
 
-    epochs = 1
+    epochs = 100
 
-    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=True)
+    # create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=True)
+
+    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=True)
