@@ -348,19 +348,9 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
 
     test_predictions = predict_and_collect_results(model, test_features)
 
-    plot_predictions(test_predictions, test_labels)
+    # plot_predictions(test_predictions, test_labels)
 
-    print("end")
-
-def plot_predictions(test_predictions, test_labels):
-
-    x = list(range(0,len(test_predictions)))
-    plt.plot(x, test_predictions, label = "predictions")
-    plt.plot(x, test_labels, label = "test_labels", linestyle=":")
-    plt.legend()
-    plt.show()
-
-
+    return test_predictions, test_labels
 
 def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
     print("EVALUATION ANALYSIS:\n")
@@ -545,6 +535,20 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
 
 def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
                              input_stat_full_dataset, cols, label, epochs, fresh_start=False):
+    now = formatted_datetime()
+
+    # output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
+    output_filename = "test_prediction_report" + ".csv"
+
+    # open the file in the write mode
+    f = open(output_filename, "w", newline='', encoding='utf-8')
+
+    # create the csv writer
+    writer = csv.writer(f)
+
+    header = ["predictions","true_test_values"]
+
+    writer.writerow(header)
 
     complete_path = folder_input + input_full_dataset
     complete_path_stat = folder_input + input_stat_full_dataset
@@ -558,7 +562,13 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
     new_cols = cols
     new_cols.append(label)
 
-    run_predict_analysis(complete_path,complete_path_stat,epochs,cols)
+    test_predictions, test_labels = run_predict_analysis(complete_path,complete_path_stat,epochs,cols)
+
+    for pred,test in zip(test_predictions,test_labels):
+        output_row = [pred,test]
+        writer.writerow(output_row)
+
+    print("end")
 
     #TODO: this will have to output a csv or similar. plot have to be added in a separate file
 
