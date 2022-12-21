@@ -133,7 +133,7 @@ def is_gpu_supported():
 
         return True
 
-def load_dataset(complete_path, cols, scaling=False, pairplot=False):
+def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplot=False):
     print("LOADING " + complete_path + "...")
 
     # We read our entire dataset
@@ -169,8 +169,21 @@ def load_dataset(complete_path, cols, scaling=False, pairplot=False):
 
     print("Dividing FEATURES and LABELS...")
 
-    # This is basically train_test_split from sklearn...but directly from tensorflow!
-    train_dataset = data_scaled.sample(frac=0.8, random_state=0)
+    # This was used in Tensorflow wiki but it's not the same as train test split. It will pick a SAMPLE jumping rows, not a clean SPLIT
+    # train_dataset = data_scaled.sample(frac=0.8, random_state=0)
+
+    df = pd.read_csv(complete_path_stat)
+    n_nodes = int(df['number_of_nodes'].iloc[0])
+    duration = int(df['time_spent_on_sim'].iloc[0])
+
+    dataset_size = duration * n_nodes
+
+    duration_percentage = int(0.8 * duration)
+
+    train_dataset_size = duration_percentage * n_nodes
+    test_dataset_size = duration - train_dataset_size
+
+    train_dataset = data_scaled.iloc[:train_dataset_size, :]
     test_dataset = data_scaled.drop(train_dataset.index)
 
     if(pairplot):
@@ -287,14 +300,20 @@ def plot_fit_results(history):
     # Plot results
     plt.clf()
 
+    #TODO: epochs int values should stay on the x-axes
+
     plt.plot(history.history['loss'], label='loss')
     plt.plot(history.history['val_loss'], label='val_loss')
 
     # Get the y limits
-    ymin, ymax = min(history.history['loss']), max(history.history['val_loss'])
+    loss_min, loss_max = min(history.history['loss']), max(history.history['loss'])
+    val_loss_min, val_loss_max = min(history.history['loss']), max(history.history['loss'])
+
+    ymin = min([loss_min,val_loss_min])
+    ymax = max([loss_max, val_loss_max])
 
     # Set the y limits making the maximum 5% greater
-    plt.ylim(ymin, 1.05 * ymax)
+    # plt.ylim(ymin, 1.05 * ymax)
 
     plt.xlabel('Epoch')
     plt.ylabel('Error [demand_value]')
@@ -341,6 +360,7 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
                                                                                                          cols,
+                                                                                                         complete_path_stat,
                                                                                                          scaling=False,
                                                                                                          pairplot=False)
 
@@ -360,7 +380,7 @@ def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, bat
     earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
     callbacks = [earlystop]
 
-    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,scaling=False, pairplot=False)
+    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,complete_path_stat,scaling=False, pairplot=False)
 
     model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat)
 
@@ -484,6 +504,11 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
             new_cols = list(c)
             new_cols.append(label)
 
+            # if(len(new_cols) != 3):
+            #     break
+            # else:
+            #     print("GOOD LEN")
+
             #print(new_cols)
 
             complete_path = folder_input + input_full_dataset
@@ -596,8 +621,8 @@ if __name__ == "__main__":
     create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
                            epochs, fresh_start=True)
 
-    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
-                             epochs, fresh_start=True)
+    # create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
+    #                          epochs, fresh_start=True)
 
     # folder_input = ""
 
