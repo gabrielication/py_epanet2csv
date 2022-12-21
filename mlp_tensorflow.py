@@ -168,6 +168,7 @@ def load_dataset(complete_path, cols, scaling=False, pairplot=False):
         print("Standard Scaling IS NOT ACTIVE.")
 
     print("Dividing FEATURES and LABELS...")
+
     # This is basically train_test_split from sklearn...but directly from tensorflow!
     train_dataset = data_scaled.sample(frac=0.8, random_state=0)
     test_dataset = data_scaled.drop(train_dataset.index)
@@ -290,7 +291,7 @@ def plot_fit_results(history):
     plt.plot(history.history['val_loss'], label='val_loss')
 
     # Get the y limits
-    ymin, ymax = min(history.history['loss']), max(history.history['loss'])
+    ymin, ymax = min(history.history['loss']), max(history.history['val_loss'])
 
     # Set the y limits making the maximum 5% greater
     plt.ylim(ymin, 1.05 * ymax)
@@ -400,6 +401,7 @@ def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, bat
     stop = earlystop.stopped_epoch
 
     print("STOP : ", stop)
+    print()
 
     return loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square
 
@@ -570,10 +572,6 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
 
     print("end")
 
-    #TODO: this will have to output a csv or similar. plot have to be added in a separate file
-
-
-
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
     print('Keras ', tf.keras.__version__)
@@ -590,11 +588,38 @@ if __name__ == "__main__":
                          "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
                          ]
 
+    epochs = 100
+
     cols = ["pressure_value", "base_demand"]
     label = "demand_value"
 
-    epochs = 100
+    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
+                           epochs, fresh_start=True)
 
-    # create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=True)
+    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
+                             epochs, fresh_start=True)
 
-    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label, epochs, fresh_start=True)
+    # folder_input = ""
+
+    # input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
+    # input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
+    #
+
+    # input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
+    # input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
+    #
+    # input_alt_dataset = [
+    #                      "1W_Net3_with_leaks_nodes_output.csv"
+    #                      ]
+    #
+
+    #
+    # print("FRESH START ENABLED. Cleaning ALL old models and their files...")
+    # clean_old_files()
+    #
+    # complete_path = folder_input + input_full_dataset
+    # complete_path_stat = folder_input + input_stat_full_dataset
+    #
+    # cols.append(label)
+    #
+    # run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols)
