@@ -3,7 +3,7 @@
 *.bin
 *.rpt
 *.inp
-*.png
+#*.png
 *.joblib
 
 !deprecated/sample_nodes_output_one_week.csv
