@@ -561,11 +561,11 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
     f.close()
 
 def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
-                             input_stat_full_dataset, cols, label, epochs, fresh_start=False):
+                             input_stat_full_dataset, cols, label, epochs, fresh_start=False, batch_size=None):
     now = formatted_datetime()
 
     # output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
-    output_filename = "test_prediction_report" + ".csv"
+    output_filename = input_full_dataset[0:3] + "test_prediction_report_" + now + ".csv"
 
     # open the file in the write mode
     f = open(output_filename, "w", newline='', encoding='utf-8')
@@ -586,16 +586,20 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
 
     # new_cols = list(c) TODO: combination
 
+    # Currently not doing any column combination
     new_cols = cols
     new_cols.append(label)
 
-    test_predictions, test_labels = run_predict_analysis(complete_path,complete_path_stat,epochs,cols)
+    test_predictions, test_labels = run_predict_analysis(complete_path,complete_path_stat,epochs,cols, batch_size=batch_size)
 
     for pred,test in zip(test_predictions,test_labels):
         output_row = [pred,test]
         writer.writerow(output_row)
 
-    print("end")
+    f.close()
+
+    print("\nPrediction report saved to: "+output_filename)
+    print("Quitting...")
 
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
@@ -614,15 +618,16 @@ if __name__ == "__main__":
                          ]
 
     epochs = 100
+    batch_size = 83 #number of nodes
 
     cols = ["pressure_value", "base_demand"]
     label = "demand_value"
 
-    create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
-                           epochs, fresh_start=True)
+    # create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
+    #                        epochs, fresh_start=True)
 
-    # create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
-    #                          epochs, fresh_start=True)
+    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
+                             epochs, fresh_start=True, batch_size=batch_size)
 
     # folder_input = ""
 
