@@ -20,6 +20,7 @@ from tensorflow.keras import layers
 from keras_visualizer import visualizer
 
 def clean_old_files():
+    print("FRESH START ENABLED. Cleaning ALL old models and their files...")
 
     for filename in Path(".").glob("*.png"):
         try:
@@ -425,10 +426,10 @@ def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, bat
 
     return loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square
 
-def write_to_csv(X, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae,
-                 fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
-              delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
-              delta_fit_val_mae, delta_fit_val_r_square, input_full_dataset, stop):
+def write_to_analysis_report_csv(X, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae,
+                                 fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
+                                 delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+                                 delta_fit_val_mae, delta_fit_val_r_square, input_full_dataset, stop):
 
     base_demand = head_value = pressure_value = x_pos = y_pos = leak_area_value = leak_discharge_value = current_leak_demand_value = False
     smart_sensor_is_present = tot_network_demand = hour = nodeID = node_type = has_leak = False
@@ -498,7 +499,6 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
         oc = combinations(cols, i + 1)
         for c in oc:
             if (fresh_start):
-                print("FRESH START ENABLED. Cleaning ALL old models and their files...")
                 clean_old_files()
 
             new_cols = list(c)
@@ -517,9 +517,9 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
             loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss,\
             fit_val_mse, fit_val_mae, fit_val_r_square = run_evaluation_analysis(complete_path, complete_path_stat, epochs, new_cols)
 
-            write_to_csv(new_cols, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae,
-                         fit_r_square, fit_val_loss,fit_val_mse, fit_val_mae, fit_val_r_square,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, input_full_dataset, stop)
+            write_to_analysis_report_csv(new_cols, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae,
+                                         fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square,
+                                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, input_full_dataset, stop)
 
             ##########
 
@@ -549,12 +549,12 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
                 delta_fit_val_mae = alt_mae - fit_val_mae
                 delta_fit_val_r_square = alt_r_square - fit_val_r_square
 
-                write_to_csv(new_cols, writer, alt_loss, alt_mse, alt_mae, alt_r_square, alt_fit_loss, alt_fit_mse,
-                             alt_fit_mae, alt_fit_r_square, alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae,
-                             alt_fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss,
-                             delta_fit_mse,
-                             delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
-                             delta_fit_val_mae, delta_fit_val_r_square, input_alt_dataset, alt_stop)
+                write_to_analysis_report_csv(new_cols, writer, alt_loss, alt_mse, alt_mae, alt_r_square, alt_fit_loss, alt_fit_mse,
+                                             alt_fit_mae, alt_fit_r_square, alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae,
+                                             alt_fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss,
+                                             delta_fit_mse,
+                                             delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+                                             delta_fit_val_mae, delta_fit_val_r_square, input_alt_dataset, alt_stop)
 
             # print()
 
@@ -581,7 +581,6 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
     complete_path_stat = folder_input + input_stat_full_dataset
 
     if (fresh_start):
-        print("FRESH START ENABLED. Cleaning ALL old models and their files...")
         clean_old_files()
 
     # new_cols = list(c) TODO: combination
