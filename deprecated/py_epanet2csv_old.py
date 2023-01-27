@@ -330,7 +330,7 @@ if __name__ == "__main__":
     smart_sensors_enabled = False
     leaks_enabled = False
 
-    input_file_inp1 = "./networks/Net3.inp"
+    input_file_inp1 = "../networks/Net3.inp"
     # input_file_inp2 = "./networks/exported_month_large_complete_one_reservoirs_large.inp"
     # input_file_inp3 = "./networks/exported_month_large_complete_two_reservoirs.inp"
 

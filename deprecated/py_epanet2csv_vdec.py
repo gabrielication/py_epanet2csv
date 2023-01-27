@@ -498,7 +498,7 @@ def nodes_to_csv(wn, list_results, node_names, output_file_name, proc_name, smar
 
 if __name__ == "__main__":
 
-    input_file_inp1 = "./networks/exported_month_large_complete_one_reservoirs_small.inp"
+    input_file_inp1 = "../networks/exported_month_large_complete_one_reservoirs_small.inp"
     # input_file_inp2 = "./networks/exported_month_large_complete_one_reservoirs_large.inp"
     # input_file_inp3 = "./networks/exported_month_large_complete_two_reservoirs.inp"
 
