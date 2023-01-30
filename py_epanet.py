@@ -4,17 +4,72 @@ import sys
 from decimal import Decimal
 import random
 
+import numpy as np
+
 import pandas as pd
 
-def write_results_to_csv_with_pandas(results, filename):
+def write_results_to_csv(results, node_names, sim_duration, wn, filename):
     # Create an empty DataFrame
 
-    nodes = results.node
+    demand_results = results.node['demand']
+    head_results = results.node['head']
+    pressure_results = results.node['pressure']
 
-    df = pd.DataFrame(columns=list(nodes.keys()))
-    df.loc[0] = list(nodes.values())
+    sim_duration_in_hours = int(sim_duration / 3600)
 
-    print(df)
+    outName = filename + "nodes_output.csv"
+    out = open(outName, "w", newline='', encoding='utf-8')
+    writer = csv.writer(out)
+
+    header = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
+              "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
+              "leak_area_value", "leak_discharge_value",
+              "current_leak_demand_value", "tot_network_demand"]
+
+    writer.writerow(header)
+
+    for timestamp in range(sim_duration_in_hours):
+        for nodeID in node_names:
+            node_obj = wn.get_node(nodeID)
+            node_type = node_obj.__class__.__name__
+
+            hour_in_seconds = int(timestamp * 3600)
+
+            hour = str(timestamp) + ":00:00"
+            demand_value = demand_results.loc[hour_in_seconds,nodeID]
+            demand_value = "{:.8f}".format(demand_value)
+
+            head_value = head_results.loc[hour_in_seconds, nodeID]
+            head_value = "{:.8f}".format(head_value)
+
+            pressure_value = pressure_results.loc[hour_in_seconds,nodeID]
+            pressure_value = "{:.8f}".format(pressure_value)
+
+            x_pos = node_obj.coordinates[0]
+            y_pos = node_obj.coordinates[1]
+
+            if node_type == "Junction":
+                base_demand = node_obj.demand_timeseries_list[0].base_value
+                base_demand = "{:.8f}".format(base_demand)
+            else:
+                base_demand = 0.0
+
+            #TODO
+            has_leak = False
+            leak_area_value = 0.0
+            leak_discharge_value = 0.0
+            current_leak_demand_value = 0.0
+            tot_network_demand = 0.0
+
+            out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
+                       x_pos, y_pos, node_type, has_leak, leak_area_value,
+                       leak_discharge_value, current_leak_demand_value, tot_network_demand]
+
+            writer.writerow(out_row)
+
+    out.close()
+    print("")
+
 
 def run_sim(wn, sim_duration, number_of_nodes_with_leaks=0, output_file_name=""):
     print("Configuring simulation...")
@@ -35,7 +90,11 @@ def run_sim(wn, sim_duration, number_of_nodes_with_leaks=0, output_file_name="")
     # for node_id in node_names:
     #     print(node_id,pressure.loc[3600, node_id])
 
-    write_results_to_csv_with_pandas(results, "to_csv.csv")
+    node_names = wn.node_name_list
+
+    time = wn.options.time.duration
+
+    write_results_to_csv(results, node_names, sim_duration, wn, "to_csv_")
 
     print("Simulation finished...")
 
