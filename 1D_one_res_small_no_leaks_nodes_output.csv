@@ -1,0 +1,1 @@
+hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,tot_network_demand

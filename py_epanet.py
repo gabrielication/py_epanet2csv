@@ -11,6 +11,7 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
     demand_results = results.node['demand']
     head_results = results.node['head']
     pressure_results = results.node['pressure']
+    leak_demand_results = results.node["leak_demand"]
 
     sim_duration_in_hours = int(sim_duration / 3600)
 
@@ -53,11 +54,17 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
                 base_demand = 0.0
 
             #TODO
-            has_leak = False
-            leak_area_value = 0.0
-            leak_discharge_value = 0.0
-            current_leak_demand_value = 0.0
             tot_network_demand = 0.0
+
+            leak_area_value = node_obj.leak_area  # I think that this does not require an approximation... right?
+            leak_discharge_value = node_obj.leak_discharge_coeff
+            current_leak_demand_value = leak_demand_results.loc[hour_in_seconds,nodeID]
+            current_leak_demand_value = "{:.8f}".format(current_leak_demand_value)
+
+            if (leak_area_value > 0.0):
+                has_leak = True  # this leak-flag is set to true if we see a hole in the node
+            else:
+                has_leak = False
 
             out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
                        x_pos, y_pos, node_type, has_leak, leak_area_value,
@@ -65,12 +72,72 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
 
             writer.writerow(out_row)
 
-    print("CSV writing finished")
     out.close()
-    print("CSV saved to: "+out_filename_complete)
+    print("CSV saved to: "+out_filename_complete+"\n")
 
+    write_simulation_stats(wn, out_filename, 0, 0, 0)
 
-def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename):
+def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand, number_of_nodes_with_leaks):
+    print("Writing simulation stats CSV...")
+
+    outName = out_file_name + "_nodes_simulation_stats.csv"
+    out = open(outName, "w", newline='', encoding='utf-8')
+    writer = csv.writer(out)
+
+    header = ["tot_nodes_demand", "leak_percentage", "number_of_nodes", "number_of_junctions",
+              "number_of_reservoirs", "number_of_tanks", "number_of_nodes_with_leaks",
+              "time_spent_on_sim"]
+
+    writer.writerow(header)
+
+    number_of_nodes = len(wn.node_name_list)
+    number_of_junctions = len(wn.junction_name_list)
+    number_of_reservoirs = len(wn.reservoir_name_list)
+    number_of_tanks = len(wn.tank_name_list)
+    time_spent_on_sim = ((wn.options.time.duration+1) / 3600) #see in run_sim why we do +1
+
+    if (tot_nodes_demand > 0):
+        leak_percentage = (tot_leak_demand / tot_nodes_demand) * 100
+        leak_percentage = round(leak_percentage, 4)
+    else:
+        leak_percentage = 0.0
+
+    print("\nTot demand for Nodes only is: " + str(tot_nodes_demand) + " and tot_leak_demand is: " + str(
+        tot_leak_demand))
+    print("Total leak demand for nodes is:  " + str(leak_percentage) + "% of the Total Nodes' demand")
+    print("Number of nodes inside of the network is: " + str(number_of_nodes))
+    print("Number of Junctions only: " + str(number_of_junctions))
+    print("Number of Reservoirs only: " + str(number_of_reservoirs))
+    print("Number of Tanks only: " + str(number_of_tanks))
+    print("Number of Junctions with leaks: " + str(number_of_nodes_with_leaks))
+    print("Total hours simulated: " + str(time_spent_on_sim) + "\n")
+
+    output_row = [tot_nodes_demand, leak_percentage, number_of_nodes, number_of_junctions,
+                  number_of_reservoirs, number_of_tanks, number_of_nodes_with_leaks,
+                  time_spent_on_sim]
+
+    writer.writerow(output_row)
+
+    out.close()
+
+    print("Simulation stats saved to: "+outName+"\n")
+
+def pick_rand_leaks(wn, number_of_junctions_with_leaks):
+    node_names = wn.junction_name_list
+
+    selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
+
+    return selected_junctions
+
+def assign_leaks(wn, area_size, selected_junctions, proc_name):
+    for node_id in selected_junctions:
+        node_obj = wn.get_node(node_id)
+
+        node_obj.add_leak(wn, area=area_size, start_time=0)
+
+        #print(proc_name + "Leak added to node id: ", node_id)
+
+def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False):
     print("Simulation started...")
 
     complete_input_path = sim_folder_path + input_file_inp
@@ -84,7 +151,19 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename):
     # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     # wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
-    wn.options.time.duration = sim_duration
+    #Why -1? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
+    wn.options.time.duration = sim_duration - 1
+
+    if(leaks_enabled):
+        print("LEAKS ARE ENABLED")
+
+        number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
+
+        selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
+
+        assign_leaks(wn, 0.0002, selected_junctions, "1D_one_res_small")
+    else:
+        print("Leaks are NOT enabled")
 
     print("Running simulation...")
 
@@ -105,5 +184,6 @@ if __name__ == "__main__":
     sim_duration = 24 * 3600
     out_filename = "1D_one_res_small_no_leaks"
 
-    run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename)
+    run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=True)
+
     print("\nExiting...")
