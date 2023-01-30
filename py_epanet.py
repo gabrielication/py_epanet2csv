@@ -1,15 +1,12 @@
 import wntr
 import csv
 import sys
-from decimal import Decimal
 import random
-
 import numpy as np
-
 import pandas as pd
 
-def write_results_to_csv(results, node_names, sim_duration, wn, filename):
-    # Create an empty DataFrame
+def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
+    print("Printing Nodes CSV. Please wait...")
 
     demand_results = results.node['demand']
     head_results = results.node['head']
@@ -17,8 +14,9 @@ def write_results_to_csv(results, node_names, sim_duration, wn, filename):
 
     sim_duration_in_hours = int(sim_duration / 3600)
 
-    outName = filename + "nodes_output.csv"
-    out = open(outName, "w", newline='', encoding='utf-8')
+    out_filename_complete = out_filename+"_nodes_output.csv"
+
+    out = open(out_filename_complete, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
     header = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
@@ -67,12 +65,19 @@ def write_results_to_csv(results, node_names, sim_duration, wn, filename):
 
             writer.writerow(out_row)
 
+    print("CSV writing finished")
     out.close()
-    print("")
+    print("CSV saved to: "+out_filename_complete)
 
 
-def run_sim(wn, sim_duration, number_of_nodes_with_leaks=0, output_file_name=""):
-    print("Configuring simulation...")
+def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename):
+    print("Simulation started...")
+
+    complete_input_path = sim_folder_path + input_file_inp
+
+    print("Loading INP file at: "+complete_input_path)
+
+    wn = wntr.network.WaterNetworkModel(complete_input_path)
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
 
@@ -85,24 +90,20 @@ def run_sim(wn, sim_duration, number_of_nodes_with_leaks=0, output_file_name="")
 
     results = wntr.sim.WNTRSimulator(wn).run_sim()
 
-    # pressure = results[0].node['pressure']
-    #
-    # for node_id in node_names:
-    #     print(node_id,pressure.loc[3600, node_id])
-
     node_names = wn.node_name_list
 
-    time = wn.options.time.duration
+    write_results_to_csv(results, node_names, sim_duration, wn, out_filename)
 
-    write_results_to_csv(results, node_names, sim_duration, wn, "to_csv_")
-
-    print("Simulation finished...")
+    print("Simulation finished")
 
 if __name__ == "__main__":
+    print("py_epanet started!\n")
 
-    input_file_inp1 = "./networks/exported_month_large_complete_one_reservoirs_small.inp"
+    input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
+    sim_folder_path = "./networks/"
 
-    wn_1 = wntr.network.WaterNetworkModel(input_file_inp1)
     sim_duration = 24 * 3600
+    out_filename = "1D_one_res_small_no_leaks"
 
-    run_sim(wn_1, sim_duration)
+    run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename)
+    print("\nExiting...")
