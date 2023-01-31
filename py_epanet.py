@@ -211,12 +211,12 @@ if __name__ == "__main__":
 
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
-
-    sim_duration = 24 * 3600
     out_filename = "1D_one_res_small_no_leaks"
 
     leaks_enabled = True
     leak_area_size = 0.0000009
+
+    sim_duration = 24 * 3600  # hours in seconds
 
     run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=leaks_enabled, leak_area_size=leak_area_size)
 
