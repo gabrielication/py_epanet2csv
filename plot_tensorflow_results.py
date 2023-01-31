@@ -285,14 +285,14 @@ def plot_user_demand_v2(path, save=False, show=True):
             dataToPlot = data.loc[(data['nodeID'] == node)]
 
             #hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
-            baseDemandToPlot = dataToPlot['base_demand'].values #*  3.785412 * 60
-            #demandToPlot = dataToPlot['demand_value'].values #*  3.785412 * 60
+            # baseDemandToPlot = dataToPlot['base_demand'].values #*  3.785412 * 60
+            demandToPlot = dataToPlot['demand_value'].values #*  3.785412 * 60
 
             # for c, k in zip(colors, yticks):
             # c = colors[nodeIndex]; k = yticks[nodeIndex];
 
             # create data for the y=k 'layer'.
-            xs = np.arange(len(baseDemandToPlot))
+            xs = np.arange(len(demandToPlot))
 
             # You can provide either a single color or an array with the same length as
             # xs and ys. To demonstrate this, we color the first bar of each set cyan.
@@ -304,10 +304,12 @@ def plot_user_demand_v2(path, save=False, show=True):
             # ax1.plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
             # ax1.plot(xs, demandToPlot, label='Demand value node ' + str(node))
 
+            print(plotIndexRow, ' : ', plotIndexColumn)
+
             # axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
             # axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ' + str(node))
-            axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node')
-            # axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ')
+            # axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node')
+            axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ')
 
             # ls = LightSource(270, 45)
             # # To use a custom hillshading mode, override the built-in shading and pass
@@ -559,16 +561,16 @@ def plot_cumulative_hist_user_demand(path, save=False, show=True):
         dataToPlot = data.loc[(data['nodeID'] == node)]
         #hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
 
-        # demandToPlot = dataToPlot['demand_value'].values
-        baseDemandToPlot = dataToPlot['base_demand'].values
+        demandToPlot = dataToPlot['demand_value'].values
+        # baseDemandToPlot = dataToPlot['base_demand'].values
 
-        count, division = np.histogram(baseDemandToPlot, bins=40, range=[0, 0.01], density=False)
-        # count, division = np.histogram(baseDemandToPlot, bins=20, density=False)
-        #count, division = np.histogram(baseDemandToPlot, bins=20)
+        selectedBins = 40 #20
+        count, division = np.histogram(demandToPlot, bins=selectedBins, range=[0, 0.00009], density=False)
+        # count, division = np.histogram(baseDemandToPlot, bins=selectedBins, density=False)
 
 
         print(count)
-        print(division)
+        # print(division)
 
         width = 0.7 * (division[1] - division[0])
         center = (division[:-1] + division[1:]) / 2
@@ -590,12 +592,12 @@ def plot_cumulative_hist_user_demand(path, save=False, show=True):
 
         nodeIndex += 1
         # if nodeIndex>len(colors)-1:
-        if nodeIndex > 3: #81:
-            break
+        # if nodeIndex > 10: #81:
+        #     break
 
     # ax.set_xticklabels(center.round(6), rotation=65)
 
-    ax.set_xlabel('Demand [center bin (20)]')
+    ax.set_xlabel('Demand [bin ('+str(selectedBins)+')] [G/M]')
     ax.set_ylabel('CDF')
 
 
@@ -609,7 +611,8 @@ def plot_cumulative_hist_user_demand(path, save=False, show=True):
     # time_period = path[0:2]
     #
     # plot_title = time_period + " with "
-    output_filename = "one_res_small_no_leaks_cdf_node_demand" + "_" #+ y_data + "_with_"
+    # output_filename = "one_res_small_no_leaks_cdf_node_demand" + "_" #+ y_data + "_with_"
+    output_filename = path.replace("/", "-")
     # # output_filename = "1W_delta_loss_with_bdem_press.png"
     #
     # if (bool_base_demand == True and bool_pressure_value == False):
@@ -710,8 +713,8 @@ if __name__ == "__main__":
     # # plot_hist_user_demand(path_rand_demand, save=True, show=False)
     # # plot_cumulative_hist_user_demand(path_rand_demand, save=True, show=False)
 
-    path_pattern_demand = "tensorflow_datasets/one_res_small/no_leaks_pattern_demand/1M/1M_one_res_large_nodes_output.csv"
+    path_pattern_demand = "tensorflow_datasets/one_res_small/no_leaks_pattern_demand/1M/1M_one_res_small_alt_no_leaks_nodes_output.csv"
     # plot_user_demand(path_pattern_demand, save=False, show=True)
-    #plot_user_demand_v2(path_pattern_demand, save=True, show=False)
+    # plot_user_demand_v2(path_pattern_demand, save=True, show=False)
     # # plot_hist_user_demand(path_pattern_demand, save=True, show=False)
-    plot_cumulative_hist_user_demand(path_pattern_demand, save=False, show=True)
+    plot_cumulative_hist_user_demand(path_pattern_demand, save=True, show=False)
