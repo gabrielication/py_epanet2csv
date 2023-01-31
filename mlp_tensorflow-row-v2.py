@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import pandas as pd
 import os
@@ -56,7 +55,7 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
         # cheap hack. we just have one model file. break at first finding.
         break
 
-    if False: #input_filename_full_fitted_model != "":
+    if input_filename_full_fitted_model != "":
         print("Full fitted model already exists. Loading " + input_filename_full_fitted_model + "...")
         # model_fitted = load(input_filename_full_fitted_model)
 
@@ -69,18 +68,16 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
         # we first fit the model on the complete dataset and save the fitted model back
         print("No old model found. Creating and Fitting...")
 
-        model = create_neural_network_model(train_features, complete_path_stat, normalize=False)
-
+        model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
 
         history = perform_neural_network_fit(model, train_features, train_labels, epochs,
                                              validation_split=validation_split, batch_size=batch_size,
                                              callbacks=callbacks, verbose=1)
-        # sys.exit(1)
 
         if(save_model):
-            np.save('tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1W/my_history.npy', history.history)
+            np.save('my_history.npy', history.history)
 
-            output_filename_full_fitted_model = 'tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1W/my_model'
+            output_filename_full_fitted_model = 'my_model'
             model.save(output_filename_full_fitted_model)
 
             print("Model saved to: " + output_filename_full_fitted_model)
@@ -119,18 +116,14 @@ def visualize_model(model):
         output_filename = "model_graph_" + now + ".png"
 
         # keras_visualizer will work only with normalizer disabled
-        # visualizer(model, format='png', view=True, filename=output_filename)
+        visualizer(model, format='png', view=True, filename=output_filename)
 
         print(output_filename + " saved.")
     except:
         print("PNG for keras_visualizer not saved! works only without Normalization layer.")
 
 def is_gpu_supported():
-
-    try:
-        gpu_list = tf.config.list_physical_devices('GPU')
-    except AttributeError:
-        return False
+    gpu_list = tf.config.list_physical_devices('GPU')
 
     if(len(gpu_list) == 0):
         print("GPU IS NOT SUPPORTED/ACTIVE/DETECTED!")
@@ -162,75 +155,54 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
 
     data_scaled = data_trans
 
-    # if(scaling):
-    #     scaler = StandardScaler()
-    #
-    #     print("Standard Scaling IS ACTIVE. Preprocessing...")
-    #     data_scaled = scaler.fit_transform(data_trans)
-    #     data_scaled = pd.DataFrame(data_scaled, columns=[cols])
-    #
-    #     print(data_trans.head())
-    #     print(data_scaled.head())
-    #     print("Preprocessing done.\n")
-    # else:
-    #     print("Standard Scaling IS NOT ACTIVE.")
+    if(scaling):
+        scaler = StandardScaler()
 
-    #DG012023
-    # data_scaled.reshape
-    cols = ["pressure_value", "base_demand"]
-    label = ["demand_value"]
-    # features = data[cols].copy()
-    # labels = data[label].copy()
+        print("Standard Scaling IS ACTIVE. Preprocessing...")
+        data_scaled = scaler.fit_transform(data_trans)
+        data_scaled = pd.DataFrame(data_scaled, columns=[cols])
 
-    features = data[cols].values
-    labels = data[label].values
-
-    #!!!! IMPORTANT
-    features = features.reshape(-1,83,2)
-    labels = labels.reshape(-1, 83)
-
-    train_features = features[:100]
-    test_features = features[100:]
-
-    train_labels = labels[:100]
-    test_labels = labels[100:]
-
+        print(data_trans.head())
+        print(data_scaled.head())
+        print("Preprocessing done.\n")
+    else:
+        print("Standard Scaling IS NOT ACTIVE.")
 
     print("Dividing FEATURES and LABELS...")
 
-    # # This was used in Tensorflow wiki but it's not the same as train test split. It will pick a SAMPLE jumping rows, not a clean SPLIT
-    # # train_dataset = data_scaled.sample(frac=0.8, random_state=0)
-    #
-    # df = pd.read_csv(complete_path_stat)
-    # n_nodes = int(df['number_of_nodes'].iloc[0])
-    # duration = int(df['time_spent_on_sim'].iloc[0])
-    #
-    # dataset_size = duration * n_nodes
-    # duration_percentage = int(0.8 * duration)
-    #
-    # train_dataset_size = duration_percentage * n_nodes
-    # test_dataset_size = duration - train_dataset_size
-    #
-    # train_dataset = data_scaled.iloc[:train_dataset_size, :]
-    train_dataset = data_scaled
-    test_dataset = data_scaled.drop(train_dataset.index)
-    #
-    # # Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
-    # # says that the features are the columns that we want our network to train and labels is the value(s) to predict
-    # train_features = train_dataset.copy()
-    # test_features = test_dataset.copy()
-    #
-    # # These instructions modificate also original dataframes
-    # train_labels = train_features.pop('demand_value')
-    # test_labels = test_features.pop('demand_value')
+    # This was used in Tensorflow wiki but it's not the same as train test split. It will pick a SAMPLE jumping rows, not a clean SPLIT
+    # train_dataset = data_scaled.sample(frac=0.8, random_state=0)
 
-    if (pairplot):
+    df = pd.read_csv(complete_path_stat)
+    n_nodes = int(df['number_of_nodes'].iloc[0])
+    duration = int(df['time_spent_on_sim'].iloc[0])
+
+    dataset_size = duration * n_nodes
+
+    duration_percentage = int(0.8 * duration)
+
+    train_dataset_size = duration_percentage * n_nodes
+    test_dataset_size = duration - train_dataset_size
+
+    train_dataset = data_scaled.iloc[:train_dataset_size, :]
+    test_dataset = data_scaled.drop(train_dataset.index)
+
+    if(pairplot):
         now = formatted_datetime()
-        output_filename = "pairplot_" + now + ".png"
+        output_filename = "pairplot_"+now+".png"
 
         sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig(output_filename)
 
-        print(output_filename + " saved.")
+        print(output_filename+" saved.")
+
+    # Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
+    # says that the features are the columns that we want our network to train and labels is the value(s) to predict
+    train_features = train_dataset.copy()
+    test_features = test_dataset.copy()
+
+    # These instructions modificate also original dataframes
+    train_labels = train_features.pop('demand_value')
+    test_labels = test_features.pop('demand_value')
 
     return train_dataset, test_dataset, train_features, test_features, train_labels, test_labels
 
@@ -261,18 +233,15 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 
         feat_shape = train_features.shape[1]
 
-        input_layer = layers.Input(shape=(feat_shape,2))
+        input_layer = layers.Input(shape=(feat_shape,))
 
     # These lines will just calculate the levels for the Deep Neural Net
     df = pd.read_csv(complete_path_stat)
-    n_node = int(df['number_of_nodes'].iloc[0])
+    n_junc = int(df['number_of_junctions'].iloc[0])
 
-    fst_level = n_node * 5
-    snd_level = n_node * 3
-    trd_level = n_node
-
-
-    print(feat_shape, ' - ', fst_level, ' - ', snd_level, ' - ', trd_level, ' - ')
+    fst_level = n_junc * 5
+    snd_level = n_junc * 3
+    trd_level = n_junc
 
     # Let's build the model. The first layer will be the normalizer that we built before
     # Depth=3 and Width=fst,snd,trd
@@ -313,13 +282,7 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
 
     print("epochs: ",epochs,"batch_size: ",batch_size, "validation_split: ", validation_split)
 
-    batch_size = 20
-    epochs = 200
-
     print("Fitting...")
-
-    print(train_features.shape)
-    print(train_labels.shape)
 
     history = model.fit(
         train_features,
@@ -374,20 +337,19 @@ def evaluate_network_after_fit(model, test_features, test_labels):
     loss = evl[0]
     mse = evl[1]
     mae = evl[2]
-    r_square=None
-    # r_square = evl[3]
+    r_square = None #evl[3]
 
     print("loss: ",loss)
     print("mse: ",mse)
     print("mae: ",mae)
-    # print("r_square: ",r_square)
+    print("r_square: ",r_square)
 
     return loss, mse, mae, r_square
 
 def predict_and_collect_results(model, test_features):
     print("Prediction started...")
 
-    test_predictions = model.predict(test_features)
+    test_predictions = model.predict(test_features).flatten()
 
     return test_predictions
 
@@ -405,7 +367,7 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
                                                                                                          pairplot=False)
 
     model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
-                                           callbacks, complete_path_stat, save_model=True, visualize_model_bool=False)
+                                           callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
 
     evaluate_network_after_fit(model,test_features,test_labels)
     test_predictions = predict_and_collect_results(model, test_features)
@@ -613,7 +575,7 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ["predictions","true_test_values"]
+    header = ["predictions","true_test_values","error"]
 
     writer.writerow(header)
 
@@ -631,8 +593,8 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
 
     test_predictions, test_labels = run_predict_analysis(complete_path,complete_path_stat,epochs,cols, batch_size=batch_size)
 
-    for pred,test in zip(test_predictions.reshape(68*83,1),test_labels.reshape(68*83,1)):
-        output_row = [pred[0],test[0],pred[0]-test[0]]
+    for pred,test in zip(test_predictions,test_labels):
+        output_row = [pred,test,pred-test]
         writer.writerow(output_row)
 
     f.close()
