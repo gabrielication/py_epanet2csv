@@ -4,6 +4,20 @@ import sys
 import random
 import numpy as np
 import pandas as pd
+from decimal import Decimal
+
+def pick_rand_leaks(wn, number_of_junctions_with_leaks):
+    node_names = wn.junction_name_list
+
+    selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
+
+    return selected_junctions
+
+def assign_leaks(wn, area_size, selected_junctions):
+    for node_id in selected_junctions:
+        node_obj = wn.get_node(node_id)
+
+        node_obj.add_leak(wn, area=area_size, start_time=0)
 
 def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
     print("Printing Nodes CSV. Please wait...")
@@ -23,11 +37,18 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
     header = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
               "leak_area_value", "leak_discharge_value",
-              "current_leak_demand_value", "tot_network_demand"]
+              "current_leak_demand_value",
+              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand"]
 
     writer.writerow(header)
 
+    tot_network_demand = np.float64(0)
+
     for timestamp in range(sim_duration_in_hours):
+
+        tot_leaks_demand = np.float64(0)
+        tot_junctions_demand = np.float64(0)
+
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
             node_type = node_obj.__class__.__name__
@@ -35,8 +56,12 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
             hour_in_seconds = int(timestamp * 3600)
 
             hour = str(timestamp) + ":00:00"
+
             demand_value = demand_results.loc[hour_in_seconds,nodeID]
+            tot_junctions_demand += demand_value
+
             demand_value = "{:.8f}".format(demand_value)
+            # tot_network_demand_str = "{:.8f}".format(tot_network_demand)
 
             head_value = head_results.loc[hour_in_seconds, nodeID]
             head_value = "{:.8f}".format(head_value)
@@ -48,27 +73,38 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename):
             y_pos = node_obj.coordinates[1]
 
             if node_type == "Junction":
+                # tot_leak_demand = tot_leak_demand + current_leak_demand_value
+                # tot_nodes_demand = tot_nodes_demand + demand_value + current_leak_demand_value
+
                 base_demand = node_obj.demand_timeseries_list[0].base_value
                 base_demand = "{:.8f}".format(base_demand)
             else:
                 base_demand = 0.0
 
-            #TODO
-            tot_network_demand = 0.0
-
             leak_area_value = node_obj.leak_area  # I think that this does not require an approximation... right?
             leak_discharge_value = node_obj.leak_discharge_coeff
+
             current_leak_demand_value = leak_demand_results.loc[hour_in_seconds,nodeID]
+            tot_leaks_demand += current_leak_demand_value
+
             current_leak_demand_value = "{:.8f}".format(current_leak_demand_value)
+
+            #TODO: here the counter resets itself, is it ok?
+            tot_network_demand = tot_junctions_demand + tot_leaks_demand
+            tot_network_demand_str = "{:.8f}".format(tot_network_demand)
 
             if (leak_area_value > 0.0):
                 has_leak = True  # this leak-flag is set to true if we see a hole in the node
             else:
                 has_leak = False
 
+            tot_junctions_demand_str = "{:.8f}".format(tot_junctions_demand)
+            tot_leaks_demand_str = "{:.8f}".format(tot_leaks_demand)
+
             out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
                        x_pos, y_pos, node_type, has_leak, leak_area_value,
-                       leak_discharge_value, current_leak_demand_value, tot_network_demand]
+                       leak_discharge_value, current_leak_demand_value,
+                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str]
 
             writer.writerow(out_row)
 
@@ -122,21 +158,6 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
 
     print("Simulation stats saved to: "+outName+"\n")
 
-def pick_rand_leaks(wn, number_of_junctions_with_leaks):
-    node_names = wn.junction_name_list
-
-    selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
-
-    return selected_junctions
-
-def assign_leaks(wn, area_size, selected_junctions, proc_name):
-    for node_id in selected_junctions:
-        node_obj = wn.get_node(node_id)
-
-        node_obj.add_leak(wn, area=area_size, start_time=0)
-
-        #print(proc_name + "Leak added to node id: ", node_id)
-
 def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False):
     print("Simulation started...")
 
@@ -161,7 +182,7 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
 
-        assign_leaks(wn, 0.0002, selected_junctions, "1D_one_res_small")
+        assign_leaks(wn, 0.0002, selected_junctions)
     else:
         print("Leaks are NOT enabled")
 
