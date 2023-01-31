@@ -38,7 +38,7 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename, nu
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
               "leak_area_value", "leak_discharge_value",
               "leak_demand_value",
-              "tot_nodes_demand", "tot_leaks_demand","tot_network_demand"]
+              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand"]
 
     writer.writerow(header)
 
@@ -48,8 +48,9 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename, nu
 
     for timestamp in range(sim_duration_in_hours):
 
+        # Water network balancing counters reset each hour
         tot_leaks_demand = np.float64(0)
-        tot_nodes_demand = np.float64(0)
+        tot_junctions_demand = np.float64(0)
         tot_network_demand = np.float64(0)
 
         for nodeID in node_names:
@@ -61,9 +62,7 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename, nu
             hour = str(timestamp) + ":00:00"
 
             demand_value = demand_results.loc[hour_in_seconds,nodeID]
-            tot_nodes_demand += demand_value
-
-            # tot_network_demand_str = "{:.8f}".format(tot_network_demand)
+            tot_junctions_demand += demand_value
 
             head_value = head_results.loc[hour_in_seconds, nodeID]
             head_value = "{:.8f}".format(head_value)
@@ -100,7 +99,7 @@ def write_results_to_csv(results, node_names, sim_duration, wn, out_filename, nu
             else:
                 has_leak = False
 
-            tot_junctions_demand_str = "{:.8f}".format(tot_nodes_demand)
+            tot_junctions_demand_str = "{:.8f}".format(tot_junctions_demand)
             tot_leaks_demand_str = "{:.8f}".format(tot_leaks_demand)
 
             out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
@@ -164,7 +163,7 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
     print("Simulation stats saved to: "+outName+"\n")
 
 def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False, leak_area_size=0.0000001):
-    print("Simulation started...")
+    print("Configuring simulation...")
 
     complete_input_path = sim_folder_path + input_file_inp
 
@@ -174,11 +173,16 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
 
+    # Why -1? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
+    wn.options.time.duration = sim_duration - 1
+
     # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     # wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
-    #Why -1? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
-    wn.options.time.duration = sim_duration - 1
+    print("Demand mode: "+str(wn.options.hydraulic.demand_model))
+    print("Required pressure: "+str(wn.options.hydraulic.required_pressure))
+    print("Minimum pressure: "+str(wn.options.hydraulic.minimum_pressure))
+    print("Time duration (seconds): "+str(sim_duration))
 
     if(leaks_enabled):
         print("LEAKS ARE ENABLED")
@@ -192,7 +196,7 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
         number_of_junctions_with_leaks = 0
         print("Leaks are NOT enabled")
 
-    print("Running simulation...")
+    print("\nRunning simulation...")
 
     results = wntr.sim.WNTRSimulator(wn).run_sim()
 
@@ -203,7 +207,7 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     print("Simulation finished")
 
 if __name__ == "__main__":
-    print("py_epanet started!\n")
+    print("******   py_epanet started!  ******\n")
 
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
@@ -211,7 +215,7 @@ if __name__ == "__main__":
     sim_duration = 24 * 3600
     out_filename = "1D_one_res_small_no_leaks"
 
-    leaks_enabled = False
+    leaks_enabled = True
     leak_area_size = 0.0000009
 
     run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=leaks_enabled, leak_area_size=leak_area_size)
