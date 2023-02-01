@@ -5,6 +5,7 @@ import random
 import numpy as np
 import pandas as pd
 from decimal import Decimal
+from collections import OrderedDict
 
 def pick_rand_leaks(wn, number_of_junctions_with_leaks):
     node_names = wn.junction_name_list
@@ -243,7 +244,9 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     if(random_base_demands):
         print("RANDOM BASE DEMANDS ENABLED")
 
-        results = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd)
+        results_list = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd)
+
+        results = make_a_single_results_from_the_list(wn, results_list)
     else:
         print("Random Base Demands are NOT enabled")
 
@@ -260,22 +263,56 @@ def execute_simulation(wn):
 
     return results
 
+def make_a_single_results_from_the_list(wn, results_list):
+
+    # fake temp class to give to the write_csv function
+    class Results:
+        def __init__(self, node={}):
+            self.node = node
+
+    columns = wn.node_name_list
+
+    node = OrderedDict({'demand': pd.DataFrame(columns=columns), 'head': pd.DataFrame(columns=columns), 'pressure': pd.DataFrame(columns=columns), 'leak_demand': pd.DataFrame(columns=columns)})
+
+    for results in results_list:
+
+        demand_results = results.node['demand']
+        head_results = results.node['head']
+        pressure_results = results.node['pressure']
+        leak_demand_results = results.node["leak_demand"]
+
+        # merge the two dataframes vertically (row-wise) using pd.concat
+        node['demand'] = pd.concat([node['demand'], demand_results], axis=0)
+        node['head'] = pd.concat([node['head'], head_results], axis=0)
+        node['pressure'] = pd.concat([node['pressure'], pressure_results], axis=0)
+        node['leak_demand'] = pd.concat([node['leak_demand'], leak_demand_results], axis=0)
+
+    out = Results(node)
+
+    return out
+
 def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=0, max_bd=0.000005):
     print("\nRunning simulation...")
 
     pattern = create_custom_pattern(wn,"custom_1",1,1,1,sim_duration_for_wntr)
 
-    assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_1")
-
-    results = wntr.sim.WNTRSimulator(wn).run_sim()
-
     sim_duration_in_hours = int(sim_duration_for_wntr / 3600) + 1
+
+    results_list = []
 
     for hour in range(sim_duration_in_hours):
 
-        print(hour)
+        wn.options.time.duration = hour * 3600
 
-    return results
+        # print(hour)
+
+        assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_1")
+
+        results = wntr.sim.WNTRSimulator(wn).run_sim()
+
+        results_list.append(results)
+
+    return results_list
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -287,7 +324,7 @@ if __name__ == "__main__":
     leaks_enabled = False
     leak_area_size = 0.0000009
 
-    sim_duration = 24 * 3600  # hours in seconds
+    sim_duration = 3 * 3600  # hours in seconds
 
     random_base_demands = True
 
