@@ -7,6 +7,8 @@ import pandas as pd
 from decimal import Decimal
 from collections import OrderedDict
 
+#this is a cheap hack that "expands" the Junction object from wntr in order to have an history of changed base demands
+
 def pick_rand_leaks(wn, number_of_junctions_with_leaks):
     node_names = wn.junction_name_list
 
@@ -59,6 +61,11 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None, list_of_de
 
         junc_obj.add_demand(base=new_demand, pattern_name=pattern)
         del junc_obj.demand_timeseries_list[0]
+
+        if hasattr(junc_obj, 'list_of_bds'):
+            junc_obj.list_of_bds.append(junc_obj.base_demand)
+        else:
+            junc_obj.list_of_bds = [junc_obj.base_demand]
 
 def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks):
     print("Printing Nodes CSV. Please wait...")
@@ -123,7 +130,12 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             tot_leaks_demand += leak_demand_value
 
             if node_type == "Junction":
-                base_demand = node_obj.demand_timeseries_list[0].base_value
+
+                if hasattr(node_obj, 'list_of_bds'):
+                    base_demand = node_obj.list_of_bds[timestamp]
+                else:
+                    base_demand = node_obj.demand_timeseries_list[0].base_value
+
                 base_demand = "{:.8f}".format(base_demand)
 
                 tot_juncts_demand_in_entire_simulation += demand_value
