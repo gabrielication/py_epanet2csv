@@ -19,8 +19,50 @@ def assign_leaks(wn, area_size, selected_junctions):
 
         node_obj.add_leak(wn, area=area_size, start_time=0)
 
-def write_results_to_csv(results, node_names, sim_duration, wn, out_filename, number_of_nodes_with_leaks):
+def create_custom_pattern(wn, name, min_mult, max_mult, step, duration):
+    timeops = wntr.network.options.TimeOptions(duration)
+
+    multipliers = []
+
+    for multiplier_step in range(min_mult,max_mult+step,step):
+        multipliers.append(multiplier_step)
+
+    out_pattern = wntr.network.Pattern("custom", multipliers, time_options=timeops)
+
+    wn.add_pattern(name, out_pattern)
+
+    return out_pattern
+
+def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None, list_of_demands=None):
+    node_names = wn.junction_name_list
+
+    i = 0
+
+    for juncID in node_names:
+        junc_obj = wn.get_node(juncID)
+
+        if(list_of_demands is None):
+            new_demand = random.uniform(min_bd, max_bd)
+        else:
+            timestamp = int(wn.sim_time / 3600)
+
+            new_demand = list_of_demands[timestamp][i]
+
+            i += 1
+
+        # junc_obj.demand_timeseries_list[0].base_value = new_demand
+
+        # you can't apparently just change the old pattern like the base demand, it seems to be a read only field.
+        # for now we just create a new timeseries and delete the old one
+        # junc_obj.demand_timeseries_list[0].pattern = pattern
+
+        junc_obj.add_demand(base=new_demand, pattern_name=pattern)
+        del junc_obj.demand_timeseries_list[0]
+
+def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks):
     print("Printing Nodes CSV. Please wait...")
+
+    node_names = wn.node_name_list
 
     demand_results = results.node['demand']
     head_results = results.node['head']
@@ -162,7 +204,7 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
 
     print("Simulation stats saved to: "+outName+"\n")
 
-def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False, leak_area_size=0.0000001):
+def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005):
     print("Configuring simulation...")
 
     complete_input_path = sim_folder_path + input_file_inp
@@ -173,8 +215,10 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
 
+    sim_duration_for_wntr = sim_duration -1
+
     # Why -1? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
-    wn.options.time.duration = sim_duration - 1
+    wn.options.time.duration = sim_duration_for_wntr
 
     # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     # wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
@@ -196,15 +240,42 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
         number_of_junctions_with_leaks = 0
         print("Leaks are NOT enabled")
 
+    if(random_base_demands):
+        print("RANDOM BASE DEMANDS ENABLED")
+
+        results = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd)
+    else:
+        print("Random Base Demands are NOT enabled")
+
+        results = execute_simulation(wn)
+
+    write_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks)
+
+    print("Simulation finished")
+
+def execute_simulation(wn):
     print("\nRunning simulation...")
 
     results = wntr.sim.WNTRSimulator(wn).run_sim()
 
-    node_names = wn.node_name_list
+    return results
 
-    write_results_to_csv(results, node_names, sim_duration, wn, out_filename, number_of_junctions_with_leaks)
+def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=0, max_bd=0.000005):
+    print("\nRunning simulation...")
 
-    print("Simulation finished")
+    pattern = create_custom_pattern(wn,"custom_1",1,1,1,sim_duration_for_wntr)
+
+    assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_1")
+
+    results = wntr.sim.WNTRSimulator(wn).run_sim()
+
+    sim_duration_in_hours = int(sim_duration_for_wntr / 3600) + 1
+
+    for hour in range(sim_duration_in_hours):
+
+        print(hour)
+
+    return results
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -213,11 +284,15 @@ if __name__ == "__main__":
     sim_folder_path = "./networks/"
     out_filename = "1D_one_res_small_no_leaks"
 
-    leaks_enabled = True
+    leaks_enabled = False
     leak_area_size = 0.0000009
 
     sim_duration = 24 * 3600  # hours in seconds
 
-    run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=leaks_enabled, leak_area_size=leak_area_size)
+    random_base_demands = True
+
+    run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
+            leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+            random_base_demands=random_base_demands)
 
     print("\nExiting...")
