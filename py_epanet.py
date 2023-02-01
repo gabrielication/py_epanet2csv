@@ -62,6 +62,8 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None, list_of_de
         junc_obj.add_demand(base=new_demand, pattern_name=pattern)
         del junc_obj.demand_timeseries_list[0]
 
+        # To keep track of the history of the different random base demands we add a custom field to the Junction object of wntr
+        # if it is the first time that we call this, we have to create it, else we just append the new value to the list
         if hasattr(junc_obj, 'list_of_bds'):
             junc_obj.list_of_bds.append(junc_obj.base_demand)
         else:
@@ -132,6 +134,7 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             if node_type == "Junction":
 
                 if hasattr(node_obj, 'list_of_bds'):
+                    #happens if we set random_base_demands to True
                     base_demand = node_obj.list_of_bds[timestamp]
                 else:
                     base_demand = node_obj.demand_timeseries_list[0].base_value
@@ -186,7 +189,7 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
     number_of_junctions = len(wn.junction_name_list)
     number_of_reservoirs = len(wn.reservoir_name_list)
     number_of_tanks = len(wn.tank_name_list)
-    time_spent_on_sim = ((wn.options.time.duration+1) / 3600) #see in run_sim why we do +1
+    time_spent_on_sim = int(((wn.options.time.duration) / 3600)) + 1 #see in run_sim why we do +1
 
     if (tot_nodes_demand > 0):
         leak_percentage = (tot_leak_demand / tot_nodes_demand) * 100
