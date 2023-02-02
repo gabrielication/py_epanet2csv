@@ -231,9 +231,9 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
 
-    sim_duration_for_wntr = sim_duration -1
+    sim_duration_for_wntr = sim_duration - 3600
 
-    # Why -1? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
+    # Why -3600? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
     wn.options.time.duration = sim_duration_for_wntr
 
     # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
@@ -332,14 +332,14 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
 
-    input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
+    input_file_inp = "Net3.inp"
     sim_folder_path = "./networks/"
     out_filename = "1D_one_res_small_no_leaks"
 
     leaks_enabled = False
     leak_area_size = 0.0000009
 
-    sim_duration = 3 * 3600  # hours in seconds
+    sim_duration = 168 * 3600  # hours in seconds
 
     random_base_demands = True
 
