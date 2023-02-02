@@ -243,6 +243,7 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     print("Required pressure: "+str(wn.options.hydraulic.required_pressure))
     print("Minimum pressure: "+str(wn.options.hydraulic.minimum_pressure))
     print("Time duration (seconds): "+str(sim_duration))
+    print("WNTR duration (seconds): "+str(sim_duration_for_wntr))
 
     if(leaks_enabled):
         print("LEAKS ARE ENABLED")
@@ -336,8 +337,8 @@ if __name__ == "__main__":
     sim_folder_path = "./networks/"
     out_filename = "1D_one_res_small_no_leaks"
 
-    leaks_enabled = False
-    leak_area_size = 0.0000009
+    leaks_enabled = True
+    leak_area_size = 0.0000001
 
     sim_duration = 168 * 3600  # hours in seconds
 
