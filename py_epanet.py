@@ -5,8 +5,6 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 
-#this is a cheap hack that "expands" the Junction object from wntr in order to have an history of changed base demands
-
 def pick_rand_leaks(wn, number_of_junctions_with_leaks):
     node_names = wn.junction_name_list
 
@@ -37,19 +35,10 @@ def create_custom_pattern(wn, name, min_mult, max_mult, step, duration):
 def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None, list_of_demands=None):
     node_names = wn.junction_name_list
 
-    i = 0
-
     for juncID in node_names:
         junc_obj = wn.get_node(juncID)
 
-        if(list_of_demands is None):
-            new_demand = random.uniform(min_bd, max_bd)
-        else:
-            timestamp = int(wn.sim_time / 3600)
-
-            new_demand = list_of_demands[timestamp][i]
-
-            i += 1
+        new_demand = random.uniform(min_bd, max_bd)
 
         # junc_obj.demand_timeseries_list[0].base_value = new_demand
 
@@ -336,7 +325,7 @@ if __name__ == "__main__":
     leaks_enabled = False
     leak_area_size = 0.0000001
 
-    sim_duration = 168 * 3600  # hours in seconds
+    sim_duration = 24 * 3600  # hours in seconds
 
     random_base_demands = True
 
