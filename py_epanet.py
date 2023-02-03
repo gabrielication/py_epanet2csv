@@ -1,10 +1,8 @@
 import wntr
 import csv
-import sys
 import random
 import numpy as np
 import pandas as pd
-from decimal import Decimal
 from collections import OrderedDict
 
 #this is a cheap hack that "expands" the Junction object from wntr in order to have an history of changed base demands
@@ -320,8 +318,6 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 
         wn.options.time.duration = hour * 3600
 
-        # print(hour)
-
         assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_1")
 
         results = wntr.sim.WNTRSimulator(wn).run_sim()
@@ -337,7 +333,7 @@ if __name__ == "__main__":
     sim_folder_path = "./networks/"
     out_filename = "1D_one_res_small_no_leaks"
 
-    leaks_enabled = True
+    leaks_enabled = False
     leak_area_size = 0.0000001
 
     sim_duration = 168 * 3600  # hours in seconds
