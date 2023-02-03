@@ -64,7 +64,7 @@ def load_model(model_prefix, X_train, y_train, input_full_dataset, model_persist
         output_filename_full_fitted_model = model_prefix + input_full_dataset.replace(".csv",
                                                                                       "") + '_full_fit_model.joblib'
 
-        for filename in Path(".").glob("*.joblib"):
+        for filename in Path("..").glob("*.joblib"):
             input_filename_full_fitted_model = str(filename)
 
             # cheap hack. we just have one model file. break at first finding.
@@ -241,7 +241,7 @@ def check_if_fresh_model_is_required(fresh_start):
     if (fresh_start):
         print("\nFresh start ENABLED. Deleting old models...\n")
 
-        for filename in Path(".").glob("*.joblib"):
+        for filename in Path("..").glob("*.joblib"):
             try:
                 os.remove(filename)
                 print(str(filename) + " deleted")
