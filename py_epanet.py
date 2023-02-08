@@ -172,7 +172,9 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
     out.close()
     print("CSV saved to: "+out_filename_complete+"\n")
 
-    write_simulation_stats(wn, out_filename, tot_juncts_demand_in_entire_simulation, tot_juncts_leak_demand_in_entire_simulation, number_of_nodes_with_leaks, now=now)
+    stats_filename = write_simulation_stats(wn, out_filename, tot_juncts_demand_in_entire_simulation, tot_juncts_leak_demand_in_entire_simulation, number_of_nodes_with_leaks, now=now)
+
+    return out_filename_complete, stats_filename
 
 def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand, number_of_nodes_with_leaks, now=None):
     print("Writing simulation stats CSV...")
@@ -226,6 +228,8 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
 
     print("Simulation stats saved to: "+outName+"\n")
 
+    return outName
+
 def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005, file_timestamp=False):
     print("Configuring simulation...")
 
@@ -274,9 +278,11 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         results = execute_simulation(wn)
 
-    write_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+    saved_datasets = write_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
 
     print("Simulation finished")
+
+    return saved_datasets
 
 def execute_simulation(wn):
     print("\nRunning simulation...")
@@ -334,12 +340,7 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 
     return results_list
 
-
-
 def merge_multiple_datasets(datasets):
-
-
-
     print()
 
 if __name__ == "__main__":
@@ -358,8 +359,22 @@ if __name__ == "__main__":
 
     file_timestamp = True
 
-    run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
-            leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-            random_base_demands=random_base_demands, file_timestamp=file_timestamp)
+    # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
+    #         leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+    #         random_base_demands=random_base_demands, file_timestamp=file_timestamp)
+
+    datasets_to_merge = []
+
+    number_of_consecutive_sims = 3
+
+    for i in range(number_of_consecutive_sims):
+        results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
+                leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+                random_base_demands=random_base_demands, file_timestamp=file_timestamp)
+
+        datasets_to_merge.append(results_from_sim[0])
+
+    for dataset in datasets_to_merge:
+        print(dataset)
 
     print("\nExiting...")
