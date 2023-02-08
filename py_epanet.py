@@ -4,6 +4,16 @@ import random
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
+from datetime import datetime
+
+def formatted_datetime():
+    # current date and time
+    now = str(datetime.now())
+    now = now.replace(" ", "_")
+    now = now.replace(".", "_")
+    now = now.replace(":", "_")
+
+    return now
 
 def pick_rand_leaks(wn, number_of_junctions_with_leaks):
     node_names = wn.junction_name_list
@@ -56,7 +66,7 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None, list_of_de
         else:
             junc_obj.list_of_bds = [junc_obj.base_demand]
 
-def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks):
+def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
     print("Printing Nodes CSV. Please wait...")
 
     node_names = wn.node_name_list
@@ -68,7 +78,12 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
 
     sim_duration_in_hours = int(sim_duration / 3600)
 
-    out_filename_complete = out_filename+"_nodes_output.csv"
+    now = formatted_datetime()
+
+    if(file_timestamp):
+        out_filename_complete = out_filename + "_nodes_output_"+now+".csv"
+    else:
+        out_filename_complete = out_filename + "_nodes_output.csv"
 
     out = open(out_filename_complete, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
@@ -157,12 +172,16 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
     out.close()
     print("CSV saved to: "+out_filename_complete+"\n")
 
-    write_simulation_stats(wn, out_filename, tot_juncts_demand_in_entire_simulation, tot_juncts_leak_demand_in_entire_simulation, number_of_nodes_with_leaks)
+    write_simulation_stats(wn, out_filename, tot_juncts_demand_in_entire_simulation, tot_juncts_leak_demand_in_entire_simulation, number_of_nodes_with_leaks, now=now)
 
-def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand, number_of_nodes_with_leaks):
+def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand, number_of_nodes_with_leaks, now=None):
     print("Writing simulation stats CSV...")
 
-    outName = out_file_name + "_nodes_simulation_stats.csv"
+    if (now == None):
+        outName = out_file_name + "_nodes_simulation_stats.csv"
+    else:
+        outName = out_file_name + "_nodes_simulation_stats_" + now + ".csv"
+
     out = open(outName, "w", newline='', encoding='utf-8')
     writer = csv.writer(out)
 
@@ -207,7 +226,7 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
 
     print("Simulation stats saved to: "+outName+"\n")
 
-def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005):
+def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005, file_timestamp=False):
     print("Configuring simulation...")
 
     complete_input_path = sim_folder_path + input_file_inp
@@ -255,7 +274,7 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         results = execute_simulation(wn)
 
-    write_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks)
+    write_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
 
     print("Simulation finished")
 
@@ -315,6 +334,14 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 
     return results_list
 
+
+
+def merge_multiple_datasets(datasets):
+
+
+
+    print()
+
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
 
@@ -329,8 +356,10 @@ if __name__ == "__main__":
 
     random_base_demands = True
 
+    file_timestamp = True
+
     run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
             leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-            random_base_demands=random_base_demands)
+            random_base_demands=random_base_demands, file_timestamp=file_timestamp)
 
     print("\nExiting...")
