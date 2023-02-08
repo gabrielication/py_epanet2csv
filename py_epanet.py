@@ -340,8 +340,45 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 
     return results_list
 
-def merge_multiple_datasets(datasets):
-    print()
+def merge_multiple_datasets(datasets_to_merge, output_filename):
+    print("Merging these datasets:")
+
+    pd.options.display.float_format = '{:,.8f}'.format
+
+    path_to_first_df = datasets_to_merge.pop(0)
+    print(path_to_first_df)
+
+    # We read our entire dataset
+    first_df = pd.read_csv(path_to_first_df)
+
+    last_row_from_first_df = first_df.iloc[-1]["hour"]
+
+    # cheap hack useful to know how many nodes we have in a dataset
+    number_of_nodes = first_df['hour'].value_counts()[last_row_from_first_df]
+
+    last_hour_from_first_df = int(last_row_from_first_df.split(":",1)[0]) + 1
+
+    while len(datasets_to_merge) > 0:
+        data_path = datasets_to_merge.pop(0)
+        print(path_to_first_df)
+
+        next_df = pd.read_csv(data_path, header=0)
+
+        n_iterations = int(len(next_df) / number_of_nodes)
+
+        for mult in range(1, n_iterations+1):
+            stop = mult * number_of_nodes
+            start = stop - number_of_nodes
+            value = str(last_hour_from_first_df)+":00:00"
+            next_df.loc[start:stop, 'hour'] = value
+
+            last_hour_from_first_df += 1
+
+        first_df = pd.concat([first_df, next_df], ignore_index=True)
+
+    first_df.to_csv(output_filename, float_format='%.8f', index=False)
+
+    print("Merge finished. Final csv saved to: "+output_filename)
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -350,15 +387,15 @@ if __name__ == "__main__":
     sim_folder_path = "./networks/"
     out_filename = "1D_one_res_small_no_leaks"
 
+    sim_duration = 8 * 3600  # hours in seconds
+
     leaks_enabled = False
     leak_area_size = 0.0000001
 
-    sim_duration = 24 * 3600  # hours in seconds
-
     random_base_demands = True
-
     file_timestamp = True
 
+    # SINGLE EXECUTION
     # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
     #         leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
     #         random_base_demands=random_base_demands, file_timestamp=file_timestamp)
@@ -374,7 +411,8 @@ if __name__ == "__main__":
 
         datasets_to_merge.append(results_from_sim[0])
 
-    for dataset in datasets_to_merge:
-        print(dataset)
+    print()
+
+    merge_multiple_datasets(datasets_to_merge, "1D_one_res_small_no_leaks_nodes_output_merged.csv")
 
     print("\nExiting...")
