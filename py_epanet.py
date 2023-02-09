@@ -421,7 +421,7 @@ if __name__ == "__main__":
     # input_file_inp = "Net3.inp"
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
-    out_filename = "1M_one_res_small_no_leaks_rand_bd"
+    out_filename = "4W_one_res_small_no_leaks_rand_bd"
 
     sim_duration = 24 * 3600  # hours in seconds
 
@@ -439,10 +439,12 @@ if __name__ == "__main__":
     #         leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
     #         random_base_demands=random_base_demands, file_timestamp=file_timestamp)
 
+    # MULTIPLE EXECUTION
+    # Needed when some networks present strange behavior (e.g., demand = 0) when ran for a lot of hours
     datasets_to_merge = []
     stats_to_merge = []
 
-    number_of_consecutive_sims = 31
+    number_of_consecutive_sims = 4 * 7
 
     for i in range(number_of_consecutive_sims):
         results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
