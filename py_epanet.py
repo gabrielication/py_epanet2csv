@@ -231,7 +231,9 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
 
     return outName
 
-def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005, file_timestamp=False):
+def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False,
+            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005, file_timestamp=False):
+
     print("Configuring simulation...")
 
     complete_input_path = sim_folder_path + input_file_inp
@@ -415,6 +417,33 @@ def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
             else:
                 print("Deletion NOT successful!: " + path)
 
+def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
+                      leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
+                      min_bd=0, max_bd=0.000005, file_timestamp=False, delete_old_files=False, merge_csv=True):
+
+    datasets_to_merge = []
+    stats_to_merge = []
+
+    for i in range(number_of_sims):
+        results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
+                                   out_filename, leaks_enabled=leaks_enabled,
+                                   leak_area_size=leak_area_size,
+                                   random_base_demands=random_base_demands,
+                                   min_bd=min_bd, max_bd=max_bd, file_timestamp=file_timestamp)
+
+        datasets_to_merge.append(results_from_sim[0])
+        stats_to_merge.append(results_from_sim[1])
+
+    if(merge_csv):
+
+        print()
+
+        merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+
+        print()
+
+        merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=delete_old_files)
+
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
 
@@ -435,35 +464,21 @@ if __name__ == "__main__":
     file_timestamp = True  # switch this to True to write a current timestamp to the output filename
 
     # SINGLE EXECUTION
+
     # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
     #         leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
     #         random_base_demands=random_base_demands, file_timestamp=file_timestamp)
 
     # MULTIPLE EXECUTION
     # Needed when some networks present strange behavior (e.g., demand = 0) when ran for a lot of hours
-    datasets_to_merge = []
-    stats_to_merge = []
 
-    number_of_consecutive_sims = 4 * 7
-
-    for i in range(number_of_consecutive_sims):
-        results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
-                                   out_filename, leaks_enabled=leaks_enabled,
-                                   leak_area_size=leak_area_size,
-                                   random_base_demands=random_base_demands,
-                                   min_bd=min_bd, max_bd=max_bd,file_timestamp=file_timestamp)
-
-        datasets_to_merge.append(results_from_sim[0])
-        stats_to_merge.append(results_from_sim[1])
-
-    print()
-
+    merge_csv = True  # switch this to True to merge CSVs into one
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
-    merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+    number_of_sims = 2
 
-    print()
-
-    merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=delete_old_files)
+    run_multiple_sims(sim_folder_path,input_file_inp,sim_duration,out_filename,number_of_sims,
+                      leaks_enabled=leaks_enabled,leak_area_size=leak_area_size,random_base_demands=random_base_demands,
+                      min_bd=min_bd,max_bd=max_bd,file_timestamp=file_timestamp,delete_old_files=delete_old_files, merge_csv=merge_csv)
 
     print("\nExiting...")
