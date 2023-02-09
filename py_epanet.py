@@ -421,7 +421,7 @@ if __name__ == "__main__":
     # input_file_inp = "Net3.inp"
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
-    out_filename = "1D_one_res_small_no_leaks_rand_bd"
+    out_filename = "1M_one_res_small_no_leaks_rand_bd"
 
     sim_duration = 24 * 3600  # hours in seconds
 
