@@ -43,7 +43,7 @@ def create_custom_pattern(wn, name, min_mult, max_mult, step, duration):
 
     return out_pattern
 
-def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None, list_of_demands=None):
+def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None):
     node_names = wn.junction_name_list
 
     for juncID in node_names:
