@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from datetime import datetime
+import os
 
 def formatted_datetime():
     # current date and time
@@ -340,7 +341,14 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 
     return results_list
 
-def merge_multiple_datasets(datasets_to_merge, output_filename):
+def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files=False):
+    print("Merging CSVs...")
+
+    if(delete_old_files):
+        print("Deletion of old unmerged CSVs ENABLED!")
+    else:
+        print("Deletion of old unmerged CSVs NOT enabled")
+
     print("Merging these datasets:")
 
     output_filename_merge = output_filename+"_merged.csv"
@@ -348,6 +356,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename):
     pd.options.display.float_format = '{:,.8f}'.format
 
     path_to_first_df = datasets_to_merge.pop(0)
+
     print(path_to_first_df)
 
     # We read our entire dataset
@@ -362,7 +371,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename):
 
     while len(datasets_to_merge) > 0:
         data_path = datasets_to_merge.pop(0)
-        print(path_to_first_df)
+        print(data_path)
 
         next_df = pd.read_csv(data_path, header=0)
 
@@ -378,10 +387,33 @@ def merge_multiple_datasets(datasets_to_merge, output_filename):
 
         first_df = pd.concat([first_df, next_df], ignore_index=True)
 
+        if(delete_old_files):
+            if os.path.exists(data_path):
+                os.remove(data_path)
+            else:
+                print("Deletion NOT successful!: "+data_path)
+
     first_df.to_csv(output_filename_merge, float_format='%.8f', index=False)
+
+    if (delete_old_files):
+        if os.path.exists(path_to_first_df):
+            os.remove(path_to_first_df)
+        else:
+            print("Deletion NOT successful!: "+path_to_first_df)
 
     print()
     print("Merge finished. Final csv saved to: "+output_filename_merge)
+
+def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
+    print("merge_multiple_stats is currently UNSUPPORTED!")
+
+    for path in stats_to_merge:
+
+        if (delete_old_files):
+            if os.path.exists(path):
+                os.remove(path)
+            else:
+                print("Deletion NOT successful!: " + path_to_first_df)
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -408,8 +440,9 @@ if __name__ == "__main__":
     #         random_base_demands=random_base_demands, file_timestamp=file_timestamp)
 
     datasets_to_merge = []
+    stats_to_merge = []
 
-    number_of_consecutive_sims = 31
+    number_of_consecutive_sims = 2
 
     for i in range(number_of_consecutive_sims):
         results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
@@ -419,9 +452,16 @@ if __name__ == "__main__":
                                    min_bd=min_bd, max_bd=max_bd,file_timestamp=file_timestamp)
 
         datasets_to_merge.append(results_from_sim[0])
+        stats_to_merge.append(results_from_sim[1])
 
     print()
 
-    merge_multiple_datasets(datasets_to_merge, out_filename)
+    delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
+
+    merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+
+    print()
+
+    merge_multiple_stats(stats_to_merge,out_filename,delete_old_files=delete_old_files)
 
     print("\nExiting...")
