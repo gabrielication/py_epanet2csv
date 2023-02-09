@@ -343,6 +343,8 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 def merge_multiple_datasets(datasets_to_merge, output_filename):
     print("Merging these datasets:")
 
+    output_filename_merge = output_filename+"_merged.csv"
+
     pd.options.display.float_format = '{:,.8f}'.format
 
     path_to_first_df = datasets_to_merge.pop(0)
@@ -376,9 +378,10 @@ def merge_multiple_datasets(datasets_to_merge, output_filename):
 
         first_df = pd.concat([first_df, next_df], ignore_index=True)
 
-    first_df.to_csv(output_filename, float_format='%.8f', index=False)
+    first_df.to_csv(output_filename_merge, float_format='%.8f', index=False)
 
-    print("Merge finished. Final csv saved to: "+output_filename)
+    print()
+    print("Merge finished. Final csv saved to: "+output_filename_merge)
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -386,7 +389,7 @@ if __name__ == "__main__":
     # input_file_inp = "Net3.inp"
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
-    out_filename = "1D_one_res_small_no_leaks"
+    out_filename = "1D_one_res_small_no_leaks_rand_bd"
 
     sim_duration = 24 * 3600  # hours in seconds
 
@@ -419,6 +422,6 @@ if __name__ == "__main__":
 
     print()
 
-    merge_multiple_datasets(datasets_to_merge, "1D_one_res_small_no_leaks_nodes_output_merged.csv")
+    merge_multiple_datasets(datasets_to_merge, out_filename)
 
     print("\nExiting...")
