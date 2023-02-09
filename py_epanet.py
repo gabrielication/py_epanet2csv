@@ -383,17 +383,21 @@ def merge_multiple_datasets(datasets_to_merge, output_filename):
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
 
-    input_file_inp = "Net3.inp"
+    # input_file_inp = "Net3.inp"
+    input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
     out_filename = "1D_one_res_small_no_leaks"
 
-    sim_duration = 8 * 3600  # hours in seconds
+    sim_duration = 24 * 3600  # hours in seconds
 
-    leaks_enabled = False
-    leak_area_size = 0.0000001
+    leaks_enabled = False  # switch this to True to enable leaks assignments
+    leak_area_size = 0.0000001  # area of the "hole" of the leak
 
-    random_base_demands = True
-    file_timestamp = True
+    random_base_demands = True  # switch this to True to enable random base demand assignments
+    min_bd = 0  # minimum possible random base demand
+    max_bd = 0.000005  # maximum possible random base demand
+
+    file_timestamp = True  # switch this to True to write a current timestamp to the output filename
 
     # SINGLE EXECUTION
     # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
@@ -402,12 +406,14 @@ if __name__ == "__main__":
 
     datasets_to_merge = []
 
-    number_of_consecutive_sims = 3
+    number_of_consecutive_sims = 31
 
     for i in range(number_of_consecutive_sims):
-        results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
-                leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-                random_base_demands=random_base_demands, file_timestamp=file_timestamp)
+        results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
+                                   out_filename, leaks_enabled=leaks_enabled,
+                                   leak_area_size=leak_area_size,
+                                   random_base_demands=random_base_demands,
+                                   min_bd=min_bd, max_bd=max_bd,file_timestamp=file_timestamp)
 
         datasets_to_merge.append(results_from_sim[0])
 
