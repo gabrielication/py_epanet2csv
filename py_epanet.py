@@ -405,7 +405,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
     print("Merge finished. Final csv saved to: "+output_filename_merge)
 
 def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
-    print("merge_multiple_stats is currently UNSUPPORTED!")
+    print("merge_multiple_stats is currently UNSUPPORTED! (will delete old files anyway...)")
 
     for path in stats_to_merge:
 
@@ -413,7 +413,7 @@ def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
             if os.path.exists(path):
                 os.remove(path)
             else:
-                print("Deletion NOT successful!: " + path_to_first_df)
+                print("Deletion NOT successful!: " + path)
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -442,7 +442,7 @@ if __name__ == "__main__":
     datasets_to_merge = []
     stats_to_merge = []
 
-    number_of_consecutive_sims = 2
+    number_of_consecutive_sims = 31
 
     for i in range(number_of_consecutive_sims):
         results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
@@ -462,6 +462,6 @@ if __name__ == "__main__":
 
     print()
 
-    merge_multiple_stats(stats_to_merge,out_filename,delete_old_files=delete_old_files)
+    merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=delete_old_files)
 
     print("\nExiting...")
