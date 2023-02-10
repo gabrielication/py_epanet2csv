@@ -232,7 +232,7 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
     return outName
 
 def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False,
-            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005, file_timestamp=False):
+            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False):
 
     print("Configuring simulation...")
 
@@ -243,6 +243,9 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     wn = wntr.network.WaterNetworkModel(complete_input_path)
 
     wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
+
+    wn.options.hydraulic.minimum_pressure = min_press  # 5 psi = 3.516 m
+    wn.options.hydraulic.required_pressure = req_press  # 30 psi = 21.097 m
 
     sim_duration_for_wntr = sim_duration - 3600
 
@@ -419,7 +422,7 @@ def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
 
 def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
                       leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
-                      min_bd=0, max_bd=0.000005, file_timestamp=False, delete_old_files=False, merge_csv=True):
+                      min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False, delete_old_files=False, merge_csv=True):
 
     datasets_to_merge = []
     stats_to_merge = []
@@ -429,7 +432,8 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
                                    out_filename, leaks_enabled=leaks_enabled,
                                    leak_area_size=leak_area_size,
                                    random_base_demands=random_base_demands,
-                                   min_bd=min_bd, max_bd=max_bd, file_timestamp=file_timestamp)
+                                   min_bd=min_bd, max_bd=max_bd, min_press=min_press,
+                                   req_press=req_press, file_timestamp=file_timestamp)
 
         datasets_to_merge.append(results_from_sim[0])
         stats_to_merge.append(results_from_sim[1])
@@ -450,7 +454,7 @@ if __name__ == "__main__":
     # input_file_inp = "Net3.inp"
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
-    out_filename = "4W_one_res_small_no_leaks_rand_bd"
+    out_filename = "W_one_res_small_no_leaks_rand_bd"
 
     sim_duration = 24 * 3600  # hours in seconds
 
@@ -459,7 +463,10 @@ if __name__ == "__main__":
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
-    max_bd = 0.000005  # maximum possible random base demand
+    max_bd = 0.01  # maximum possible random base demand
+
+    min_press = 3.516   # 5 psi = 3.516 m
+    req_press = 21.097  # 30 psi = 21.097 m
 
     file_timestamp = True  # switch this to True to write a current timestamp to the output filename
 
@@ -475,10 +482,16 @@ if __name__ == "__main__":
     merge_csv = True  # switch this to True to merge CSVs into one
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
-    number_of_sims = 2
+    for i in range (1,5):
+        number_of_sims = i * 7
+        temp_filename = str(i)+out_filename
 
-    run_multiple_sims(sim_folder_path,input_file_inp,sim_duration,out_filename,number_of_sims,
-                      leaks_enabled=leaks_enabled,leak_area_size=leak_area_size,random_base_demands=random_base_demands,
-                      min_bd=min_bd,max_bd=max_bd,file_timestamp=file_timestamp,delete_old_files=delete_old_files, merge_csv=merge_csv)
+        print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
+
+        run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
+                          leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+                          random_base_demands=random_base_demands,
+                          min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
+                          file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv)
 
     print("\nExiting...")
