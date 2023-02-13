@@ -305,7 +305,7 @@ def make_a_single_results_from_the_list(wn, results_list):
             self.node = node
 
     columns = wn.node_name_list
-
+    print(columns)
     node = OrderedDict({'demand': pd.DataFrame(columns=columns), 'head': pd.DataFrame(columns=columns), 'pressure': pd.DataFrame(columns=columns), 'leak_demand': pd.DataFrame(columns=columns)})
 
     for results in results_list:
@@ -454,11 +454,12 @@ if __name__ == "__main__":
     # input_file_inp = "Net3.inp"
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
-    out_filename = "W_one_res_small_no_leaks_rand_bd"
 
-    sim_duration = 24 * 3600  # hours in seconds
+    # out_filename = "M_one_res_small_no_leaks_rand_bd"
+    # leaks_enabled = False  # switch this to True to enable leaks assignments
 
-    leaks_enabled = False  # switch this to True to enable leaks assignments
+    out_filename = "M_one_res_small_leaks_rand_bd"
+    leaks_enabled = True  # switch this to True to enable leaks assignments
     leak_area_size = 0.0000001  # area of the "hole" of the leak
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
@@ -482,8 +483,10 @@ if __name__ == "__main__":
     merge_csv = True  # switch this to True to merge CSVs into one
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
-    for i in range (1,5):
-        number_of_sims = i * 7
+    sim_duration = 24 * 3600  # hours in seconds
+    # for i in range (1,5):
+    for i in range(1, 2):
+        number_of_sims = i * 7 * 4
         temp_filename = str(i)+out_filename
 
         print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
