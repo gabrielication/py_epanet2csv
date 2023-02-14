@@ -177,12 +177,9 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
     n_nodes = int(df['number_of_nodes'].iloc[0])
     duration = int(df['time_spent_on_sim'].iloc[0])
 
-    dataset_size = duration * n_nodes
-
     duration_percentage = int(0.8 * duration)
 
     train_dataset_size = duration_percentage * n_nodes
-    test_dataset_size = duration - train_dataset_size
 
     train_dataset = data_scaled.iloc[:train_dataset_size, :]
     test_dataset = data_scaled.drop(train_dataset.index)
@@ -356,7 +353,7 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
     print("PREDICT ANALYSIS:\n")
 
     validation_split = 0.2
-    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
+    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20)
     callbacks = [earlystop]
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
@@ -372,7 +369,9 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
 
     # plot_predictions(test_predictions, test_labels)
 
-    return test_predictions, test_labels
+    epochs_executed = len(history.epoch)
+
+    return test_predictions, test_labels, epochs_executed
 
 def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
     print("EVALUATION ANALYSIS:\n")
@@ -561,11 +560,11 @@ def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_d
     f.close()
 
 def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
-                             input_stat_full_dataset, cols, label, epochs, fresh_start=False, batch_size=None):
+                             input_stat_full_dataset, cols, label, epochs, batch_sizes, fresh_start=False):
     now = formatted_datetime()
 
     # output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
-    output_filename = input_full_dataset[0:3] + "test_prediction_report_" + now + ".csv"
+    output_filename = input_full_dataset[0:3] + "test_prediction_report_"+ now + ".csv"
 
     # open the file in the write mode
     f = open(output_filename, "w", newline='', encoding='utf-8')
@@ -573,15 +572,12 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ["predictions","true_test_values"]
+    header = ["nodeID","predictions","true_test_values","delta_pred_test","batch_size","epochs"]
 
     writer.writerow(header)
 
     complete_path = folder_input + input_full_dataset
     complete_path_stat = folder_input + input_stat_full_dataset
-
-    if (fresh_start):
-        clean_old_files()
 
     # new_cols = list(c) TODO: combination
 
@@ -589,11 +585,27 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
     new_cols = cols
     new_cols.append(label)
 
-    test_predictions, test_labels = run_predict_analysis(complete_path,complete_path_stat,epochs,cols, batch_size=batch_size)
+    node_ids = pd.read_csv(complete_path)
 
-    for pred,test in zip(test_predictions,test_labels):
-        output_row = [pred,test]
-        writer.writerow(output_row)
+    retrieved = False
+
+    for batch_size in batch_sizes:
+        if (fresh_start):
+            clean_old_files()
+
+        test_predictions, test_labels, epochs_executed = run_predict_analysis(complete_path, complete_path_stat, epochs, new_cols,
+                                                             batch_size=batch_size)
+
+        if(not retrieved):
+            node_ids = node_ids.tail(len(test_labels))
+            node_ids = node_ids["nodeID"].values
+            retrieved = True
+
+        for pred, test, id in zip(test_predictions, test_labels, node_ids):
+            delta = pred - test
+            delta = round(delta,8)
+            output_row = [id, pred, test, delta, batch_size, epochs_executed]
+            writer.writerow(output_row)
 
     f.close()
 
@@ -605,9 +617,9 @@ if __name__ == "__main__":
     print('Keras ', tf.keras.__version__)
     is_gpu_supported()
 
-    folder_input = "tensorflow_datasets/"
+    folder_input = "tensorflow_datasets/one_res_small/merged_2023/"
 
-    input_full_dataset = '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+    input_full_dataset = '1W_one_res_small_no_leaks_rand_bd_merged.csv'
     input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
 
     input_alt_dataset = ["1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
@@ -616,17 +628,25 @@ if __name__ == "__main__":
                          "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
                          ]
 
-    epochs = 100
-    batch_size = 83 #number of nodes
+    epochs = 500
+    # batch_size = 83 #number of nodes
 
-    cols = ["pressure_value", "base_demand"]
+    cols = ["pressure_value", "base_demand", "x_pos", "y_pos"]
     label = "demand_value"
 
     # create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
     #                        epochs, fresh_start=True)
 
-    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
-                             epochs, fresh_start=True, batch_size=batch_size)
+    tf.random.set_seed(1992)
+    # tf.random.set_seed(2023)
+
+    df = pd.read_csv(folder_input+input_stat_full_dataset)
+    n_nodes = int(df['number_of_nodes'].iloc[0])
+
+    batch_sizes = [n_nodes, int(n_nodes/2), int(n_nodes/4), int(n_nodes/8), 2 * n_nodes, 4 * n_nodes, 8 * n_nodes]
+
+    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols,
+                             label, epochs, batch_sizes, fresh_start=True)
 
     # folder_input = ""
 
