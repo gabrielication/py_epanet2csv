@@ -409,8 +409,6 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
 
 	test_predictions = predict_and_collect_results(model, test_features)
 
-	# run_classifier()
-
 	# plot_predictions(test_predictions, test_labels)
 
 	return test_predictions, test_labels
@@ -641,6 +639,69 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
 	print("\nPrediction report saved to: "+output_filename)
 	print("Quitting...")
 
+# if __name__ == "__main__":
+# 	print('Tensorflow ', tf.__version__)
+# 	print('Keras ', tf.keras.__version__)
+# 	is_gpu_supported()
+#
+# 	folder_input = "tensorflow_datasets/"
+#
+# 	folder_network = "one_res_small/no_leaks_rand_base_demand/1W/"
+# 	# input_full_dataset = folder_network + '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+# 	# input_full_dataset = folder_network + '1W_one_res_small_no_leaks_rand_bd_merged.csv'
+# 	#
+# 	folder_network = "one_res_small/no_leaks_rand_base_demand/1M/"
+# 	input_full_dataset = folder_network + '1M_one_res_small_no_leaks_rand_bd_merged.csv'
+#
+# 	input_stat_full_dataset = folder_network + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+#
+#
+#
+# 	input_alt_dataset = [folder_network + "1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
+# 						 folder_network + "1W_ALT_one_res_small_with_1_at_8_leaks_rand_base_dem_nodes_output.csv",
+# 						 folder_network + "1W_ALT_one_res_small_with_1_at_4_leaks_rand_base_dem_nodes_output.csv",
+# 						 folder_network + "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
+# 						 ]
+#
+# 	epochs = 100
+# 	batch_size = 10 #number of nodes
+#
+# 	cols = ["pressure_value", "base_demand"]
+# 	label = "demand_value"
+#
+# 	# create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
+# 	#                        epochs, fresh_start=True)
+#
+# 	create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
+# 							 epochs, fresh_start=True, batch_size=batch_size)
+#
+# 	# folder_input = ""
+#
+# 	# input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
+# 	# input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
+# 	#
+#
+# 	# input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
+# 	# input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
+# 	#
+# 	# input_alt_dataset = [
+# 	#                      "1W_Net3_with_leaks_nodes_output.csv"
+# 	#                      ]
+# 	#
+#
+# 	#
+# 	# print("FRESH START ENABLED. Cleaning ALL old models and their files...")
+# 	# clean_old_files()
+# 	#
+# 	# complete_path = folder_input + input_full_dataset
+# 	# complete_path_stat = folder_input + input_stat_full_dataset
+# 	#
+# 	# cols.append(label)
+# 	#
+# 	# run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols)
+
+
+
 if __name__ == "__main__":
 	print('Tensorflow ', tf.__version__)
 	print('Keras ', tf.keras.__version__)
@@ -648,56 +709,66 @@ if __name__ == "__main__":
 
 	folder_input = "tensorflow_datasets/"
 
-	folder_network = "one_res_small/no_leaks_rand_base_demand/1W/"
-	# input_full_dataset = folder_network + '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
-	# input_full_dataset = folder_network + '1W_one_res_small_no_leaks_rand_bd_merged.csv'
-	#
 	folder_network = "one_res_small/no_leaks_rand_base_demand/1M/"
 	input_full_dataset = folder_network + '1M_one_res_small_no_leaks_rand_bd_merged.csv'
-
 	input_stat_full_dataset = folder_network + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
 
+	complete_path = folder_input + input_full_dataset
+	complete_path_stat = folder_input + input_stat_full_dataset
 
 
-	input_alt_dataset = [folder_network + "1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
-						 folder_network + "1W_ALT_one_res_small_with_1_at_8_leaks_rand_base_dem_nodes_output.csv",
-						 folder_network + "1W_ALT_one_res_small_with_1_at_4_leaks_rand_base_dem_nodes_output.csv",
-						 folder_network + "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
-						 ]
+	folder_network_leakage = "one_res_small/1_at_2_leaks_rand_base_demand/1M/"
+	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_merged.csv'
+	input_stat_full_dataset_leakage = folder_network_leakage + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
 
-	epochs = 100
-	batch_size = 10 #number of nodes
+	complete_path_leakage = folder_input + input_full_dataset_leakage
+	complete_path_stat_leakage = folder_input + input_stat_full_dataset_leakage
 
-	cols = ["pressure_value", "base_demand"]
+	epochs = 1 #100
+	batch_size =100 # 10 #number of nodes
+
+	cols = ["pressure_value", "base_demand", "demand_value", "has_leak"]
 	label = "demand_value"
 
-	# create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
-	#                        epochs, fresh_start=True)
+	print("PREDICT ANALYSIS:\n")
 
-	create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
-							 epochs, fresh_start=True, batch_size=batch_size)
+	validation_split = 0.2
+	earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
+	callbacks = [earlystop]
 
-	# folder_input = ""
+	train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
+																										 cols,
+																										 complete_path_stat,
+																										 scaling=False,
+																										 pairplot=False)
 
-	# input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
-	# input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
-	#
 
-	# input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
-	# input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
-	#
-	# input_alt_dataset = [
-	#                      "1W_Net3_with_leaks_nodes_output.csv"
-	#                      ]
-	#
+	train_dataset_leakage, test_dataset_leakage, train_features_leakage, test_features_leakage, train_labels_leakage, test_labels_leakage = load_dataset(complete_path_leakage,
+																										 cols,
+																										 complete_path_stat_leakage,
+																										 scaling=False,
+																										 pairplot=False)
 
-	#
-	# print("FRESH START ENABLED. Cleaning ALL old models and their files...")
-	# clean_old_files()
-	#
-	# complete_path = folder_input + input_full_dataset
-	# complete_path_stat = folder_input + input_stat_full_dataset
-	#
-	# cols.append(label)
-	#
-	# run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols)
+	train_features.pop("has_leak")
+
+	model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
+										   callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
+
+
+	test_features.pop('has_leak')
+	evaluate_network_after_fit(model, test_features, test_labels)
+	test_predictions = predict_and_collect_results(model, test_features)
+
+	test_features_leakage.pop('has_leak')
+	test_predictions_leakage = predict_and_collect_results(model, test_features_leakage)
+
+
+	classifier_train_features_no_leakage = np.array([test_labels, test_predictions])
+	classifier_train_features_leakage = np.array([test_labels_leakage, test_predictions_leakage])
+	classifier_train_features = np.concatenate(classifier_train_features_no_leakage, classifier_train_features_leakage)
+
+	classifier_train_labels = np.array([test_dataset['has_leak'].values,test_dataset_leakage['has_leak']])
+
+	run_classifier(classifier_train_features, classifier_train_labels)
+
+	# plot_predictions(test_predictions, test_labels)
