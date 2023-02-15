@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import shutil
 import csv
+import sys
 from itertools import combinations
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -51,11 +52,11 @@ def clean_old_files():
 	print("All old files deleted.\n")
 
 def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat, save_model=True, visualize_model_bool=True):
+	#
 	input_filename_full_fitted_model = ""
 
-	for filename in Path(".").glob("my_model"):
+	for filename in Path(".").glob("demand_prediction_model"):
 		input_filename_full_fitted_model = str(filename)
-
 		# cheap hack. we just have one model file. break at first finding.
 		break
 
@@ -63,9 +64,9 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 		print("Full fitted model already exists. Loading " + input_filename_full_fitted_model + "...")
 		# model_fitted = load(input_filename_full_fitted_model)
 
-		model = tf.keras.models.load_model('my_model')
+		model = tf.keras.models.load_model(input_filename_full_fitted_model)
 
-		history = np.load('my_history.npy', allow_pickle='TRUE').item()
+		history = np.load('demand_prediction_model.npy', allow_pickle='TRUE').item()
 
 		return model, history
 	else:
@@ -79,9 +80,9 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 											 callbacks=callbacks, verbose=1)
 
 		if(save_model):
-			np.save('my_history.npy', history.history)
+			np.save('demand_prediction_model.npy', history.history)
 
-			output_filename_full_fitted_model = 'my_model'
+			output_filename_full_fitted_model = 'demand_prediction_model'
 			model.save(output_filename_full_fitted_model)
 
 			print("Model saved to: " + output_filename_full_fitted_model)
@@ -95,6 +96,12 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 			print("Model NOT VISUALIZED!")
 
 		return model, history
+	# model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
+	#
+	# history = perform_neural_network_fit(model, train_features, train_labels, epochs,
+	# 									 validation_split=validation_split, batch_size=batch_size,
+	# 									 callbacks=callbacks, verbose=1)
+	return model, history
 
 def formatted_datetime():
 	# current date and time
@@ -181,40 +188,61 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
 	df = pd.read_csv(complete_path_stat)
 	n_nodes = int(df['number_of_nodes'].iloc[0])
 	duration = int(df['time_spent_on_sim'].iloc[0])
-
-	dataset_size = duration * n_nodes
-
 	duration_percentage = int(0.5 * duration)
 
-	train_dataset_size = duration_percentage * n_nodes
-	test_dataset_size = duration - train_dataset_size
-
-	train_dataset = data_scaled.iloc[:train_dataset_size, :]
-	test_dataset = data_scaled.drop(train_dataset.index)
 
 	if(pairplot):
 		now = formatted_datetime()
 		output_filename = "pairplot_"+now+".png"
-
 		sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig(output_filename)
-
 		print(output_filename+" saved.")
 
-	# Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
-	# says that the features are the columns that we want our network to train and labels is the value(s) to predict
-	train_features = train_dataset.copy()
-	test_features = test_dataset.copy()
+	###########
+	########### USE NUMPY
+	###########
+	train_dataset_size = duration_percentage
 
-	# These instructions modificate also original dataframes
-	train_labels = train_features.pop('demand_value')
-	test_labels = test_features.pop('demand_value')
+	train_dataset = data_scaled.iloc[:train_dataset_size, :]
+	test_dataset = data_scaled.drop(train_dataset.index)
+
+	cols_1 = ["pressure_value", "base_demand"]
+	label_1 = ["demand_value"]
+
+	features = data_scaled[cols_1].values
+	labels = data_scaled[label_1].values
+
+	#!!!! IMPORTANT
+	features = features.reshape(-1,83,2)
+	labels = labels.reshape(-1, 83)
+
+	train_features = features[:train_dataset_size]
+	test_features = features[train_dataset_size:]
+
+	train_labels = labels[:train_dataset_size]
+	test_labels = labels[train_dataset_size:]
+
+	###########
+	########### USE DATAFRAME
+	###########
+	# train_dataset_size = duration_percentage * n_nodes
+	#
+	# train_dataset = data_scaled.iloc[:train_dataset_size, :]
+	# test_dataset = data_scaled.drop(train_dataset.index)
+	# # Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
+	# # says that the features are the columns that we want our network to train and labels is the value(s) to predict
+	# train_features = train_dataset.copy()
+	# test_features = test_dataset.copy()
+	#
+	# # These instructions modificate also original dataframes
+	# train_labels = train_features.pop('demand_value')
+	# test_labels = test_features.pop('demand_value')
 
 	return train_dataset, test_dataset, train_features, test_features, train_labels, test_labels
 
 def create_neural_network_model(train_features, complete_path_stat, normalize=False):
 	print("Building Neural Network Model...")
 
-	if(True):#(normalize):
+	if(False):#(normalize):
 		print("NORMALIZATION IS ENABLED!")
 		# We want to Normalize (scale) the data since it can be too different in ranges
 		# These lines will create a NORMALIZATION layer (TODO: cerca) adapted to our data
@@ -236,16 +264,18 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 	else:
 		print("NORMALIZATION IS DISABLED!")
 
-		feat_shape = train_features.shape[1]
+		# feat_shape = train_features.shape[1]
+		# input_layer = layers.Input(shape=(feat_shape,))
 
-		input_layer = layers.Input(shape=(feat_shape,))
+		feat_shape = 83 #train_features.shape[1]
+		input_layer = layers.Input(shape=(feat_shape,2))
 
 	# These lines will just calculate the levels for the Deep Neural Net
 	df = pd.read_csv(complete_path_stat)
 	n_junc = int(df['number_of_junctions'].iloc[0])
 
-	fst_level = n_junc * 10
-	snd_level = n_junc * 10
+	fst_level = n_junc * 2 * 83 
+	snd_level = n_junc * 2 * 83
 	trd_level = n_junc
 
 	# Let's build the model. The first layer will be the normalizer that we built before
@@ -709,23 +739,37 @@ if __name__ == "__main__":
 
 	folder_input = "tensorflow_datasets/"
 
+	### 1M ###
+
+	### 1M no leak
 	folder_network = "one_res_small/no_leaks_rand_base_demand/1M/"
 	input_full_dataset = folder_network + '1M_one_res_small_no_leaks_rand_bd_merged.csv'
 	input_stat_full_dataset = folder_network + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-
 	complete_path = folder_input + input_full_dataset
 	complete_path_stat = folder_input + input_stat_full_dataset
 
-
+	### 1M leak
 	folder_network_leakage = "one_res_small/1_at_2_leaks_rand_base_demand/1M/"
 	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_merged.csv'
 	input_stat_full_dataset_leakage = folder_network_leakage + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-
 	complete_path_leakage = folder_input + input_full_dataset_leakage
 	complete_path_stat_leakage = folder_input + input_stat_full_dataset_leakage
 
-	epochs = 1 #100
-	batch_size =100 # 10 #number of nodes
+
+	# ### 1W
+	# ### 1W no leak
+	# folder_network = "one_res_small/no_leaks_rand_base_demand/1W/"
+	# input_full_dataset = folder_network + '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+	# input_stat_full_dataset = folder_network + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+	# complete_path = folder_input + input_full_dataset
+	# complete_path_stat = folder_input + input_stat_full_dataset
+
+
+
+
+
+	epochs = 100
+	batch_size = 83 #10 #number of nodes
 
 	cols = ["pressure_value", "base_demand", "demand_value", "has_leak"]
 	label = "demand_value"
@@ -749,19 +793,41 @@ if __name__ == "__main__":
 																										 scaling=False,
 																										 pairplot=False)
 
-	train_features.pop("has_leak")
+	# train_features.pop("has_leak")
 
 	model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
-										   callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
+										   callbacks, complete_path_stat, save_model=True, visualize_model_bool=False)
 
 
-	test_features.pop('has_leak')
+	# test_features.pop('has_leak')
 	evaluate_network_after_fit(model, test_features, test_labels)
 	test_predictions = predict_and_collect_results(model, test_features)
 
-	test_features_leakage.pop('has_leak')
+	# mse = np.mean(np.abs(np.array(test_predictions) - np.array(test_labels)) ** 2, axis=0)
+	# mae = np.mean(np.abs(np.array(test_predictions) - np.array(test_labels)), axis=0)
+	# print(mse)
+	# print(mae)
+
+	# test_features_leakage.pop('has_leak')
+	evaluate_network_after_fit(model, test_features_leakage, test_labels_leakage)
 	test_predictions_leakage = predict_and_collect_results(model, test_features_leakage)
 
+	# mse = np.mean(np.abs(np.array(test_predictions_leakage) - np.array(test_labels_leakage)) ** 2, axis=0)
+	# mae = np.mean(np.abs(np.array(test_predictions_leakage) - np.array(test_labels_leakage)), axis=0)
+	# print(mse)
+	# print(mae)
+
+	# train_features_leakage.pop('has_leak')
+	evaluate_network_after_fit(model, train_features_leakage, train_labels_leakage)
+	train_predictions_leakage = predict_and_collect_results(model, train_features_leakage)
+
+	# mse = np.mean(np.abs(np.array(train_predictions_leakage) - np.array(train_labels_leakage)) ** 2, axis=0)
+	# mae = np.mean(np.abs(np.array(train_predictions_leakage) - np.array(train_labels_leakage)), axis=0)
+	# print(mse)
+	# print(mae)
+
+
+	sys.exit(1)
 
 	classifier_train_features_no_leakage = np.array([test_labels, test_predictions])
 	classifier_train_features_leakage = np.array([test_labels_leakage, test_predictions_leakage])
