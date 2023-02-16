@@ -274,7 +274,7 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 	df = pd.read_csv(complete_path_stat)
 	n_junc = int(df['number_of_junctions'].iloc[0])
 
-	fst_level = n_junc * 2 * 83 
+	fst_level = n_junc * 2 * 83
 	snd_level = n_junc * 2 * 83
 	trd_level = n_junc
 
@@ -319,6 +319,16 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
 
 	print("Fitting...")
 
+	# history = model.fit(
+	# 	train_features,
+	# 	train_labels,
+	# 	epochs=epochs,
+	# 	batch_size=batch_size,
+	# 	validation_split=validation_split,
+	# 	verbose=verbose,
+	# 	callbacks=callbacks
+	# )
+
 	history = model.fit(
 		train_features,
 		train_labels,
@@ -326,7 +336,6 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
 		batch_size=batch_size,
 		validation_split=validation_split,
 		verbose=verbose,
-		callbacks=callbacks
 	)
 
 	print("Fitting finished.")
@@ -750,7 +759,7 @@ if __name__ == "__main__":
 
 	### 1M leak
 	folder_network_leakage = "one_res_small/1_at_2_leaks_rand_base_demand/1M/"
-	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_merged.csv'
+	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_a0001_merged.csv' # '1M_one_res_small_leaks_rand_bd_merged.csv'
 	input_stat_full_dataset_leakage = folder_network_leakage + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
 	complete_path_leakage = folder_input + input_full_dataset_leakage
 	complete_path_stat_leakage = folder_input + input_stat_full_dataset_leakage
@@ -768,7 +777,7 @@ if __name__ == "__main__":
 
 
 
-	epochs = 100
+	epochs = 200
 	batch_size = 83 #10 #number of nodes
 
 	cols = ["pressure_value", "base_demand", "demand_value", "has_leak"]
