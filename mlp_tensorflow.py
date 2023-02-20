@@ -645,8 +645,15 @@ if __name__ == "__main__":
 
     batch_sizes = [n_nodes, int(n_nodes/2), int(n_nodes/4), int(n_nodes/8), 2 * n_nodes, 4 * n_nodes, 8 * n_nodes]
 
-    create_prediction_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols,
-                             label, epochs, batch_sizes, fresh_start=True)
+    for i in range(1,5):
+        index = str(i)
+        dataset_to_evaluate = index+"W_one_res_small_no_leaks_rand_bd_merged.csv"
+        stats_to_evaluate = index+"W_one_res_small_no_leaks_rand_bd_merged_simulation_stats.csv"
+
+        # print(dataset_to_evaluate, stats_to_evaluate)
+
+        create_prediction_report(folder_input, dataset_to_evaluate, input_alt_dataset, stats_to_evaluate, cols,
+                                 label, epochs, batch_sizes, fresh_start=True)
 
     # folder_input = ""
 
