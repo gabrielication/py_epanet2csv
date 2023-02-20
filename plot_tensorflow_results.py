@@ -285,7 +285,8 @@ def plot_user_demand_v2(path, save=False, show=True):
             dataToPlot = data.loc[(data['nodeID'] == node)]
 
             #hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
-            # baseDemandToPlot = dataToPlot['base_demand'].values #*  3.785412 * 60
+            baseDemandToPlot = dataToPlot['base_demand'].values #*  3.785412 * 60
+            leakDemandToPlot = dataToPlot['leak_demand_value'].values #*  3.785412 * 60
             demandToPlot = dataToPlot['demand_value'].values #*  3.785412 * 60
 
             # for c, k in zip(colors, yticks):
@@ -308,8 +309,9 @@ def plot_user_demand_v2(path, save=False, show=True):
 
             # axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
             # axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ' + str(node))
-            # axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node')
+            axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node')
             axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ')
+            axs[plotIndexRow, plotIndexColumn].plot(xs, leakDemandToPlot, label='Leak Demand value node ')
 
             # ls = LightSource(270, 45)
             # # To use a custom hillshading mode, override the built-in shading and pass
@@ -370,7 +372,7 @@ def plot_user_demand_v2(path, save=False, show=True):
         #     plot_title = plot_title + "base_demand and pressure"
         #     output_filename = output_filename + "base_demand_pressure"
         #
-        output_filename = "fig/" + output_filename + ".png"
+        output_filename = "fig2/" + output_filename + ".png"
         #
         # # plt.yticks(np.arange(0, max(y), 0.00001))
         #
@@ -707,14 +709,23 @@ if __name__ == "__main__":
     - nel secondo tipo di grafico vogliamo plottare l'errore, cambiando il plot facendo vedere una superficie: https://matplotlib.org/stable/gallery/mplot3d/custom_shaded_3d_surface.html#sphx-glr-gallery-mplot3d-custom-shaded-3d-surface-py
     - SECONDO TIPO DI GRAFICO: 9 nodi per ogni grafico, tempo sulle x, nodo sul lambda, valore delta delle predictions-valore vero su 'probability'
     """
-    path_rand_demand = "tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1W/1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv"
+
+    # path_rand_demand = "tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1W/1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv"
+
+    # path_rand_demand = "tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1M/1M_one_res_small_no_leaks_rand_bd_merged.csv"
+    # path_rand_demand = "tensorflow_datasets/one_res_small/1_at_2_leaks_rand_base_demand/1M/1M_one_res_small_leaks_rand_bd_merged.csv"
+
+    # path_rand_demand = "tensorflow_datasets/one_res_small/1_at_2_leaks_rand_base_demand/1M/1M_one_res_small_leaks_rand_bd_a0001_merged.csv"
+    # path_rand_demand = "tensorflow_datasets/one_res_small/1_at_2_leaks_rand_base_demand/1M/1M_one_res_small_leaks_rand_bd_a001_merged.csv"
+    path_rand_demand = "tensorflow_datasets/one_res_small/1_at_2_leaks_rand_base_demand/1M/1M_one_res_small_leaks_rand_bd_a0005_merged.csv"
+
     # # plot_user_demand(path_rand_demand, save=False, show=True)
-    # plot_user_demand_v2(path_rand_demand, save=False, show=True)
+    plot_user_demand_v2(path_rand_demand, save=False, show=True)
     # # plot_hist_user_demand(path_rand_demand, save=True, show=False)
     # # plot_cumulative_hist_user_demand(path_rand_demand, save=True, show=False)
 
-    path_pattern_demand = "tensorflow_datasets/one_res_small/no_leaks_pattern_demand/1M/1M_one_res_small_alt_no_leaks_nodes_output.csv"
+    # path_pattern_demand = "tensorflow_datasets/one_res_small/no_leaks_pattern_demand/1M/1M_one_res_small_alt_no_leaks_nodes_output.csv"
     # plot_user_demand(path_pattern_demand, save=False, show=True)
     # plot_user_demand_v2(path_pattern_demand, save=True, show=False)
     # # plot_hist_user_demand(path_pattern_demand, save=True, show=False)
-    plot_cumulative_hist_user_demand(path_pattern_demand, save=True, show=False)
+    # plot_cumulative_hist_user_demand(path_pattern_demand, save=True, show=False)

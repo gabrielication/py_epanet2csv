@@ -490,7 +490,7 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
     model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
                                            callbacks, complete_path_stat, save_model=True, visualize_model_bool=False)
 
-    evaluate_network_after_fit(model,test_features,test_labels)
+    evaluate_network_after_fit(model, test_features, test_labels)
     test_predictions = predict_and_collect_results(model, test_features)
 
     # plot_predictions(test_predictions, test_labels)

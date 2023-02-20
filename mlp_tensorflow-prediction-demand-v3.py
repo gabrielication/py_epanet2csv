@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import shutil
 import csv
+import sys
 from itertools import combinations
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -51,11 +52,11 @@ def clean_old_files():
 	print("All old files deleted.\n")
 
 def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat, save_model=True, visualize_model_bool=True):
+
 	input_filename_full_fitted_model = ""
 
-	for filename in Path(".").glob("my_model"):
+	for filename in Path(".").glob("demand_prediction_model"):
 		input_filename_full_fitted_model = str(filename)
-
 		# cheap hack. we just have one model file. break at first finding.
 		break
 
@@ -63,9 +64,9 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 		print("Full fitted model already exists. Loading " + input_filename_full_fitted_model + "...")
 		# model_fitted = load(input_filename_full_fitted_model)
 
-		model = tf.keras.models.load_model('my_model')
+		model = tf.keras.models.load_model(input_filename_full_fitted_model)
 
-		history = np.load('my_history.npy', allow_pickle='TRUE').item()
+		history = np.load('demand_prediction_model.npy', allow_pickle='TRUE').item()
 
 		return model, history
 	else:
@@ -79,9 +80,9 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 											 callbacks=callbacks, verbose=1)
 
 		if(save_model):
-			np.save('my_history.npy', history.history)
+			np.save('demand_prediction_model.npy', history.history)
 
-			output_filename_full_fitted_model = 'my_model'
+			output_filename_full_fitted_model = 'demand_prediction_model'
 			model.save(output_filename_full_fitted_model)
 
 			print("Model saved to: " + output_filename_full_fitted_model)
@@ -95,6 +96,12 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 			print("Model NOT VISUALIZED!")
 
 		return model, history
+	# model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
+	#
+	# history = perform_neural_network_fit(model, train_features, train_labels, epochs,
+	# 									 validation_split=validation_split, batch_size=batch_size,
+	# 									 callbacks=callbacks, verbose=1)
+	return model, history
 
 def formatted_datetime():
 	# current date and time
@@ -181,25 +188,46 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
 	df = pd.read_csv(complete_path_stat)
 	n_nodes = int(df['number_of_nodes'].iloc[0])
 	duration = int(df['time_spent_on_sim'].iloc[0])
-
-	dataset_size = duration * n_nodes
-
 	duration_percentage = int(0.5 * duration)
 
-	train_dataset_size = duration_percentage * n_nodes
-	test_dataset_size = duration - train_dataset_size
-
-	train_dataset = data_scaled.iloc[:train_dataset_size, :]
-	test_dataset = data_scaled.drop(train_dataset.index)
 
 	if(pairplot):
 		now = formatted_datetime()
 		output_filename = "pairplot_"+now+".png"
-
 		sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig(output_filename)
-
 		print(output_filename+" saved.")
 
+	# ###########
+	# ########### USE NUMPY
+	# ###########
+	# train_dataset_size = duration_percentage
+	#
+	# train_dataset = data_scaled.iloc[:train_dataset_size, :]
+	# test_dataset = data_scaled.drop(train_dataset.index)
+	#
+	# cols_1 = ["pressure_value", "base_demand"]
+	# label_1 = ["demand_value"]
+	#
+	# features = data_scaled[cols_1].values
+	# labels = data_scaled[label_1].values
+	#
+	# #!!!! IMPORTANT
+	# features = features.reshape(-1,83,2)
+	# labels = labels.reshape(-1, 83)
+	#
+	# train_features = features[:train_dataset_size]
+	# test_features = features[train_dataset_size:]
+	#
+	# train_labels = labels[:train_dataset_size]
+	# test_labels = labels[train_dataset_size:]
+
+	##########
+	########## USE DATAFRAME
+	##########
+	train_dataset_size = duration_percentage * n_nodes
+
+	train_dataset = data_scaled.iloc[:train_dataset_size, :]
+	test_dataset = data_scaled.drop(train_dataset.index)
 	# Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
 	# says that the features are the columns that we want our network to train and labels is the value(s) to predict
 	train_features = train_dataset.copy()
@@ -236,16 +264,18 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 	else:
 		print("NORMALIZATION IS DISABLED!")
 
-		feat_shape = train_features.shape[1]
+		# feat_shape = train_features.shape[1]
+		# input_layer = layers.Input(shape=(feat_shape,))
 
-		input_layer = layers.Input(shape=(feat_shape,))
+		feat_shape = 83 #train_features.shape[1]
+		input_layer = layers.Input(shape=(feat_shape,2))
 
 	# These lines will just calculate the levels for the Deep Neural Net
 	df = pd.read_csv(complete_path_stat)
 	n_junc = int(df['number_of_junctions'].iloc[0])
 
-	fst_level = n_junc * 10
-	snd_level = n_junc * 10
+	fst_level = n_junc * 2
+	snd_level = n_junc * 2
 	trd_level = n_junc
 
 	# Let's build the model. The first layer will be the normalizer that we built before
@@ -298,6 +328,15 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
 		verbose=verbose,
 		callbacks=callbacks
 	)
+
+	# history = model.fit(
+	# 	train_features,
+	# 	train_labels,
+	# 	epochs=epochs,
+	# 	batch_size=batch_size,
+	# 	validation_split=validation_split,
+	# 	verbose=verbose,
+	# )
 
 	print("Fitting finished.")
 
@@ -359,6 +398,7 @@ def predict_and_collect_results(model, test_features):
 	return test_predictions
 
 def run_classifier(train_features, train_labels):
+	###### https://machinelearningmastery.com/tensorflow-tutorial-deep-learning-with-tf-keras/
 	# split into input and output columns
 	X, y = train_features, train_labels
 	# ensure all data are floating point values
@@ -709,23 +749,32 @@ if __name__ == "__main__":
 
 	folder_input = "tensorflow_datasets/"
 
+	### 1M ###
+
+	### 1M no leak
 	folder_network = "one_res_small/no_leaks_rand_base_demand/1M/"
 	input_full_dataset = folder_network + '1M_one_res_small_no_leaks_rand_bd_merged.csv'
 	input_stat_full_dataset = folder_network + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-
 	complete_path = folder_input + input_full_dataset
 	complete_path_stat = folder_input + input_stat_full_dataset
 
-
+	### 1M leak
 	folder_network_leakage = "one_res_small/1_at_2_leaks_rand_base_demand/1M/"
-	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_merged.csv'
+	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_a0005_merged.csv' # '1M_one_res_small_leaks_rand_bd_merged.csv'
 	input_stat_full_dataset_leakage = folder_network_leakage + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-
 	complete_path_leakage = folder_input + input_full_dataset_leakage
 	complete_path_stat_leakage = folder_input + input_stat_full_dataset_leakage
 
-	epochs = 1 #100
-	batch_size =100 # 10 #number of nodes
+	# ### 1W
+	# ### 1W no leak
+	# folder_network = "one_res_small/no_leaks_rand_base_demand/1W/"
+	# input_full_dataset = folder_network + '1W_one_res_small_no_leaks_rand_base_dem_nodes_output.csv'
+	# input_stat_full_dataset = folder_network + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+	# complete_path = folder_input + input_full_dataset
+	# complete_path_stat = folder_input + input_stat_full_dataset
+
+	epochs = 100
+	batch_size = 10 #10
 
 	cols = ["pressure_value", "base_demand", "demand_value", "has_leak"]
 	label = "demand_value"
@@ -736,13 +785,14 @@ if __name__ == "__main__":
 	earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
 	callbacks = [earlystop]
 
+	# load dati senza perdita
 	train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
 																										 cols,
 																										 complete_path_stat,
 																										 scaling=False,
 																										 pairplot=False)
 
-
+	# load dati con perdita
 	train_dataset_leakage, test_dataset_leakage, train_features_leakage, test_features_leakage, train_labels_leakage, test_labels_leakage = load_dataset(complete_path_leakage,
 																										 cols,
 																										 complete_path_stat_leakage,
@@ -751,23 +801,64 @@ if __name__ == "__main__":
 
 	train_features.pop("has_leak")
 
+	# creazione modello basato su training dati senza perdita
 	model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
-										   callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
+										   callbacks, complete_path_stat, save_model=True, visualize_model_bool=False)
 
 
+	#test del modello sui dati di test senza perdita
 	test_features.pop('has_leak')
 	evaluate_network_after_fit(model, test_features, test_labels)
 	test_predictions = predict_and_collect_results(model, test_features)
 
+	# mse = np.mean(np.abs(np.array(test_predictions) - np.array(test_labels)) ** 2, axis=0)
+	# mae = np.mean(np.abs(np.array(test_predictions) - np.array(test_labels)), axis=0)
+	# print(mse)
+	# print(mae)
+
+	#test del modello sui dati di test con perdita
 	test_features_leakage.pop('has_leak')
+	evaluate_network_after_fit(model, test_features_leakage, test_labels_leakage)
 	test_predictions_leakage = predict_and_collect_results(model, test_features_leakage)
 
+	# mse = np.mean(np.abs(np.array(test_predictions_leakage) - np.array(test_labels_leakage)) ** 2, axis=0)
+	# mae = np.mean(np.abs(np.array(test_predictions_leakage) - np.array(test_labels_leakage)), axis=0)
+	# print(mse)
+	# print(mae)
 
-	classifier_train_features_no_leakage = np.array([test_labels, test_predictions])
+	#test del modello sui dati di traning con perdita
+	train_features_leakage.pop('has_leak')
+	evaluate_network_after_fit(model, train_features_leakage, train_labels_leakage)
+	train_predictions_leakage = predict_and_collect_results(model, train_features_leakage)
+
+	# mse = np.mean(np.abs(np.array(train_predictions_leakage) - np.array(train_labels_leakage)) ** 2, axis=0)
+	# mae = np.mean(np.abs(np.array(train_predictions_leakage) - np.array(train_labels_leakage)), axis=0)
+	# print(mse)
+	# print(mae)
+
+
+	sys.exit(1)
+
+	#######################################
+	#creazione features per classificazione --> demand_value vera e predetta
+	#######################################
+	#matrice di due colonne --> demand_valuie vera e demand_value predetta per il dataset senza perdita
+	classifier_train_features_no_leakage = np.array([test_labels, test_predictions]) # qui ci sono i demand_value veri e predetti
+	classifier_train_features_no_leakage = classifier_train_features_no_leakage.T
+
+	# matrice di due colonne --> demand_valuie vera e demand_value predetta per il dataset con perdita
 	classifier_train_features_leakage = np.array([test_labels_leakage, test_predictions_leakage])
-	classifier_train_features = np.concatenate(classifier_train_features_no_leakage, classifier_train_features_leakage)
+	classifier_train_features_leakage = classifier_train_features_leakage.T
 
+	# concateno le due matrici di prima una sotto l'altra --> il risultato è la matrice di features che devo usare per la classificazione
+	classifier_train_features = np.concatenate(classifier_train_features_no_leakage, classifier_train_features_leakage,  axis=0)
+
+	####################################
+	#creazione label per classificazione --> has_leak
+	####################################
 	classifier_train_labels = np.array([test_dataset['has_leak'].values,test_dataset_leakage['has_leak']])
+	classifier_train_labels = classifier_train_labels.T
+
 
 	run_classifier(classifier_train_features, classifier_train_labels)
 
