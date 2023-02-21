@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 import tensorflow as tf
-# import tensorflow_addons as tfa
+import tensorflow_addons as tfa
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -73,7 +73,7 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 		# we first fit the model on the complete dataset and save the fitted model back
 		print("No old model found. Creating and Fitting...")
 
-		model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
+		model = create_regressor_nn_model(train_features, complete_path_stat, normalize=True)
 
 		history = perform_neural_network_fit(model, train_features, train_labels, epochs,
 											 validation_split=validation_split, batch_size=batch_size,
@@ -239,10 +239,10 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
 
 	return train_dataset, test_dataset, train_features, test_features, train_labels, test_labels
 
-def create_neural_network_model(train_features, complete_path_stat, normalize=False):
+def create_regressor_nn_model(train_features, complete_path_stat, normalize=True):
 	print("Building Neural Network Model...")
 
-	if(True):#(normalize):
+	if(normalize):#(normalize):
 		print("NORMALIZATION IS ENABLED!")
 		# We want to Normalize (scale) the data since it can be too different in ranges
 		# These lines will create a NORMALIZATION layer (TODO: cerca) adapted to our data
@@ -296,8 +296,8 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 	# opt = tf.keras.optimizers.SGD(learning_rate=0.1, momentum=0.9)
 	opt = tf.keras.optimizers.Adam()
 
-	# metrics = ['mse', 'mae', tfa.metrics.r_square.RSquare()]
-	metrics = ['mse', 'mae']
+	metrics = ['mse', 'mae', tfa.metrics.r_square.RSquare()]
+	# metrics = ['mse', 'mae']
 
 	#metrics = []
 
@@ -373,7 +373,7 @@ def plot_fit_results(history):
 
 	print(output_filename+" saved.")
 
-def evaluate_network_after_fit(model, test_features, test_labels):
+def evaluate_regression_after_fit(model, test_features, test_labels):
 	print("Evaluation started...")
 
 	evl = model.evaluate(test_features, test_labels, verbose=0)
@@ -381,7 +381,7 @@ def evaluate_network_after_fit(model, test_features, test_labels):
 	loss = evl[0]
 	mse = evl[1]
 	mae = evl[2]
-	r_square = None #evl[3]
+	r_square = evl[3]
 
 	print("loss: ",loss)
 	print("mse: ",mse)
@@ -390,6 +390,25 @@ def evaluate_network_after_fit(model, test_features, test_labels):
 
 	return loss, mse, mae, r_square
 
+def evaluate_classification_after_fit(model, test_features, test_labels):
+	print("Evaluation started...")
+
+	evl = model.evaluate(test_features, test_labels, verbose=0)
+
+	metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=1)]
+
+	accuracy = evl[0]
+	precision = evl[1]
+	recall = evl[2]
+	f1_score = evl[3]
+
+	print("accuracy: ",accuracy)
+	print("precision: ",precision)
+	print("recall: ",recall)
+	print("f1_score: ",f1_score)
+
+	return accuracy, precision, recall, f1_score
+
 def predict_and_collect_results(model, test_features):
 	print("Prediction started...")
 
@@ -397,36 +416,59 @@ def predict_and_collect_results(model, test_features):
 
 	return test_predictions
 
-def run_classifier(train_features, train_labels):
-	###### https://machinelearningmastery.com/tensorflow-tutorial-deep-learning-with-tf-keras/
-	# split into input and output columns
-	X, y = train_features, train_labels
-	# ensure all data are floating point values
-	X = X.astype('float32')
-	# encode strings to integer
-	y = LabelEncoder().fit_transform(y)
-	# split into train and test datasets
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
-	print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-	# determine the number of input features
-	n_features = X_train.shape[1]
-	# define model
-	model = Sequential()
-	model.add(layers.Dense(10, activation='relu', kernel_initializer='he_normal', input_shape=(n_features,)))
-	model.add(layers.Dense(8, activation='relu', kernel_initializer='he_normal'))
-	model.add(layers.Dense(1, activation='sigmoid'))
-	# compile the model
-	model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-	# fit the model
-	model.fit(X_train, y_train, epochs=150, batch_size=32, verbose=0)
-	# evaluate the model
-	loss, acc = model.evaluate(X_test, y_test, verbose=0)
-	print('Test Accuracy: %.3f' % acc)
-	# make a prediction
-	row = [1, 0, 0.99539, -0.05889, 0.85243, 0.02306, 0.83398, -0.37708, 1, 0.03760, 0.85243, -0.17755, 0.59755, -0.44945, 0.60536, -0.38223, 0.84356, -0.38542, 0.58212, -0.32192,
-		   0.56971, -0.29674, 0.36946, -0.47357, 0.56811, -0.51171, 0.41078, -0.46168, 0.21266, -0.34090, 0.42267, -0.54487, 0.18641, -0.45300]
-	yhat = model.predict([row])
-	print('Predicted: %.3f' % yhat)
+def create_classifier_nn_model(train_features):
+	print("NORMALIZATION IS ENABLED!")
+	# We want to Normalize (scale) the data since it can be too different in ranges
+	# These lines will create a NORMALIZATION layer
+
+	normalizer = tf.keras.layers.Normalization(axis=-1)
+	normalizer.adapt(np.array(train_features))
+
+	input_layer = normalizer
+
+	# These lines will just calculate the levels for the Deep Neural Net
+	df = pd.read_csv(complete_path_stat)
+	n_junc = int(df['number_of_junctions'].iloc[0])
+
+	fst_level = n_junc * 5
+	snd_level = n_junc * 3
+	trd_level = n_junc
+
+	# Let's build the model. The first layer will be the normalizer that we built before
+	# Depth=3 and Width=fst,snd,trd
+
+	# The sigmoid function maps any input value to a range between 0 and 1, which can be interpreted
+	# as the probability of the positive class. This is appropriate for binary classification problems.
+	model = keras.Sequential([
+		input_layer,
+		# layers.Dense(fst_level, activation='relu', input_dim=train_features.shape[1]),
+		layers.Dense(fst_level, activation='relu'),
+		layers.Dense(snd_level, activation='relu'),
+		layers.Dense(trd_level, activation='relu'),
+		layers.Dense(1, activation='sigmoid')
+	])
+
+	# binary_crossentropy loss function is commonly
+	# used for binary classification problems because it is a
+	# measure of the dissimilarity between the predicted probability
+	# distribution and the true binary labels.
+
+	lossfn = 'binary_crossentropy'
+
+	# opt = tf.keras.optimizers.SGD(learning_rate=0.1, momentum=0.9)
+	opt = tf.keras.optimizers.Adam()
+
+	# These are the metrics for a binary classification problem
+	metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=1)]
+
+	model.compile(loss=lossfn,
+				  metrics=metrics,
+				  optimizer=opt)
+
+	# Can be skipped
+	model.summary()
+
+	return model
 
 
 def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
@@ -445,7 +487,7 @@ def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_
 	model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
 										   callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
 
-	evaluate_network_after_fit(model,test_features,test_labels)
+	evaluate_regression_after_fit(model, test_features, test_labels)
 
 	test_predictions = predict_and_collect_results(model, test_features)
 
@@ -494,7 +536,7 @@ def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, bat
 	except:
 		print("don't need to print fit loss.")
 
-	loss, mse, mae, r_square = evaluate_network_after_fit(model,test_features,test_labels)
+	loss, mse, mae, r_square = evaluate_regression_after_fit(model, test_features, test_labels)
 
 	print("Done.")
 
@@ -808,7 +850,7 @@ if __name__ == "__main__":
 
 	#test del modello sui dati di test senza perdita
 	test_features.pop('has_leak')
-	evaluate_network_after_fit(model, test_features, test_labels)
+	evaluate_regression_after_fit(model, test_features, test_labels)
 	test_predictions = predict_and_collect_results(model, test_features)
 
 	# mse = np.mean(np.abs(np.array(test_predictions) - np.array(test_labels)) ** 2, axis=0)
@@ -818,7 +860,7 @@ if __name__ == "__main__":
 
 	#test del modello sui dati di test con perdita
 	test_features_leakage.pop('has_leak')
-	evaluate_network_after_fit(model, test_features_leakage, test_labels_leakage)
+	evaluate_regression_after_fit(model, test_features_leakage, test_labels_leakage)
 	test_predictions_leakage = predict_and_collect_results(model, test_features_leakage)
 
 	# mse = np.mean(np.abs(np.array(test_predictions_leakage) - np.array(test_labels_leakage)) ** 2, axis=0)
@@ -828,7 +870,7 @@ if __name__ == "__main__":
 
 	#test del modello sui dati di traning con perdita
 	train_features_leakage.pop('has_leak')
-	evaluate_network_after_fit(model, train_features_leakage, train_labels_leakage)
+	evaluate_regression_after_fit(model, train_features_leakage, train_labels_leakage)
 	train_predictions_leakage = predict_and_collect_results(model, train_features_leakage)
 
 	# mse = np.mean(np.abs(np.array(train_predictions_leakage) - np.array(train_labels_leakage)) ** 2, axis=0)
@@ -837,7 +879,7 @@ if __name__ == "__main__":
 	# print(mae)
 
 
-	sys.exit(1)
+	# sys.exit(1)
 
 	#######################################
 	#creazione features per classificazione --> demand_value vera e predetta
@@ -851,15 +893,22 @@ if __name__ == "__main__":
 	classifier_train_features_leakage = classifier_train_features_leakage.T
 
 	# concateno le due matrici di prima una sotto l'altra --> il risultato è la matrice di features che devo usare per la classificazione
-	classifier_train_features = np.concatenate(classifier_train_features_no_leakage, classifier_train_features_leakage,  axis=0)
+	classifier_train_features = np.concatenate((classifier_train_features_no_leakage, classifier_train_features_leakage))
 
 	####################################
 	#creazione label per classificazione --> has_leak
 	####################################
-	classifier_train_labels = np.array([test_dataset['has_leak'].values,test_dataset_leakage['has_leak']])
-	classifier_train_labels = classifier_train_labels.T
 
+	classifier_train_labels = np.concatenate((test_dataset["has_leak"].values, test_dataset_leakage["has_leak"].values))
 
-	run_classifier(classifier_train_features, classifier_train_labels)
+	# Creazione del modello classificatore
+	# TODO: implementare il save/load del modello
+	nn_model = create_classifier_nn_model(classifier_train_features)
+
+	history = perform_neural_network_fit(nn_model, classifier_train_features, classifier_train_labels, epochs,
+							   batch_size=batch_size, validation_split=validation_split,callbacks=callbacks, verbose=1)
+
+	# TODO: what tests should we use?
+	# evaluate_classification_after_fit(model, test_features, test_labels)
 
 	# plot_predictions(test_predictions, test_labels)
