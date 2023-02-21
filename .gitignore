@@ -5,6 +5,7 @@
 *.inp
 #*.png
 *.joblib
+*.DS_Store
 
 !deprecated/sample_nodes_output_one_week.csv
 
