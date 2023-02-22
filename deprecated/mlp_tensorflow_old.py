@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import shutil
 import csv
+from itertools import combinations
+import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from pathlib import Path
@@ -292,6 +294,37 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
 
     return history
 
+def plot_fit_results(history):
+    # Plot results
+    plt.clf()
+
+    #TODO: epochs int values should stay on the x-axes
+
+    plt.plot(history.history['loss'], label='loss')
+    plt.plot(history.history['val_loss'], label='val_loss')
+
+    # Get the y limits
+    loss_min, loss_max = min(history.history['loss']), max(history.history['loss'])
+    val_loss_min, val_loss_max = min(history.history['loss']), max(history.history['loss'])
+
+    ymin = min([loss_min,val_loss_min])
+    ymax = max([loss_max, val_loss_max])
+
+    # Set the y limits making the maximum 5% greater
+    # plt.ylim(ymin, 1.05 * ymax)
+
+    plt.xlabel('Epoch')
+    plt.ylabel('Error [demand_value]')
+    plt.legend()
+    plt.grid(True)
+
+    now = formatted_datetime()
+    output_filename = "loss_plot_"+now+".png"
+
+    plt.savefig(output_filename)
+
+    print(output_filename+" saved.")
+
 def evaluate_network_after_fit(model, test_features, test_labels):
     print("Evaluation started...")
 
@@ -315,6 +348,216 @@ def predict_and_collect_results(model, test_features):
     test_predictions = model.predict(test_features).flatten()
 
     return test_predictions
+
+def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
+    print("PREDICT ANALYSIS:\n")
+
+    validation_split = 0.2
+    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20)
+    callbacks = [earlystop]
+
+    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
+                                                                                                         cols,
+                                                                                                         complete_path_stat,
+                                                                                                         scaling=False,
+                                                                                                         pairplot=False)
+
+    model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
+                                           callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
+
+    test_predictions = predict_and_collect_results(model, test_features)
+
+    # plot_predictions(test_predictions, test_labels)
+
+    epochs_executed = len(history.epoch)
+
+    return test_predictions, test_labels, epochs_executed
+
+def run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
+    print("EVALUATION ANALYSIS:\n")
+
+    validation_split = 0.2
+    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10)
+    callbacks = [earlystop]
+
+    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,cols,complete_path_stat,scaling=False, pairplot=False)
+
+    model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat)
+
+    # last_fit_loss = history
+
+    fit_loss = 0
+    fit_mse = 0
+    fit_mae = 0
+    fit_r_square = 0
+
+    fit_val_loss = 0
+    fit_val_mse = 0
+    fit_val_mae = 0
+    fit_val_r_square = 0
+
+    try:
+        fit_loss = history.history['loss'][-1]
+        fit_mse = history.history['mse'][-1]
+        fit_mae = history.history['mae'][-1]
+        fit_r_square = history.history['r_square'][-1]
+
+        fit_val_loss = history.history['val_loss'][-1]
+        fit_val_mse = history.history['val_mse'][-1]
+        fit_val_mae = history.history['val_mae'][-1]
+        fit_val_r_square = history.history['val_r_square'][-1]
+    except:
+        print("history is a dict.")
+
+    try:
+        plot_fit_results(history)
+    except:
+        print("don't need to print fit loss.")
+
+    loss, mse, mae, r_square = evaluate_network_after_fit(model,test_features,test_labels)
+
+    print("Done.")
+
+    stop = earlystop.stopped_epoch
+
+    print("STOP : ", stop)
+    print()
+
+    return loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square
+
+def write_to_analysis_report_csv(X, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae,
+                                 fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
+                                 delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+                                 delta_fit_val_mae, delta_fit_val_r_square, input_full_dataset, stop):
+
+    base_demand = head_value = pressure_value = x_pos = y_pos = leak_area_value = leak_discharge_value = current_leak_demand_value = False
+    smart_sensor_is_present = tot_network_demand = hour = nodeID = node_type = has_leak = False
+
+    if "base_demand" in X:
+        base_demand = True
+    if "head_value" in X:
+        head_value = True
+    if "pressure_value" in X:
+        pressure_value = True
+    if "x_pos" in X:
+        x_pos = True
+    if "y_pos" in X:
+        y_pos = True
+    if "leak_area_value" in X:
+        leak_area_value = True
+    if "leak_discharge_value" in X:
+        leak_discharge_value = True
+    if "current_leak_demand_value" in X:
+        current_leak_demand_value = True
+    if "smart_sensor_is_present" in X:
+        smart_sensor_is_present = True
+    if "tot_network_demand" in X:
+        tot_network_demand = True
+    if "hour" in X:
+        hour = True
+    if "nodeID" in X:
+        nodeID = True
+    if "node_type" in X:
+        node_type = True
+    if "has_leak" in X:
+        has_leak = True
+
+    #short CSV
+    out_row = [base_demand, pressure_value, loss, mse, mae, r_square, fit_loss,
+              fit_mse, fit_mae, fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square,
+              delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss, delta_fit_mse,
+              delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+              delta_fit_val_mae, delta_fit_val_r_square,
+              input_full_dataset,stop]
+
+    writer.writerow(out_row)
+
+
+def create_analysis_report(folder_input, input_full_dataset, input_list_of_alt_datasets, input_stat_full_dataset, cols, label, epochs, fresh_start=False):
+
+    now = formatted_datetime()
+
+    output_filename = input_full_dataset[0:3]+"tensorflow_report_"+now+".csv"
+
+    # open the file in the write mode
+    f = open(output_filename, "w", newline='', encoding='utf-8')
+
+    # create the csv writer
+    writer = csv.writer(f)
+
+    header = ["base_demand", "pressure_value", "loss", "mse", "mae", "r_square", "fit_loss",
+              "fit_mse", "fit_mae", "fit_r_square", "fit_val_loss", "fit_val_mse", "fit_val_mae", "fit_val_r_square",
+              "delta_loss", "delta_mse", "delta_mae", "delta_r_square", "delta_fit_loss", "delta_fit_mse",
+              "delta_fit_mae", "delta_fit_r_square", "delta_fit_val_loss", "delta_fit_val_mse",
+              "delta_fit_val_mae", "delta_fit_val_r_square",
+              "dataset","epochs"]
+
+    writer.writerow(header)
+
+    for i in range(len(cols)):
+        oc = combinations(cols, i + 1)
+        for c in oc:
+            if (fresh_start):
+                clean_old_files()
+
+            new_cols = list(c)
+            new_cols.append(label)
+
+            # if(len(new_cols) != 3):
+            #     break
+            # else:
+            #     print("GOOD LEN")
+
+            #print(new_cols)
+
+            complete_path = folder_input + input_full_dataset
+            complete_path_stat = folder_input + input_stat_full_dataset
+
+            loss, mse, mae, r_square, stop, fit_loss, fit_mse, fit_mae, fit_r_square, fit_val_loss,\
+            fit_val_mse, fit_val_mae, fit_val_r_square = run_evaluation_analysis(complete_path, complete_path_stat, epochs, new_cols)
+
+            write_to_analysis_report_csv(new_cols, writer, loss, mse, mae, r_square, fit_loss, fit_mse, fit_mae,
+                                         fit_r_square, fit_val_loss, fit_val_mse, fit_val_mae, fit_val_r_square,
+                                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, input_full_dataset, stop)
+
+            ##########
+
+            for input_alt_dataset in input_list_of_alt_datasets:
+
+                complete_path = folder_input + input_alt_dataset
+                complete_path_stat = folder_input + input_stat_full_dataset
+
+                alt_loss, alt_mse, alt_mae, alt_r_square, alt_stop, alt_fit_loss, alt_fit_mse, alt_fit_mae, alt_fit_r_square, \
+                alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae, alt_fit_val_r_square = run_evaluation_analysis(complete_path,
+                                                                                                                   complete_path_stat,
+                                                                                                                   epochs,
+                                                                                                                   new_cols)
+
+                delta_loss = alt_loss - loss
+                delta_mse = alt_mse - mse
+                delta_mae = alt_mae - mae
+                delta_r_square = alt_r_square - r_square
+
+                delta_fit_loss = alt_loss - fit_loss
+                delta_fit_mse = alt_mse - fit_mse
+                delta_fit_mae = alt_mae - fit_mae
+                delta_fit_r_square = alt_r_square - fit_r_square
+
+                delta_fit_val_loss = alt_loss - fit_val_loss
+                delta_fit_val_mse = alt_mse - fit_val_mse
+                delta_fit_val_mae = alt_mae - fit_val_mae
+                delta_fit_val_r_square = alt_r_square - fit_val_r_square
+
+                write_to_analysis_report_csv(new_cols, writer, alt_loss, alt_mse, alt_mae, alt_r_square, alt_fit_loss, alt_fit_mse,
+                                             alt_fit_mae, alt_fit_r_square, alt_fit_val_loss, alt_fit_val_mse, alt_fit_val_mae,
+                                             alt_fit_val_r_square, delta_loss, delta_mse, delta_mae, delta_r_square, delta_fit_loss,
+                                             delta_fit_mse,
+                                             delta_fit_mae, delta_fit_r_square, delta_fit_val_loss, delta_fit_val_mse,
+                                             delta_fit_val_mae, delta_fit_val_r_square, input_alt_dataset, alt_stop)
+
+            # print()
+
+    f.close()
 
 def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
                              input_stat_full_dataset, cols, label, epochs, batch_sizes, fresh_start=False):
