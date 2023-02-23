@@ -17,114 +17,6 @@ from tensorflow.keras import layers
 
 from keras_visualizer import visualizer
 
-
-def clean_old_files():
-    print("FRESH START ENABLED. Cleaning ALL old models and their files...")
-
-    for filename in Path("..").glob("*.png"):
-        try:
-            os.remove(filename)
-            print(str(filename) + " deleted")
-        except OSError:
-            print("\nError while deleting " + str(filename) + "\n")
-
-    for filename in Path("..").glob("my_model"):
-        try:
-            shutil.rmtree(filename)
-
-            print(str(filename) + " deleted")
-        except OSError:
-            print("\nError while deleting " + str(filename) + "\n")
-
-    for filename in Path("..").glob("my_history.npy"):
-        try:
-            os.remove(filename)
-            print(str(filename) + " deleted")
-        except OSError:
-            print("\nError while deleting " + str(filename) + "\n")
-
-    print("All old files deleted.\n")
-
-
-def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks,
-                          complete_path_stat, save_model=True, visualize_model_bool=True):
-    input_filename_full_fitted_model = ""
-
-    for filename in Path("..").glob("my_model"):
-        input_filename_full_fitted_model = str(filename)
-
-        # cheap hack. we just have one model file. break at first finding.
-        break
-
-    if input_filename_full_fitted_model != "":
-        print("Full fitted model already exists. Loading " + input_filename_full_fitted_model + "...")
-        # model_fitted = load(input_filename_full_fitted_model)
-
-        model = tf.keras.models.load_model('my_model')
-
-        history = np.load('my_history.npy', allow_pickle='TRUE').item()
-
-        return model, history
-    else:
-        # we first fit the model on the complete dataset and save the fitted model back
-        print("No old model found. Creating and Fitting...")
-
-        model = create_regression_nn_model(train_features, complete_path_stat, normalize=True)
-
-        history = perform_neural_network_fit(model, train_features, train_labels, epochs,
-                                             validation_split=validation_split, batch_size=batch_size,
-                                             callbacks=callbacks, verbose=1)
-
-        if (save_model):
-            np.save('my_history.npy', history.history)
-
-            output_filename_full_fitted_model = 'my_model'
-            model.save(output_filename_full_fitted_model)
-
-            print("Model saved to: " + output_filename_full_fitted_model)
-        else:
-            print("Model and History NOT SAVED!")
-
-        if (visualize_model_bool):
-            visualize_model(model)
-        else:
-            print("Model NOT VISUALIZED!")
-
-        return model, history
-
-
-def formatted_datetime():
-    # current date and time
-    now = str(datetime.now())
-    now = now.replace(" ", "_")
-    now = now.replace(".", "_")
-    now = now.replace(":", "_")
-
-    return now
-
-
-def visualize_model(model):
-    print("Generating model visualization...")
-
-    now = formatted_datetime()
-
-    output_filename = "model_simple_" + now + ".png"
-
-    tf.keras.utils.plot_model(model, to_file=output_filename, show_shapes=True)
-
-    print(output_filename + " saved.")
-
-    try:
-        output_filename = "model_graph_" + now + ".png"
-
-        # keras_visualizer will work only with normalizer disabled
-        visualizer(model, format='png', view=True, filename=output_filename)
-
-        print(output_filename + " saved.")
-    except:
-        print("PNG for keras_visualizer not saved! works only without Normalization layer.")
-
-
 def is_gpu_supported():
     gpu_list = tf.config.list_physical_devices('GPU')
 
@@ -137,65 +29,101 @@ def is_gpu_supported():
 
         return True
 
+def clean_old_models(model_path):
+    print("FRESH START ENABLED. Cleaning ALL old models and their files...")
 
-def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplot=False):
+    # for filename in Path(".").glob("*.png"):
+    #     try:
+    #         os.remove(filename)
+    #         print(str(filename) + " deleted")
+    #     except OSError:
+    #         print("\nError while deleting " + str(filename) + "\n")
+
+    for filename in Path(".").glob(model_path):
+        try:
+            shutil.rmtree(filename)
+
+            print(str(filename) + " deleted")
+        except OSError:
+            print("\nError while deleting " + str(filename) + "\n")
+
+    print("All old files deleted.\n")
+
+def count_nodes_from_dataframe(df):
+    n_nodes = df['hour'].value_counts()['0:00:00']
+    return n_nodes
+
+def count_sim_duration_from_dataframe(df):
+    duration = int(df['hour'].iloc[-1].split(":")[0])
+    return duration
+
+def load_model(model_path_filename, history_path_filename):
+
+    if os.path.exists(model_path_filename):
+        print("Model already exists!\nIf tensorflow versions from saved one differ then a crash might happen!")
+        model = tf.keras.models.load_model(model_path_filename)
+
+        history_complete_path = model_path_filename+'/'+history_path_filename+'.npy'
+
+        history = np.load(history_complete_path, allow_pickle='TRUE').item()
+
+        print("Loading model: "+model_path_filename+"/\nLoading history: "+history_complete_path)
+
+        return model, history
+    else:
+        print("Previous fitted model not found!")
+
+        return None, None
+
+def save_model(model, history, model_path_filename, history_path_filename):
+    model.save(model_path_filename)
+
+    history_complete_path = model_path_filename+'/'+history_path_filename+'.npy'
+
+    np.save(history_complete_path, history.history)
+
+    print("Model saved to: " + model_path_filename)
+    print("Training History saved to: " + history_complete_path)
+
+def formatted_datetime():
+    # current date and time
+    now = str(datetime.now())
+    now = now.replace(" ", "_")
+    now = now.replace(".", "_")
+    now = now.replace(":", "_")
+
+    return now
+
+def load_dataset(complete_path, cols, labels, slice_data=0.8):
     print("LOADING " + complete_path + "...")
 
     # We read our entire dataset
     data = pd.read_csv(complete_path)
 
+    temp_cols = cols.copy()
+    temp_cols.append(labels)
+
     # We drop these columns because they are strings, booleans and other incompatible types. We will convert them later
 
-    print("Extracting only columns: ", cols)
+    print("Extracting only columns: ", temp_cols)
 
-    data_trans = data[cols].copy()
-
-    # # Convert the types of the desired columns and add them back
-    # le = preprocessing.LabelEncoder()
-    # data_trans["hour"] = le.fit_transform(data["hour"])
-    # data_trans["nodeID"] = le.fit_transform(data["nodeID"])
-    # data_trans["node_type"] = le.fit_transform(data["node_type"])
-    # data_trans["has_leak"] = le.fit_transform(data["has_leak"])
-
+    data_trans = data[temp_cols].copy()
     data_scaled = data_trans
 
-    if (scaling):
-        scaler = StandardScaler()
-
-        print("Standard Scaling IS ACTIVE. Preprocessing...")
-        data_scaled = scaler.fit_transform(data_trans)
-        data_scaled = pd.DataFrame(data_scaled, columns=[cols])
-
-        print(data_trans.head())
-        print(data_scaled.head())
-        print("Preprocessing done.\n")
-    else:
-        print("Standard Scaling IS NOT ACTIVE.")
-
-    print("Dividing FEATURES and LABELS...")
+    print("Dividing FEATURES (",cols,") and LABELS (",labels,")...")
 
     # This was used in Tensorflow wiki but it's not the same as train test split. It will pick a SAMPLE jumping rows, not a clean SPLIT
     # train_dataset = data_scaled.sample(frac=0.8, random_state=0)
 
-    df = pd.read_csv(complete_path_stat)
-    n_nodes = int(df['number_of_nodes'].iloc[0])
-    duration = int(df['time_spent_on_sim'].iloc[0])
+    duration = count_sim_duration_from_dataframe(data)
+    n_nodes = count_nodes_from_dataframe(data)
 
-    duration_percentage = int(0.8 * duration)
+    duration_percentage = int(slice_data * duration)
 
     train_dataset_size = duration_percentage * n_nodes
 
     train_dataset = data_scaled.iloc[:train_dataset_size, :]
     test_dataset = data_scaled.drop(train_dataset.index)
-
-    if (pairplot):
-        now = formatted_datetime()
-        output_filename = "pairplot_" + now + ".png"
-
-        sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig(
-            output_filename)
-
-        print(output_filename + " saved.")
 
     # Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
     # says that the features are the columns that we want our network to train and labels is the value(s) to predict
@@ -203,13 +131,13 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
     test_features = test_dataset.copy()
 
     # These instructions modificate also original dataframes
-    train_labels = train_features.pop('demand_value')
-    test_labels = test_features.pop('demand_value')
+    train_labels = train_features.pop(labels)
+    test_labels = test_features.pop(labels)
 
-    return train_dataset, test_dataset, train_features, test_features, train_labels, test_labels
+    return train_dataset, test_dataset, train_features, test_features, train_labels, test_labels, duration, n_nodes
 
-
-def create_classifier_nn_model(train_features):
+def create_classifier_nn_model(train_features, n_nodes):
+    print("Building Classifier Neural Network Model...")
     print("NORMALIZATION IS ENABLED!")
     # We want to Normalize (scale) the data since it can be too different in ranges
     # These lines will create a NORMALIZATION layer
@@ -219,13 +147,9 @@ def create_classifier_nn_model(train_features):
 
     input_layer = normalizer
 
-    # These lines will just calculate the levels for the Deep Neural Net
-    df = pd.read_csv(complete_path_stat)
-    n_junc = int(df['number_of_junctions'].iloc[0])
-
-    fst_level = n_junc * 5
-    snd_level = n_junc * 3
-    trd_level = n_junc
+    fst_level = n_nodes * 5
+    snd_level = n_nodes * 3
+    trd_level = n_nodes
 
     # Let's build the model. The first layer will be the normalizer that we built before
     # Depth=3 and Width=fst,snd,trd
@@ -264,42 +188,27 @@ def create_classifier_nn_model(train_features):
     return model
 
 
-def create_regression_nn_model(train_features, complete_path_stat, normalize=False):
-    print("Building Neural Network Model...")
+def create_regression_nn_model(train_features, n_nodes):
+    print("Building REGRESSION Neural Network Model...")
 
-    if (normalize):
-        print("NORMALIZATION IS ENABLED!")
-        # We want to Normalize (scale) the data since it can be too different in ranges
-        # These lines will create a NORMALIZATION layer (TODO: cerca) adapted to our data
+    if (len(train_features.columns) == 1):
+        col = train_features.columns[0]
+        bdem = np.array(train_features[col])
 
-        if (len(train_features.columns) == 1):
-            col = train_features.columns[0]
-            bdem = np.array(train_features[col])
-
-            normalizer = layers.Normalization(input_shape=[1, ], axis=None)
-            normalizer.adapt(bdem)
-        else:
-            normalizer = tf.keras.layers.Normalization(axis=-1)
-            #
-            normalizer.adapt(np.array(train_features))
-            #
-            normalizer.mean.numpy()
-
-        input_layer = normalizer
+        normalizer = layers.Normalization(input_shape=[1, ], axis=None)
+        normalizer.adapt(bdem)
     else:
-        print("NORMALIZATION IS DISABLED!")
+        normalizer = tf.keras.layers.Normalization(axis=-1)
+        #
+        normalizer.adapt(np.array(train_features))
+        #
+        normalizer.mean.numpy()
 
-        feat_shape = train_features.shape[1]
+    input_layer = normalizer
 
-        input_layer = layers.Input(shape=(feat_shape,))
-
-    # These lines will just calculate the levels for the Deep Neural Net
-    df = pd.read_csv(complete_path_stat)
-    n_junc = int(df['number_of_junctions'].iloc[0])
-
-    fst_level = n_junc * 5
-    snd_level = n_junc * 3
-    trd_level = n_junc
+    fst_level = n_nodes * 5
+    snd_level = n_nodes * 3
+    trd_level = n_nodes
 
     # Let's build the model. The first layer will be the normalizer that we built before
     # Depth=3 and Width=fst,snd,trd
@@ -382,119 +291,74 @@ def predict_and_collect_results(model, test_features):
 
     return test_predictions
 
+def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels, batch_size=None,
+                                model_path_filename="", history_path_filename="", slice_data=0.8, validation_split=0.2):
 
-def create_regression_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
-                                        input_stat_full_dataset, cols, label, epochs, batch_sizes, fresh_start=False):
-    now = formatted_datetime()
+    model, history = load_model(model_path_filename, history_path_filename)
 
-    # output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
-    output_filename = input_full_dataset[0:3] + "test_prediction_report_" + now + ".csv"
+    if (model == None and history == None):
 
-    # open the file in the write mode
-    f = open(output_filename, "w", newline='', encoding='utf-8')
+        complete_path = folder_path+dataset_filename
 
-    # create the csv writer
-    writer = csv.writer(f)
+        train_dataset, test_dataset, train_features, test_features, train_labels, test_labels, duration, n_nodes = load_dataset(
+            complete_path,
+            cols,
+            labels,
+            slice_data=slice_data
+        )
 
-    header = ["nodeID", "predictions", "true_test_values", "delta_pred_test", "batch_size", "epochs"]
-
-    writer.writerow(header)
-
-    complete_path = folder_input + input_full_dataset
-    complete_path_stat = folder_input + input_stat_full_dataset
-
-    # Currently not doing any column combination
-    new_cols = cols
-    new_cols.append(label)
-
-    node_ids = pd.read_csv(complete_path)
-
-    retrieved = False
-
-    for batch_size in batch_sizes:
-        if (fresh_start):
-            clean_old_files()
-
-        test_predictions, test_labels, epochs_executed = run_predict_analysis(complete_path, complete_path_stat, epochs,
-                                                                              new_cols,
-                                                                              batch_size=batch_size)
-
-        if (not retrieved):
-            node_ids = node_ids.tail(len(test_labels))
-            node_ids = node_ids["nodeID"].values
-            retrieved = True
-
-        for pred, test, id in zip(test_predictions, test_labels, node_ids):
-            delta = pred - test
-            delta = round(delta, 8)
-            output_row = [id, pred, test, delta, batch_size, epochs_executed]
-            writer.writerow(output_row)
-
-    f.close()
-
-    print("\nPrediction report saved to: " + output_filename)
-    print("Quitting...")
+        earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20)
+        callbacks = [earlystop]
 
 
-def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
-    print("PREDICT ANALYSIS:\n")
+        model = create_regression_nn_model(train_features,n_nodes)
+        history = perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size, validation_split, callbacks, verbose=1)
 
-    validation_split = 0.2
-    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20)
-    callbacks = [earlystop]
+        save_model(model, history, model_path_filename, history_path_filename)
 
-    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
-                                                                                                         cols,
-                                                                                                         complete_path_stat,
-                                                                                                         scaling=False,
-                                                                                                         pairplot=False)
-
-    model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
-                                           callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
-
-    test_predictions = predict_and_collect_results(model, test_features)
-
-    epochs_executed = len(history.epoch)
-
-    return test_predictions, test_labels, epochs_executed
-
+    return model, history
 
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
     print('Keras ', tf.keras.__version__)
     is_gpu_supported()
 
-    folder_input = "tensorflow_datasets/one_res_small/merged_2023/"
+    folder_path = "tensorflow_datasets/one_res_small/merged_2023/"
 
-    input_full_dataset = '1W_one_res_small_no_leaks_rand_bd_merged.csv'
+    dataset_filename = '1W_one_res_small_no_leaks_rand_bd_merged.csv'
+
     input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
 
-    input_alt_dataset = ["1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
-                         "1W_ALT_one_res_small_with_1_at_8_leaks_rand_base_dem_nodes_output.csv",
-                         "1W_ALT_one_res_small_with_1_at_4_leaks_rand_base_dem_nodes_output.csv",
-                         "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
-                         ]
+    # input_alt_dataset = ["1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
+    #                      "1W_ALT_one_res_small_with_1_at_8_leaks_rand_base_dem_nodes_output.csv",
+    #                      "1W_ALT_one_res_small_with_1_at_4_leaks_rand_base_dem_nodes_output.csv",
+    #                      "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
+    #                      ]
 
-    epochs = 500
-    # batch_size = 83 #number of nodes
+    epochs = 1
+    batch_size = count_nodes_from_dataframe(pd.read_csv(folder_path+dataset_filename))
 
-    cols = ["pressure_value", "base_demand", "x_pos", "y_pos"]
-    label = "demand_value"
+    cols = ["pressure_value", "base_demand"]
+    labels = "demand_value"
+
+    slice_data = 0.8
+
+    model_path_filename = "regression_demand_model"
+    history_path_filename = "regression_history_model"
 
     # tf.random.set_seed(2023)
 
-    df = pd.read_csv(folder_input + input_stat_full_dataset)
-    n_nodes = int(df['number_of_nodes'].iloc[0])
+    clean_old_models(model_path_filename)
 
-    batch_sizes = [n_nodes, int(n_nodes / 2), int(n_nodes / 4), int(n_nodes / 8), 2 * n_nodes, 4 * n_nodes, 8 * n_nodes]
+    model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels,
+                                batch_size, model_path_filename=model_path_filename,
+                                history_path_filename=history_path_filename, slice_data=slice_data)
 
-    for i in range(1, 5):
-        index = str(i)
-        dataset_to_evaluate = index + "W_one_res_small_no_leaks_rand_bd_merged.csv"
-        stats_to_evaluate = index + "W_one_res_small_no_leaks_rand_bd_merged_simulation_stats.csv"
+    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels, duration, n_nodes = load_dataset(
+        folder_path+dataset_filename,
+        cols,
+        labels,
+        slice_data=slice_data
+    )
 
-        # print(dataset_to_evaluate, stats_to_evaluate)
-
-        create_regression_prediction_report(folder_input, dataset_to_evaluate, input_alt_dataset, stats_to_evaluate,
-                                            cols,
-                                            label, epochs, batch_sizes, fresh_start=True)
+    evaluate_regression_nn_after_fit(model,test_features,test_labels)
