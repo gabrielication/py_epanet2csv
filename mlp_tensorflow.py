@@ -292,20 +292,24 @@ def predict_and_collect_results(model, test_features):
     return test_predictions
 
 def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels, batch_size=None,
-                                model_path_filename="", history_path_filename="", slice_data=0.8, validation_split=0.2):
+                                model_path_filename="", history_path_filename="", slice_data=0.8,
+                                validation_split=0.2, save_model_bool=False, fresh_start=False):
+
+    if(fresh_start):
+        clean_old_models(model_path_filename)
+
+    complete_path = folder_path + dataset_filename
+
+    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels, duration, n_nodes = load_dataset(
+        complete_path,
+        cols,
+        labels,
+        slice_data=slice_data
+    )
 
     model, history = load_model(model_path_filename, history_path_filename)
 
     if (model == None and history == None):
-
-        complete_path = folder_path+dataset_filename
-
-        train_dataset, test_dataset, train_features, test_features, train_labels, test_labels, duration, n_nodes = load_dataset(
-            complete_path,
-            cols,
-            labels,
-            slice_data=slice_data
-        )
 
         earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20)
         callbacks = [earlystop]
@@ -314,7 +318,10 @@ def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, lab
         model = create_regression_nn_model(train_features,n_nodes)
         history = perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size, validation_split, callbacks, verbose=1)
 
-        save_model(model, history, model_path_filename, history_path_filename)
+        if(save_model_bool):
+            save_model(model, history, model_path_filename, history_path_filename)
+
+    evaluate_regression_nn_after_fit(model, test_features, test_labels)
 
     return model, history
 
@@ -352,13 +359,4 @@ if __name__ == "__main__":
 
     model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels,
                                 batch_size, model_path_filename=model_path_filename,
-                                history_path_filename=history_path_filename, slice_data=slice_data)
-
-    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels, duration, n_nodes = load_dataset(
-        folder_path+dataset_filename,
-        cols,
-        labels,
-        slice_data=slice_data
-    )
-
-    evaluate_regression_nn_after_fit(model,test_features,test_labels)
+                                history_path_filename=history_path_filename, slice_data=slice_data, fresh_start=True)
