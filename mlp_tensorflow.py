@@ -17,6 +17,7 @@ from tensorflow.keras import layers
 
 from keras_visualizer import visualizer
 
+
 def clean_old_files():
     print("FRESH START ENABLED. Cleaning ALL old models and their files...")
 
@@ -44,7 +45,9 @@ def clean_old_files():
 
     print("All old files deleted.\n")
 
-def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat, save_model=True, visualize_model_bool=True):
+
+def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks,
+                          complete_path_stat, save_model=True, visualize_model_bool=True):
     input_filename_full_fitted_model = ""
 
     for filename in Path("..").glob("my_model"):
@@ -66,13 +69,13 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
         # we first fit the model on the complete dataset and save the fitted model back
         print("No old model found. Creating and Fitting...")
 
-        model = create_neural_network_model(train_features, complete_path_stat, normalize=True)
+        model = create_regression_nn_model(train_features, complete_path_stat, normalize=True)
 
         history = perform_neural_network_fit(model, train_features, train_labels, epochs,
                                              validation_split=validation_split, batch_size=batch_size,
                                              callbacks=callbacks, verbose=1)
 
-        if(save_model):
+        if (save_model):
             np.save('my_history.npy', history.history)
 
             output_filename_full_fitted_model = 'my_model'
@@ -82,13 +85,13 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
         else:
             print("Model and History NOT SAVED!")
 
-
-        if(visualize_model_bool):
+        if (visualize_model_bool):
             visualize_model(model)
         else:
             print("Model NOT VISUALIZED!")
 
         return model, history
+
 
 def formatted_datetime():
     # current date and time
@@ -99,12 +102,13 @@ def formatted_datetime():
 
     return now
 
+
 def visualize_model(model):
     print("Generating model visualization...")
 
     now = formatted_datetime()
 
-    output_filename = "model_simple_"+now+".png"
+    output_filename = "model_simple_" + now + ".png"
 
     tf.keras.utils.plot_model(model, to_file=output_filename, show_shapes=True)
 
@@ -120,17 +124,19 @@ def visualize_model(model):
     except:
         print("PNG for keras_visualizer not saved! works only without Normalization layer.")
 
+
 def is_gpu_supported():
     gpu_list = tf.config.list_physical_devices('GPU')
 
-    if(len(gpu_list) == 0):
+    if (len(gpu_list) == 0):
         print("GPU IS NOT SUPPORTED/ACTIVE/DETECTED!")
 
         return False
     else:
-        print("GPU SUPPORTED: ",gpu_list)
+        print("GPU SUPPORTED: ", gpu_list)
 
         return True
+
 
 def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplot=False):
     print("LOADING " + complete_path + "...")
@@ -140,7 +146,7 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
 
     # We drop these columns because they are strings, booleans and other incompatible types. We will convert them later
 
-    print("Extracting only columns: ",cols)
+    print("Extracting only columns: ", cols)
 
     data_trans = data[cols].copy()
 
@@ -153,7 +159,7 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
 
     data_scaled = data_trans
 
-    if(scaling):
+    if (scaling):
         scaler = StandardScaler()
 
         print("Standard Scaling IS ACTIVE. Preprocessing...")
@@ -182,13 +188,14 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
     train_dataset = data_scaled.iloc[:train_dataset_size, :]
     test_dataset = data_scaled.drop(train_dataset.index)
 
-    if(pairplot):
+    if (pairplot):
         now = formatted_datetime()
-        output_filename = "pairplot_"+now+".png"
+        output_filename = "pairplot_" + now + ".png"
 
-        sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig(output_filename)
+        sns.pairplot(train_dataset[["pressure_value", "base_demand", "demand_value"]], diag_kind='kde').savefig(
+            output_filename)
 
-        print(output_filename+" saved.")
+        print(output_filename + " saved.")
 
     # Tensorflow guide (https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/regression.ipynb#scrollTo=2l7zFL_XWIRu)
     # says that the features are the columns that we want our network to train and labels is the value(s) to predict
@@ -201,10 +208,66 @@ def load_dataset(complete_path, cols, complete_path_stat, scaling=False, pairplo
 
     return train_dataset, test_dataset, train_features, test_features, train_labels, test_labels
 
-def create_neural_network_model(train_features, complete_path_stat, normalize=False):
+
+def create_classifier_nn_model(train_features):
+    print("NORMALIZATION IS ENABLED!")
+    # We want to Normalize (scale) the data since it can be too different in ranges
+    # These lines will create a NORMALIZATION layer
+
+    normalizer = tf.keras.layers.Normalization(axis=-1)
+    normalizer.adapt(np.array(train_features))
+
+    input_layer = normalizer
+
+    # These lines will just calculate the levels for the Deep Neural Net
+    df = pd.read_csv(complete_path_stat)
+    n_junc = int(df['number_of_junctions'].iloc[0])
+
+    fst_level = n_junc * 5
+    snd_level = n_junc * 3
+    trd_level = n_junc
+
+    # Let's build the model. The first layer will be the normalizer that we built before
+    # Depth=3 and Width=fst,snd,trd
+
+    # The sigmoid function maps any input value to a range between 0 and 1, which can be interpreted
+    # as the probability of the positive class. This is appropriate for binary classification problems.
+    model = keras.Sequential([
+        input_layer,
+        # layers.Dense(fst_level, activation='relu', input_dim=train_features.shape[1]),
+        layers.Dense(fst_level, activation='relu'),
+        layers.Dense(snd_level, activation='relu'),
+        layers.Dense(trd_level, activation='relu'),
+        layers.Dense(1, activation='sigmoid')
+    ])
+
+    # binary_crossentropy loss function is commonly
+    # used for binary classification problems because it is a
+    # measure of the dissimilarity between the predicted probability
+    # distribution and the true binary labels.
+
+    lossfn = 'binary_crossentropy'
+
+    # opt = tf.keras.optimizers.SGD(learning_rate=0.1, momentum=0.9)
+    opt = tf.keras.optimizers.Adam()
+
+    # These are the metrics for a binary classification problem
+    metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=1)]
+
+    model.compile(loss=lossfn,
+                  metrics=metrics,
+                  optimizer=opt)
+
+    # Can be skipped
+    model.summary()
+
+    return model
+
+
+def create_regression_nn_model(train_features, complete_path_stat, normalize=False):
     print("Building Neural Network Model...")
 
-    if(normalize):
+    if (normalize):
         print("NORMALIZATION IS ENABLED!")
         # We want to Normalize (scale) the data since it can be too different in ranges
         # These lines will create a NORMALIZATION layer (TODO: cerca) adapted to our data
@@ -251,14 +314,13 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
     ])
 
     lossfn = 'mean_squared_error'
-    # lossfn = 'mean_absolute_error'
 
     # opt = tf.keras.optimizers.SGD(learning_rate=0.1, momentum=0.9)
     opt = tf.keras.optimizers.Adam()
 
     metrics = ['mse', 'mae', tfa.metrics.r_square.RSquare()]
 
-    #metrics = []
+    # metrics = []
 
     # In regression we use mserr as loss funct
     # Adam is a good optimizer since it just do the calculation for SGD's parameters automatically starting from a fixed value
@@ -271,10 +333,12 @@ def create_neural_network_model(train_features, complete_path_stat, normalize=Fa
 
     return model
 
-def perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size=None, validation_split=0.0, callbacks=[None], verbose = 1):
+
+def perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size=None, validation_split=0.0,
+                               callbacks=[None], verbose=1):
     # This array saves all the values obtained through the epochs
 
-    print("epochs: ",epochs,"batch_size: ",batch_size, "validation_split: ", validation_split)
+    print("epochs: ", epochs, "batch_size: ", batch_size, "validation_split: ", validation_split)
 
     print("Fitting...")
 
@@ -292,7 +356,8 @@ def perform_neural_network_fit(model, train_features, train_labels, epochs, batc
 
     return history
 
-def evaluate_network_after_fit(model, test_features, test_labels):
+
+def evaluate_regression_nn_after_fit(model, test_features, test_labels):
     print("Evaluation started...")
 
     evl = model.evaluate(test_features, test_labels, verbose=0)
@@ -302,12 +367,13 @@ def evaluate_network_after_fit(model, test_features, test_labels):
     mae = evl[2]
     r_square = evl[3]
 
-    print("loss: ",loss)
-    print("mse: ",mse)
-    print("mae: ",mae)
-    print("r_square: ",r_square)
+    print("loss: ", loss)
+    print("mse: ", mse)
+    print("mae: ", mae)
+    print("r_square: ", r_square)
 
     return loss, mse, mae, r_square
+
 
 def predict_and_collect_results(model, test_features):
     print("Prediction started...")
@@ -316,12 +382,13 @@ def predict_and_collect_results(model, test_features):
 
     return test_predictions
 
-def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
-                             input_stat_full_dataset, cols, label, epochs, batch_sizes, fresh_start=False):
+
+def create_regression_prediction_report(folder_input, input_full_dataset, input_list_of_alt_datasets,
+                                        input_stat_full_dataset, cols, label, epochs, batch_sizes, fresh_start=False):
     now = formatted_datetime()
 
     # output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
-    output_filename = input_full_dataset[0:3] + "test_prediction_report_"+ now + ".csv"
+    output_filename = input_full_dataset[0:3] + "test_prediction_report_" + now + ".csv"
 
     # open the file in the write mode
     f = open(output_filename, "w", newline='', encoding='utf-8')
@@ -329,14 +396,12 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
     # create the csv writer
     writer = csv.writer(f)
 
-    header = ["nodeID","predictions","true_test_values","delta_pred_test","batch_size","epochs"]
+    header = ["nodeID", "predictions", "true_test_values", "delta_pred_test", "batch_size", "epochs"]
 
     writer.writerow(header)
 
     complete_path = folder_input + input_full_dataset
     complete_path_stat = folder_input + input_stat_full_dataset
-
-    # new_cols = list(c) TODO: combination
 
     # Currently not doing any column combination
     new_cols = cols
@@ -350,24 +415,49 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
         if (fresh_start):
             clean_old_files()
 
-        test_predictions, test_labels, epochs_executed = run_predict_analysis(complete_path, complete_path_stat, epochs, new_cols,
-                                                             batch_size=batch_size)
+        test_predictions, test_labels, epochs_executed = run_predict_analysis(complete_path, complete_path_stat, epochs,
+                                                                              new_cols,
+                                                                              batch_size=batch_size)
 
-        if(not retrieved):
+        if (not retrieved):
             node_ids = node_ids.tail(len(test_labels))
             node_ids = node_ids["nodeID"].values
             retrieved = True
 
         for pred, test, id in zip(test_predictions, test_labels, node_ids):
             delta = pred - test
-            delta = round(delta,8)
+            delta = round(delta, 8)
             output_row = [id, pred, test, delta, batch_size, epochs_executed]
             writer.writerow(output_row)
 
     f.close()
 
-    print("\nPrediction report saved to: "+output_filename)
+    print("\nPrediction report saved to: " + output_filename)
     print("Quitting...")
+
+
+def run_predict_analysis(complete_path, complete_path_stat, epochs, cols, batch_size=None):
+    print("PREDICT ANALYSIS:\n")
+
+    validation_split = 0.2
+    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20)
+    callbacks = [earlystop]
+
+    train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
+                                                                                                         cols,
+                                                                                                         complete_path_stat,
+                                                                                                         scaling=False,
+                                                                                                         pairplot=False)
+
+    model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
+                                           callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
+
+    test_predictions = predict_and_collect_results(model, test_features)
+
+    epochs_executed = len(history.epoch)
+
+    return test_predictions, test_labels, epochs_executed
+
 
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
@@ -391,48 +481,20 @@ if __name__ == "__main__":
     cols = ["pressure_value", "base_demand", "x_pos", "y_pos"]
     label = "demand_value"
 
-    # create_analysis_report(folder_input, input_full_dataset, input_alt_dataset, input_stat_full_dataset, cols, label,
-    #                        epochs, fresh_start=True)
-
-    tf.random.set_seed(1992)
     # tf.random.set_seed(2023)
 
-    df = pd.read_csv(folder_input+input_stat_full_dataset)
+    df = pd.read_csv(folder_input + input_stat_full_dataset)
     n_nodes = int(df['number_of_nodes'].iloc[0])
 
-    batch_sizes = [n_nodes, int(n_nodes/2), int(n_nodes/4), int(n_nodes/8), 2 * n_nodes, 4 * n_nodes, 8 * n_nodes]
+    batch_sizes = [n_nodes, int(n_nodes / 2), int(n_nodes / 4), int(n_nodes / 8), 2 * n_nodes, 4 * n_nodes, 8 * n_nodes]
 
-    for i in range(1,5):
+    for i in range(1, 5):
         index = str(i)
-        dataset_to_evaluate = index+"W_one_res_small_no_leaks_rand_bd_merged.csv"
-        stats_to_evaluate = index+"W_one_res_small_no_leaks_rand_bd_merged_simulation_stats.csv"
+        dataset_to_evaluate = index + "W_one_res_small_no_leaks_rand_bd_merged.csv"
+        stats_to_evaluate = index + "W_one_res_small_no_leaks_rand_bd_merged_simulation_stats.csv"
 
         # print(dataset_to_evaluate, stats_to_evaluate)
 
-        create_prediction_report(folder_input, dataset_to_evaluate, input_alt_dataset, stats_to_evaluate, cols,
-                                 label, epochs, batch_sizes, fresh_start=True)
-
-    # folder_input = ""
-
-    # input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
-    # input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
-    #
-
-    # input_full_dataset = '1W_Net3_no_leaks_nodes_output.csv'
-    # input_stat_full_dataset = "1W_Net3_no_leaks_nodes_simulation_stats.csv"
-    #
-    # input_alt_dataset = [
-    #                      "1W_Net3_with_leaks_nodes_output.csv"
-    #                      ]
-    #
-
-    #
-    # print("FRESH START ENABLED. Cleaning ALL old models and their files...")
-    # clean_old_files()
-    #
-    # complete_path = folder_input + input_full_dataset
-    # complete_path_stat = folder_input + input_stat_full_dataset
-    #
-    # cols.append(label)
-    #
-    # run_evaluation_analysis(complete_path, complete_path_stat, epochs, cols)
+        create_regression_prediction_report(folder_input, dataset_to_evaluate, input_alt_dataset, stats_to_evaluate,
+                                            cols,
+                                            label, epochs, batch_sizes, fresh_start=True)
