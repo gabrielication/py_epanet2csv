@@ -335,7 +335,7 @@ if __name__ == "__main__":
     #                      "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
     #                      ]
 
-    epochs = 1
+    epochs = 1000
     batch_size = count_nodes_from_dataframe(pd.read_csv(folder_path+dataset_filename))
 
     cols = ["pressure_value", "base_demand"]
@@ -343,12 +343,12 @@ if __name__ == "__main__":
 
     slice_data = 0.8
 
-    model_path_filename = "regression_demand_model"
+    model_path_filename = "tensorflow_models/regression_demand_model_1W"
     history_path_filename = "regression_history_model"
 
     # tf.random.set_seed(2023)
 
-    clean_old_models(model_path_filename)
+    # clean_old_models(model_path_filename)
 
     model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels,
                                 batch_size, model_path_filename=model_path_filename,
