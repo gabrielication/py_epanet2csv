@@ -68,6 +68,7 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 
 		history = np.load('demand_prediction_model.npy', allow_pickle='TRUE').item()
 
+
 		return model, history
 	else:
 		# we first fit the model on the complete dataset and save the fitted model back
@@ -381,7 +382,8 @@ def evaluate_regression_after_fit(model, test_features, test_labels):
 	loss = evl[0]
 	mse = evl[1]
 	mae = evl[2]
-	r_square = evl[3]
+	r_square = None
+	# r_square = evl[3]
 
 	print("loss: ",loss)
 	print("mse: ",mse)
@@ -845,7 +847,7 @@ if __name__ == "__main__":
 
 	# creazione modello basato su training dati senza perdita
 	model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
-										   callbacks, complete_path_stat, save_model=True, visualize_model_bool=False)
+										   callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
 
 
 	#test del modello sui dati di test senza perdita
@@ -909,6 +911,6 @@ if __name__ == "__main__":
 							   batch_size=batch_size, validation_split=validation_split,callbacks=callbacks, verbose=1)
 
 	# TODO: what tests should we use?
-	# evaluate_classification_after_fit(model, test_features, test_labels)
+	evaluate_classification_after_fit(model, test_features, test_labels)
 
 	# plot_predictions(test_predictions, test_labels)
