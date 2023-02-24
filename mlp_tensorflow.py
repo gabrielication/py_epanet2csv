@@ -293,7 +293,7 @@ def predict_and_collect_results(model, test_features):
 
 def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels, batch_size=None,
                                 model_path_filename="", history_path_filename="", slice_data=0.8,
-                                validation_split=0.2, save_model_bool=False, fresh_start=False):
+                                validation_split=0.2, save_model_bool=False, fresh_start=False, evaluate_model=True):
 
     if(fresh_start):
         clean_old_models(model_path_filename)
@@ -321,7 +321,8 @@ def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, lab
         if(save_model_bool):
             save_model(model, history, model_path_filename, history_path_filename)
 
-    evaluate_regression_nn_after_fit(model, test_features, test_labels)
+    if(evaluate_model):
+        evaluate_regression_nn_after_fit(model, test_features, test_labels)
 
     return model, history
 
@@ -358,5 +359,6 @@ if __name__ == "__main__":
     # clean_old_models(model_path_filename)
 
     model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels,
-                                batch_size, model_path_filename=model_path_filename,
-                                history_path_filename=history_path_filename, slice_data=slice_data, fresh_start=True)
+                                                 batch_size, model_path_filename=model_path_filename,
+                                                 history_path_filename=history_path_filename, slice_data=slice_data,
+                                                 fresh_start=True, evaluate_model=True)
