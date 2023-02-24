@@ -94,13 +94,13 @@ def formatted_datetime():
 
     return now
 
-def load_dataset(complete_path, cols, labels, slice_data=0.8):
+def load_dataset(complete_path, features, labels, slice_data=0.8):
     print("LOADING " + complete_path + "...")
 
     # We read our entire dataset
     data = pd.read_csv(complete_path)
 
-    temp_cols = cols.copy()
+    temp_cols = features.copy()
     temp_cols.append(labels)
 
     # We drop these columns because they are strings, booleans and other incompatible types. We will convert them later
@@ -110,7 +110,7 @@ def load_dataset(complete_path, cols, labels, slice_data=0.8):
     data_trans = data[temp_cols].copy()
     data_scaled = data_trans
 
-    print("Dividing FEATURES (",cols,") and LABELS (",labels,")...")
+    print("Dividing FEATURES (", features, ") and LABELS (", labels, ")...")
 
     # This was used in Tensorflow wiki but it's not the same as train test split. It will pick a SAMPLE jumping rows, not a clean SPLIT
     # train_dataset = data_scaled.sample(frac=0.8, random_state=0)
@@ -291,7 +291,7 @@ def predict_and_collect_results(model, test_features):
 
     return test_predictions
 
-def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels, batch_size=None,
+def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, features, labels, batch_size=None,
                                 model_path_filename="", history_path_filename="", slice_data=0.8,
                                 validation_split=0.2, save_model_bool=False, fresh_start=False, evaluate_model=True):
 
@@ -302,7 +302,7 @@ def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, lab
 
     train_dataset, test_dataset, train_features, test_features, train_labels, test_labels, duration, n_nodes = load_dataset(
         complete_path,
-        cols,
+        features,
         labels,
         slice_data=slice_data
     )
@@ -346,19 +346,27 @@ if __name__ == "__main__":
     epochs = 1000
     batch_size = count_nodes_from_dataframe(pd.read_csv(folder_path+dataset_filename))
 
-    cols = ["pressure_value", "base_demand"]
+    features = ["pressure_value", "base_demand"]
     labels = "demand_value"
-
-    slice_data = 0.8
 
     model_path_filename = "tensorflow_models/regression_demand_model_1W"
     history_path_filename = "regression_history_model"
 
+    # This float indicates how much of the dataset will be used for training a new model (the rest will be used as a test dataset)
+    slice_data = 0.8
+
+    # This bool will delete previous saved models with the same filenames indicated above
+    fresh_start = True
+
+    # This bool will execute an evaluation after fitting the model
+    evaluate_model = True
+
+    # This bool will determine if the (new) fitted model will be saved to the path and names indicated above
+    save_model_bool = True
+
     # tf.random.set_seed(2023)
 
-    # clean_old_models(model_path_filename)
-
-    model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, cols, labels,
+    model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, features, labels,
                                                  batch_size, model_path_filename=model_path_filename,
                                                  history_path_filename=history_path_filename, slice_data=slice_data,
-                                                 fresh_start=True, evaluate_model=True)
+                                                 fresh_start=fresh_start, evaluate_model=evaluate_model, save_model_bool=save_model_bool)
