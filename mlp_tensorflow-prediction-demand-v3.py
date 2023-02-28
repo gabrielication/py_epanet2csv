@@ -402,7 +402,8 @@ def evaluate_classification_after_fit(model, test_features, test_labels):
 	accuracy = evl[0]
 	precision = evl[1]
 	recall = evl[2]
-	f1_score = evl[3]
+	f1_score = None
+	# f1_score = evl[3]
 
 	print("accuracy: ",accuracy)
 	print("precision: ",precision)
@@ -723,6 +724,36 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
 	print("\nPrediction report saved to: "+output_filename)
 	print("Quitting...")
 
+
+def create_file_prediction_report(input_full_dataset, test_predictions, test_labels, test_has_leak, fresh_start=False):
+	now = formatted_datetime()
+
+	# output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
+	output_filename = input_full_dataset[0:10] + "test_prediction_report_" + now + ".csv"
+
+	# open the file in the write mode
+	f = open(output_filename, "w", newline='', encoding='utf-8')
+
+	# create the csv writer
+	writer = csv.writer(f)
+
+	header = ["predictions","true_test_values","error","leakage"]
+
+	writer.writerow(header)
+
+	if (fresh_start):
+		clean_old_files()
+
+	for pred,test,has_leak in zip(test_predictions,test_labels.values,test_has_leak.values):
+		output_row = [pred,test,pred-test,has_leak]
+		writer.writerow(output_row)
+
+	f.close()
+
+	print("\nPrediction report saved to: "+output_filename)
+	print("Quitting...")
+
+
 # if __name__ == "__main__":
 # 	print('Tensorflow ', tf.__version__)
 # 	print('Keras ', tf.keras.__version__)
@@ -850,7 +881,19 @@ if __name__ == "__main__":
 										   callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
 
 
+
+	#test del modello sui dati di train senza perdita
+	# train_features.pop('has_leak')
+	evaluate_regression_after_fit(model, train_features, train_labels)
+	training_predictions = predict_and_collect_results(model, train_features)
+
+	# mse = np.mean(np.abs(np.array(test_predictions) - np.array(test_labels)) ** 2, axis=0)
+	# mae = np.mean(np.abs(np.array(test_predictions) - np.array(test_labels)), axis=0)
+	# print(mse)
+	# print(mae)
+
 	#test del modello sui dati di test senza perdita
+	test_has_leak = test_features['has_leak']
 	test_features.pop('has_leak')
 	evaluate_regression_after_fit(model, test_features, test_labels)
 	test_predictions = predict_and_collect_results(model, test_features)
@@ -860,7 +903,11 @@ if __name__ == "__main__":
 	# print(mse)
 	# print(mae)
 
+	create_file_prediction_report(input_full_dataset, test_predictions, test_labels, test_has_leak, fresh_start=True)
+
+
 	#test del modello sui dati di test con perdita
+	test_has_leak_leakage = test_features_leakage['has_leak']
 	test_features_leakage.pop('has_leak')
 	evaluate_regression_after_fit(model, test_features_leakage, test_labels_leakage)
 	test_predictions_leakage = predict_and_collect_results(model, test_features_leakage)
@@ -869,6 +916,9 @@ if __name__ == "__main__":
 	# mae = np.mean(np.abs(np.array(test_predictions_leakage) - np.array(test_labels_leakage)), axis=0)
 	# print(mse)
 	# print(mae)
+
+	create_file_prediction_report(input_full_dataset_leakage, test_predictions_leakage, test_labels_leakage, test_has_leak_leakage, fresh_start=True)
+
 
 	#test del modello sui dati di traning con perdita
 	train_features_leakage.pop('has_leak')
@@ -881,7 +931,7 @@ if __name__ == "__main__":
 	# print(mae)
 
 
-	# sys.exit(1)
+	sys.exit(1)
 
 	#######################################
 	#creazione features per classificazione --> demand_value vera e predetta
@@ -910,7 +960,55 @@ if __name__ == "__main__":
 	history = perform_neural_network_fit(nn_model, classifier_train_features, classifier_train_labels, epochs,
 							   batch_size=batch_size, validation_split=validation_split,callbacks=callbacks, verbose=1)
 
+	evaluate_classification_after_fit(nn_model, classifier_train_features, classifier_train_labels)
+
+
+
+	#######################################
+	#creazione features per classificazione --> demand_value vera e predetta
+	#######################################
+	#matrice di due colonne --> demand_valuie vera e demand_value predetta per il dataset senza perdita
+	classifier_test_features_no_leakage = np.array([train_labels, training_predictions]) # qui ci sono i demand_value veri e predetti
+	classifier_test_features_no_leakage = classifier_test_features_no_leakage.T
+
+	# matrice di due colonne --> demand_valuie vera e demand_value predetta per il dataset con perdita
+	classifier_test_features_leakage = np.array([train_labels_leakage, train_predictions_leakage])
+	classifier_test_features_leakage = classifier_test_features_leakage.T
+
+	# concateno le due matrici di prima una sotto l'altra --> il risultato è la matrice di features che devo usare per la classificazione
+	classifier_test_features = np.concatenate((classifier_test_features_no_leakage, classifier_test_features_leakage))
+
+	####################################
+	#creazione label per classificazione --> has_leak
+	####################################
+
+	classifier_test_labels = np.concatenate((train_dataset["has_leak"].values, train_dataset_leakage["has_leak"].values))
+
+
 	# TODO: what tests should we use?
-	evaluate_classification_after_fit(model, test_features, test_labels)
+	evaluate_classification_after_fit(nn_model, classifier_test_features, classifier_test_labels)
+
+	test_classifier_predictions = nn_model.predict(classifier_test_features).flatten()
+
+	now = formatted_datetime()
+
+	# output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
+	output_filename = "test_classificaiton_report_" + now + ".csv"
+
+	# open the file in the write mode
+	f = open(output_filename, "w", newline='', encoding='utf-8')
+
+	# create the csv writer
+	writer = csv.writer(f)
+
+	header = ["predictions","true_test_values","error"]
+
+	writer.writerow(header)
+
+	for pred, test in zip(test_classifier_predictions, classifier_test_labels.values):
+		output_row = [pred, test, pred - test]
+		writer.writerow(output_row)
+
+	f.close()
 
 	# plot_predictions(test_predictions, test_labels)

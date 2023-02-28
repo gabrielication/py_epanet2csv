@@ -70,7 +70,13 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None):
 def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
     print("Printing Nodes CSV. Please wait...")
 
-    node_names = wn.node_name_list
+    # node_names = wn.node_name_list
+    node_names = ["8614", "8600", "8610", "9402", "8598", "8608", "8620", "8616", "4922", "J106", "8618", "8604", "8596", "9410", "8612", "8602", "8606", "5656", "8622",
+                      "8624", "8626", "8628", "8630", "8644", "8634", "8632", "8636", "8646", "8688", "8640", "8642", "8638", "8698", "8692", "8648", "8690", "8718",
+                      "8702", "8700", "8694", "8738", "8696", "8740", "8720", "8706", "8704", "8686", "8708", "8660", "8656", "8664", "8662", "8654", "8716", "8650",
+                      "8746", "8732", "8684", "8668", "8730", "8658", "8678", "8652", "8676", "8714", "8710", "8712", "8682", "8666", "8674", "8742", "8680", "8672",
+                      "8792", "8722", "8726", "8724", "8744", "8736", "8728", "8670", "8734", "7384"]
+
 
     demand_results = results.node['demand']
     head_results = results.node['head']
@@ -107,6 +113,7 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
         tot_leaks_demand = np.float64(0)
         tot_junctions_demand = np.float64(0)
         tot_network_demand = np.float64(0)
+
 
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
@@ -455,11 +462,14 @@ if __name__ == "__main__":
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
 
-    # out_filename = "M_one_res_small_no_leaks_rand_bd"
-    # leaks_enabled = False  # switch this to True to enable leaks assignments
 
-    out_filename = "M_one_res_small_leaks_rand_bd_a0002"
+    # leaks_enabled = False  # switch this to True to enable leaks assignments
+    # out_filename = "M_one_res_small_no_leaks_rand_bd_ordered"
+
+
     leaks_enabled = True  # switch this to True to enable leaks assignments
+    out_filename = "M_one_res_small_leaks_rand_bd_a0002_ordered"
+
     leak_area_size = 0.0002  #0.0000001  # area of the "hole" of the leak
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
