@@ -7,6 +7,8 @@ from collections import OrderedDict
 from datetime import datetime
 import os
 
+list_of_fixed_nodes_with_leaks = None
+
 def formatted_datetime():
     # current date and time
     now = str(datetime.now())
@@ -239,7 +241,10 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
     return outName
 
 def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False,
-            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False):
+            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
+            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False):
+
+    global list_of_fixed_nodes_with_leaks
 
     print("Configuring simulation...")
 
@@ -275,7 +280,16 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
 
+        if(fixed_leaks):
+            print("FIXED LEAKS ARE ENABLED!")
+            if(list_of_fixed_nodes_with_leaks is None):
+                list_of_fixed_nodes_with_leaks = selected_junctions.copy()
+            selected_junctions = list_of_fixed_nodes_with_leaks
+
+        print(selected_junctions)
+
         assign_leaks(wn, leak_area_size, selected_junctions)
+
     else:
         number_of_junctions_with_leaks = 0
         print("Leaks are NOT enabled")
@@ -429,10 +443,12 @@ def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
 
 def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
                       leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
-                      min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False, delete_old_files=False, merge_csv=True):
+                      min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
+                      delete_old_files=False, merge_csv=True, fixed_leaks=False):
 
     datasets_to_merge = []
     stats_to_merge = []
+
 
     for i in range(number_of_sims):
         results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
@@ -440,7 +456,8 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
                                    leak_area_size=leak_area_size,
                                    random_base_demands=random_base_demands,
                                    min_bd=min_bd, max_bd=max_bd, min_press=min_press,
-                                   req_press=req_press, file_timestamp=file_timestamp)
+                                   req_press=req_press, file_timestamp=file_timestamp,
+                                   fixed_leaks=fixed_leaks)
 
         datasets_to_merge.append(results_from_sim[0])
         stats_to_merge.append(results_from_sim[1])
@@ -494,6 +511,9 @@ if __name__ == "__main__":
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
     sim_duration = 24 * 3600  # hours in seconds
+
+    fixed_leaks = True
+
     # for i in range (1,5):
     for i in range(1, 2):
         number_of_sims = i * 7 * 4
@@ -505,6 +525,7 @@ if __name__ == "__main__":
                           leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
                           random_base_demands=random_base_demands,
                           min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
-                          file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv)
+                          file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
+                          fixed_leaks=fixed_leaks)
 
     print("\nExiting...")
