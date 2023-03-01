@@ -483,11 +483,12 @@ if __name__ == "__main__":
     # leaks_enabled = False  # switch this to True to enable leaks assignments
     # out_filename = "M_one_res_small_no_leaks_rand_bd_ordered"
 
+    leaks_enabled = False  # switch this to True to enable leaks assignments
+    fixed_leaks = True  # switch this to True to have the random picks for nodes executed only once in multiple sims
+    leak_area_size = 0.0002  # 0.0000001  # area of the "hole" of the leak
 
-    leaks_enabled = True  # switch this to True to enable leaks assignments
-    out_filename = "M_one_res_small_leaks_rand_bd_a0002_ordered"
-
-    leak_area_size = 0.0002  #0.0000001  # area of the "hole" of the leak
+    # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
+    out_filename = "M_one_res_small_no_leaks_rand_bd_filtered"
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
@@ -512,7 +513,7 @@ if __name__ == "__main__":
 
     sim_duration = 24 * 3600  # hours in seconds
 
-    fixed_leaks = True
+
 
     # for i in range (1,5):
     for i in range(1, 2):
