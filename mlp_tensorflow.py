@@ -142,6 +142,9 @@ def process_dataset(folder_path, dataset_filename, output_filename):
 
     data = pd.read_csv(folder_path+dataset_filename)
 
+    sim_duration = count_sim_duration_from_dataframe(data)
+    n_nodes = count_nodes_from_dataframe(data)
+
     filtered_data = data.groupby('hour').head(10)
     base_demands = filtered_data.groupby("hour")["base_demand"].apply(list)
     demand_values = filtered_data.groupby("hour")["demand_value"].apply(list)
@@ -151,7 +154,7 @@ def process_dataset(folder_path, dataset_filename, output_filename):
 
     df = pd.DataFrame(columns=['list_of_bd', 'list_of_dv', 'list_of_hd', 'list_of_pr', 'has_leak'])
 
-    for i in range(0, 100):
+    for i in range(0, sim_duration+1):
         timestamp = str(i) + ":00:00"
         row = [base_demands.get(timestamp), demand_values.get(timestamp), head_values.get(timestamp),
                pressure_values.get(timestamp), True in has_leaks.get(timestamp)]
@@ -159,13 +162,23 @@ def process_dataset(folder_path, dataset_filename, output_filename):
         # add the row to the DataFrame using .append()
         df = df.append(pd.Series(row, index=df.columns), ignore_index=True)
 
-    complete_out_filename = output_filename
+    # complete_out_filename = output_filename
+    #
+    # df.to_csv(complete_out_filename, index=False)
 
-    df.to_csv(complete_out_filename, index=False)
+    # print("Processed dataset saved to: "+complete_out_filename)
+    #
+    # return complete_out_filename, df
 
-    print("Processed dataset saved to: "+complete_out_filename)
+    n_rows = df.shape[0]
+    cut_dataset_at = int(n_rows/2)
 
-    return complete_out_filename
+    first_half_dataset = df.iloc[:cut_dataset_at, :]
+    snd_half_dataset = df.drop(first_half_dataset.index)
+
+    return first_half_dataset, snd_half_dataset
+
+
 
 def create_classifier_nn_model(train_features, n_nodes):
     print("Building Classifier Neural Network Model...")
@@ -357,31 +370,104 @@ def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, features,
 
     return model, history
 
+def create_or_load_nn_classifier(folder_path, dataset_filename_no_leaks, dataset_filename_with_leaks, epochs, features, labels, batch_size=None,
+                                model_path_filename="", history_path_filename="", slice_data=0.8,
+                                validation_split=0.2, save_model_bool=False, fresh_start=False, evaluate_model=True):
+
+    if(fresh_start):
+        clean_old_models(model_path_filename)
+
+    first_half_dataset_no_leaks, snd_half_dataset_no_leaks = process_dataset(folder_path,dataset_filename_no_leaks,None)
+    first_half_dataset_with_leaks, snd_half_dataset_with_leaks = process_dataset(folder_path,dataset_filename_with_leaks,None)
+
+    first_mixed_dataset = pd.concat([first_half_dataset_no_leaks,first_half_dataset_with_leaks], ignore_index=True)
+    snd_mixed_dataset = pd.concat([snd_half_dataset_no_leaks, snd_half_dataset_with_leaks], ignore_index=True)
+
+    train_features = first_mixed_dataset
+    train_labels = train_features.pop(labels)
+
+    test_features = snd_mixed_dataset
+    test_labels = test_features.pop(labels)
+
+    model, history = load_model(model_path_filename, history_path_filename)
+
+    if (model == None and history == None):
+
+        earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20)
+        callbacks = [earlystop]
+
+        # n_nodes = count_nodes_from_dataframe()
+
+        model = create_classifier_nn_model(train_features,train_features.columns.size)
+        history = perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size, validation_split, callbacks, verbose=1)
+
+        if(save_model_bool):
+            save_model(model, history, model_path_filename, history_path_filename)
+
+    if (evaluate_model):
+        evaluate_regression_nn_after_fit(model, test_features, test_labels)
+
+    return model, history
+
+
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
     print('Keras ', tf.keras.__version__)
     is_gpu_supported()
 
-    folder_path = "tensorflow_datasets/one_res_small/merged_2023/"
+    # folder_path = "tensorflow_datasets/one_res_small/merged_2023/"
+    #
+    # dataset_filename = '1W_one_res_small_no_leaks_rand_bd_merged.csv'
+    #
+    # input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
+    #
+    # # input_alt_dataset = ["1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
+    # #                      "1W_ALT_one_res_small_with_1_at_8_leaks_rand_base_dem_nodes_output.csv",
+    # #                      "1W_ALT_one_res_small_with_1_at_4_leaks_rand_base_dem_nodes_output.csv",
+    # #                      "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
+    # #                      ]
+    #
+    # epochs = 1000
+    # batch_size = count_nodes_from_dataframe(pd.read_csv(folder_path+dataset_filename))
+    #
+    # features = ["pressure_value", "base_demand"]
+    # labels = "demand_value"
+    #
+    # model_path_filename = "tensorflow_models/regression_demand_model_1W"
+    # history_path_filename = "regression_history_model"
+    #
+    # # This float indicates how much of the dataset will be used for training a new model (the rest will be used as a test dataset)
+    # slice_data = 0.8
+    #
+    # # This bool will delete previous saved models with the same filenames indicated above
+    # fresh_start = True
+    #
+    # # This bool will execute an evaluation after fitting the model
+    # evaluate_model = True
+    #
+    # # This bool will determine if the (new) fitted model will be saved to the path and names indicated above
+    # save_model_bool = True
+    #
+    # # tf.random.set_seed(2023)
+    #
+    # model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, features, labels,
+    #                                              batch_size, model_path_filename=model_path_filename,
+    #                                              history_path_filename=history_path_filename, slice_data=slice_data,
+    #                                              fresh_start=fresh_start, evaluate_model=evaluate_model, save_model_bool=save_model_bool)
 
-    dataset_filename = '1W_one_res_small_no_leaks_rand_bd_merged.csv'
+    process_folder = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
+    process_filename_with_leaks = "1M_one_res_small_fixed_leaks_rand_bd_filtered_merged.csv"
 
-    input_stat_full_dataset = "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
-
-    # input_alt_dataset = ["1W_ALT_one_res_small_with_1_leaks_rand_base_dem_nodes_output.csv",
-    #                      "1W_ALT_one_res_small_with_1_at_8_leaks_rand_base_dem_nodes_output.csv",
-    #                      "1W_ALT_one_res_small_with_1_at_4_leaks_rand_base_dem_nodes_output.csv",
-    #                      "1W_ALT_one_res_small_with_1_at_2_leaks_rand_base_dem_nodes_output.csv"
-    #                      ]
+    process_filename_no_leaks = "1M_one_res_small_no_leaks_rand_bd_filtered_merged.csv"
 
     epochs = 1000
-    batch_size = count_nodes_from_dataframe(pd.read_csv(folder_path+dataset_filename))
+    batch_size = 10
 
-    features = ["pressure_value", "base_demand"]
-    labels = "demand_value"
+    # features = ["pressure_value", "base_demand"]
+    labels = "has_leak"
 
-    model_path_filename = "tensorflow_models/regression_demand_model_1W"
-    history_path_filename = "regression_history_model"
+    model_path_filename = "tensorflow_models/classification_leak_processed_model_1M"
+    history_path_filename = "classification_history_model"
 
     # This float indicates how much of the dataset will be used for training a new model (the rest will be used as a test dataset)
     slice_data = 0.8
@@ -395,14 +481,10 @@ if __name__ == "__main__":
     # This bool will determine if the (new) fitted model will be saved to the path and names indicated above
     save_model_bool = True
 
-    # tf.random.set_seed(2023)
+    create_or_load_nn_classifier(process_folder, process_filename_no_leaks, process_filename_with_leaks, epochs,
+                                 None, labels,model_path_filename=model_path_filename, history_path_filename=history_path_filename)
 
-    process_folder = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
-    process_filename = "1M_one_res_small_fixed_leaks_rand_bd_filtered_merged.csv"
 
-    processed_dataset = process_dataset(process_folder, process_filename, "processed_dataset.csv")
 
-    # model, history = create_or_load_nn_regressor(folder_path, dataset_filename, epochs, features, labels,
-    #                                              batch_size, model_path_filename=model_path_filename,
-    #                                              history_path_filename=history_path_filename, slice_data=slice_data,
-    #                                              fresh_start=fresh_start, evaluate_model=evaluate_model, save_model_bool=save_model_bool)
+
+
