@@ -1,5 +1,7 @@
 import pandas as pd
 import csv
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 data = pd.read_csv("tensorflow_datasets/one_res_small/gabriele_marzo_2023/1M_one_res_small_fixed_leaks_rand_bd_filtered_merged.csv")
 
@@ -20,3 +22,4 @@ for i in range(0,100):
     df = df.append(pd.Series(row, index=df.columns), ignore_index=True)
 
 df.to_csv("processed_dataset.csv", index=False)
+
