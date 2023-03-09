@@ -69,7 +69,11 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None):
         else:
             junc_obj.list_of_bds = [junc_obj.base_demand]
 
-def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
+def pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
+    print("TODO")
+    return None
+
+def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
     print("Printing Nodes CSV. Please wait...")
 
     # node_names = wn.node_name_list
@@ -305,11 +309,12 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         results = execute_simulation(wn)
 
-    saved_datasets = write_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+    nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+    pipes_results_dataset = pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
 
     print("Simulation finished")
 
-    return saved_datasets
+    return nodes_results_dataset
 
 def execute_simulation(wn):
     print("\nRunning simulation...")
@@ -499,6 +504,8 @@ if __name__ == "__main__":
 
     file_timestamp = True  # switch this to True to write a current timestamp to the output filename
 
+    sim_duration = 24 * 3600  # hours in seconds
+
     # SINGLE EXECUTION
 
     # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
@@ -510,10 +517,6 @@ if __name__ == "__main__":
 
     merge_csv = True  # switch this to True to merge CSVs into one
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
-
-    sim_duration = 24 * 3600  # hours in seconds
-
-
 
     # for i in range (1,5):
     for i in range(1, 2):
