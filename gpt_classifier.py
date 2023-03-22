@@ -51,7 +51,9 @@ def convert_dataset_to_json(folder_path, filename):
     print(len(requests))
 
     with open("my_file.json", "w") as f:
-        json.dump(requests, f)
+        for req in requests:
+            json.dump(req,f)
+            f.write('\n')
 
 
 if __name__ == "__main__":
