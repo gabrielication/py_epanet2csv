@@ -9,6 +9,8 @@ import os
 
 list_of_fixed_nodes_with_leaks = None
 
+node_names_for_leaks = []
+
 def formatted_datetime():
     # current date and time
     now = str(datetime.now())
@@ -19,9 +21,23 @@ def formatted_datetime():
     return now
 
 def pick_rand_leaks(wn, number_of_junctions_with_leaks):
-    node_names = wn.junction_name_list
+    if(not fixed_leaks):
+        global node_names_for_leaks
 
-    selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
+        selected_junctions = []
+
+        for i in range(number_of_junctions_with_leaks):
+
+            if len(node_names_for_leaks) == 0:
+                print("EMPTY LIST")
+                node_names_for_leaks = wn.junction_name_list
+
+            selected_junctions.append(node_names_for_leaks.pop(random.randrange(len(node_names_for_leaks))))
+
+    else:
+        node_names = wn.junction_name_list
+
+        selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
 
     return selected_junctions
 
@@ -76,12 +92,8 @@ def pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
 def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
     print("Printing Nodes CSV. Please wait...")
 
-    # node_names = wn.node_name_list
-    node_names = ["8614", "8600", "8610", "9402", "8598", "8608", "8620", "8616", "4922", "J106", "8618", "8604", "8596", "9410", "8612", "8602", "8606", "5656", "8622",
-                      "8624", "8626", "8628", "8630", "8644", "8634", "8632", "8636", "8646", "8688", "8640", "8642", "8638", "8698", "8692", "8648", "8690", "8718",
-                      "8702", "8700", "8694", "8738", "8696", "8740", "8720", "8706", "8704", "8686", "8708", "8660", "8656", "8664", "8662", "8654", "8716", "8650",
-                      "8746", "8732", "8684", "8668", "8730", "8658", "8678", "8652", "8676", "8714", "8710", "8712", "8682", "8666", "8674", "8742", "8680", "8672",
-                      "8792", "8722", "8726", "8724", "8744", "8736", "8728", "8670", "8734", "7384"]
+    node_names = wn.node_name_list
+    # node_names = ["8614", "8600", "8610", \", "8724", "8744", "8736", "8728", "8670", "8734", "7384"]
 
 
     demand_results = results.node['demand']
@@ -280,7 +292,8 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     if(leaks_enabled):
         print("LEAKS ARE ENABLED")
 
-        number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
+        # number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
+        number_of_junctions_with_leaks = 5
 
         selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
 
@@ -488,12 +501,12 @@ if __name__ == "__main__":
     # leaks_enabled = False  # switch this to True to enable leaks assignments
     # out_filename = "M_one_res_small_no_leaks_rand_bd_ordered"
 
-    leaks_enabled = False  # switch this to True to enable leaks assignments
-    fixed_leaks = True  # switch this to True to have the random picks for nodes executed only once in multiple sims
-    leak_area_size = 0.0002  # 0.0000001  # area of the "hole" of the leak
+    leaks_enabled = True  # switch this to True to enable leaks assignments
+    fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
+    leak_area_size = 0.0016  # 0.0000001  # area of the "hole" of the leak
 
     # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
-    out_filename = "M_one_res_small_no_leaks_rand_bd_filtered"
+    out_filename = "M_one_res_small_rand_leaks_rand_bd"
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
