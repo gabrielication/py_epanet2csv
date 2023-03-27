@@ -3,11 +3,9 @@ import pandas as pd
 import os
 import shutil
 import csv
-import seaborn as sns
+# import seaborn as sns
 from datetime import datetime
 from pathlib import Path
-
-from sklearn.preprocessing import StandardScaler
 
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -15,7 +13,7 @@ import tensorflow_addons as tfa
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from keras_visualizer import visualizer
+# from keras_visualizer import visualizer
 
 def is_gpu_supported():
     gpu_list = tf.config.list_physical_devices('GPU')
@@ -31,13 +29,6 @@ def is_gpu_supported():
 
 def clean_old_models(model_path):
     print("FRESH START ENABLED. Cleaning ALL old models and their files...")
-
-    # for filename in Path(".").glob("*.png"):
-    #     try:
-    #         os.remove(filename)
-    #         print(str(filename) + " deleted")
-    #     except OSError:
-    #         print("\nError while deleting " + str(filename) + "\n")
 
     for filename in Path(".").glob(model_path):
         try:
@@ -95,6 +86,7 @@ def formatted_datetime():
     return now
 
 def load_dataset(complete_path, features, labels, slice_data=0.8):
+    print("WARNING! load_dataset() will be deprecated. We will switch to sklearn...")
     print("LOADING " + complete_path + "...")
 
     # We read our entire dataset
@@ -178,18 +170,27 @@ def process_dataset(folder_path, dataset_filename, output_filename):
 
     return first_half_dataset, snd_half_dataset
 
-
-
-def create_classifier_nn_model(train_features, n_nodes):
+def create_classifier_nn_model(train_features, n_nodes, dropout=False):
     print("Building Classifier Neural Network Model...")
     print("NORMALIZATION IS ENABLED!")
+
     # We want to Normalize (scale) the data since it can be too different in ranges
     # These lines will create a NORMALIZATION layer
-
-    normalizer = tf.keras.layers.Normalization(axis=-1)
+    normalizer = tf.keras.layers.Normalization()
     normalizer.adapt(np.array(train_features))
 
     input_layer = normalizer
+
+    # The reason for starting with a larger number of nodes in the first layer
+    # is that the input features have n dimensions, which means that the first
+    # layer needs to be able to extract meaningful representations from this high-dimensional
+    # input space. By using a larger number of nodes in the first layer, we give the model
+    # more capacity to learn complex representations of the input data.
+    #
+    # On the other hand, we reduce the number of nodes in the second layer to prevent
+    # overfitting and make the model less complex. The idea is that the first layer will
+    # learn a rich set of features that can be compressed into a smaller representation
+    # in the second layer.
 
     fst_level = n_nodes * 5
     snd_level = n_nodes * 3
@@ -200,14 +201,34 @@ def create_classifier_nn_model(train_features, n_nodes):
 
     # The sigmoid function maps any input value to a range between 0 and 1, which can be interpreted
     # as the probability of the positive class. This is appropriate for binary classification problems.
-    model = keras.Sequential([
-        input_layer,
-        # layers.Dense(fst_level, activation='relu', input_dim=train_features.shape[1]),
-        layers.Dense(fst_level, activation='relu'),
-        layers.Dense(snd_level, activation='relu'),
-        layers.Dense(trd_level, activation='relu'),
-        layers.Dense(1, activation='sigmoid')
-    ])
+
+    if(dropout):
+        # The dropout layer is added to prevent overfitting by randomly dropping out some
+        # of the neurons during training. This helps to prevent the model from relying too
+        # heavily on specific features and encourages it to learn more generalizable features.
+        # A dropout rate of 0.2 is commonly used as it strikes a balance between regularizing
+        # the model and not losing too much information.
+
+        model = keras.Sequential([
+            input_layer,
+            # layers.Dense(fst_level, activation='relu', input_dim=train_features.shape[1]),
+            layers.Dense(fst_level, activation='relu'),
+            layers.Dropout(0.2),
+            layers.Dense(snd_level, activation='relu'),
+            layers.Dropout(0.2),
+            layers.Dense(trd_level, activation='relu'),
+            layers.Dropout(0.2),
+            layers.Dense(1, activation='sigmoid')
+        ])
+    else:
+        model = keras.Sequential([
+            input_layer,
+            # layers.Dense(fst_level, activation='relu', input_dim=train_features.shape[1]),
+            layers.Dense(fst_level, activation='relu'),
+            layers.Dense(snd_level, activation='relu'),
+            layers.Dense(trd_level, activation='relu'),
+            layers.Dense(1, activation='sigmoid')
+        ])
 
     # binary_crossentropy loss function is commonly
     # used for binary classification problems because it is a
@@ -327,6 +348,25 @@ def evaluate_regression_nn_after_fit(model, test_features, test_labels):
 
     return loss, mse, mae, r_square
 
+def evaluate_classification_nn_after_fit(model, test_features, test_labels):
+    print("Evaluation started...")
+
+    evl = model.evaluate(test_features, test_labels, verbose=0)
+
+    loss = evl[0]
+    accuracy = evl[1]
+    precision = evl[2]
+    recall = evl[3]
+    f1_score = evl[4]
+
+    print("loss: ", loss)
+    print("accuracy: ", accuracy)
+    print("precision: ", precision)
+    print("recall: ", recall)
+    print("f1_score: ", f1_score)
+
+    return loss, accuracy, precision, recall, f1_score
+
 
 def predict_and_collect_results(model, test_features):
     print("Prediction started...")
@@ -370,24 +410,54 @@ def create_or_load_nn_regressor(folder_path, dataset_filename, epochs, features,
 
     return model, history
 
-def create_or_load_nn_classifier(folder_path, dataset_filename_no_leaks, dataset_filename_with_leaks, epochs, features, labels, batch_size=None,
+def create_or_load_nn_classifier(folder_path, filename, epochs, features, labels, batch_size=None,
                                 model_path_filename="", history_path_filename="", slice_data=0.8,
-                                validation_split=0.2, save_model_bool=False, fresh_start=False, evaluate_model=True):
+                                validation_split=0.2, save_model_bool=False, fresh_start=False,
+                                dataset_filename_no_leaks="", dataset_filename_with_leaks="",
+                                evaluate_model=True, processed_dataset=False, dropout=False):
+
+    print("\nCreate or load NN Classifier launched!\n")
+    print("Parameters:")
+    print("epochs:",epochs)
+    print("features:",features)
+    print("labels:",labels)
+    print("batch_size:",batch_size)
+    print("model_path_filename:",model_path_filename)
+    print("history_path_filename:",history_path_filename)
+    print("slice_data:",slice_data)
+    print("validation_split:",validation_split)
+    print("save_model_bool:",save_model_bool)
+    print("fresh_start:",fresh_start)
+    print("evaluate_model:",evaluate_model)
+    print("dropout:",dropout)
+    print()
 
     if(fresh_start):
         clean_old_models(model_path_filename)
 
-    first_half_dataset_no_leaks, snd_half_dataset_no_leaks = process_dataset(folder_path,dataset_filename_no_leaks,None)
-    first_half_dataset_with_leaks, snd_half_dataset_with_leaks = process_dataset(folder_path,dataset_filename_with_leaks,None)
+    if(processed_dataset):
+        first_half_dataset_no_leaks, snd_half_dataset_no_leaks = process_dataset(folder_path,dataset_filename_no_leaks,None)
+        first_half_dataset_with_leaks, snd_half_dataset_with_leaks = process_dataset(folder_path,dataset_filename_with_leaks,None)
 
-    first_mixed_dataset = pd.concat([first_half_dataset_no_leaks,first_half_dataset_with_leaks], ignore_index=True)
-    snd_mixed_dataset = pd.concat([snd_half_dataset_no_leaks, snd_half_dataset_with_leaks], ignore_index=True)
+        first_mixed_dataset = pd.concat([first_half_dataset_no_leaks,first_half_dataset_with_leaks], ignore_index=True)
+        snd_mixed_dataset = pd.concat([snd_half_dataset_no_leaks, snd_half_dataset_with_leaks], ignore_index=True)
 
-    train_features = first_mixed_dataset
-    train_labels = train_features.pop(labels)
+        train_features = first_mixed_dataset
+        train_labels = train_features.pop(labels)
 
-    test_features = snd_mixed_dataset
-    test_labels = test_features.pop(labels)
+        test_features = snd_mixed_dataset
+        test_labels = test_features.pop(labels)
+    else:
+        # Split the dataset into training and testing sets
+        from sklearn.model_selection import train_test_split
+        # We read our entire dataset
+        complete_path = folder_path + filename
+        data = pd.read_csv(complete_path)
+
+        X = data[features]
+        y = data[labels]
+
+        train_features, test_features, train_labels, test_labels = train_test_split(X, y, test_size=0.2, shuffle=False)
 
     model, history = load_model(model_path_filename, history_path_filename)
 
@@ -398,14 +468,14 @@ def create_or_load_nn_classifier(folder_path, dataset_filename_no_leaks, dataset
 
         # n_nodes = count_nodes_from_dataframe()
 
-        model = create_classifier_nn_model(train_features,train_features.columns.size)
+        model = create_classifier_nn_model(train_features,train_features.columns.size, dropout=dropout)
         history = perform_neural_network_fit(model, train_features, train_labels, epochs, batch_size, validation_split, callbacks, verbose=1)
 
         if(save_model_bool):
             save_model(model, history, model_path_filename, history_path_filename)
 
     if (evaluate_model):
-        evaluate_regression_nn_after_fit(model, test_features, test_labels)
+        evaluate_classification_nn_after_fit(model, test_features, test_labels)
 
     return model, history
 
@@ -455,18 +525,19 @@ if __name__ == "__main__":
     #                                              history_path_filename=history_path_filename, slice_data=slice_data,
     #                                              fresh_start=fresh_start, evaluate_model=evaluate_model, save_model_bool=save_model_bool)
 
-    process_folder = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
-    process_filename_with_leaks = "1M_one_res_small_fixed_leaks_rand_bd_filtered_merged.csv"
-
-    process_filename_no_leaks = "1M_one_res_small_no_leaks_rand_bd_filtered_merged.csv"
+    # process_folder = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
+    # process_filename_with_leaks = "1M_one_res_small_fixed_leaks_rand_bd_filtered_merged.csv"
+    #
+    # process_filename_no_leaks = "1M_one_res_small_no_leaks_rand_bd_filtered_merged.csv"
 
     epochs = 1000
-    batch_size = 10
+    batch_size = 32
 
     # features = ["pressure_value", "base_demand"]
-    labels = "has_leak"
+    # labels = "has_leak"
 
-    model_path_filename = "tensorflow_models/classification_leak_processed_model_1M"
+    # model_path_filename = "tensorflow_models/classification_leak_processed_model_1M"
+    model_path_filename = "tensorflow_models/regression_demand_model_2M"
     history_path_filename = "classification_history_model"
 
     # This float indicates how much of the dataset will be used for training a new model (the rest will be used as a test dataset)
@@ -481,10 +552,17 @@ if __name__ == "__main__":
     # This bool will determine if the (new) fitted model will be saved to the path and names indicated above
     save_model_bool = True
 
-    create_or_load_nn_classifier(process_folder, process_filename_no_leaks, process_filename_with_leaks, epochs,
-                                 None, labels,model_path_filename=model_path_filename, history_path_filename=history_path_filename)
+    folder_path = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
+    filename = "2M_one_res_small_rand_leaks_rand_no_leaks_rand_bd.csv"
 
+    features = ['base_demand', 'demand_value', 'head_value', 'pressure_value', 'x_pos', 'y_pos']
+    labels = "has_leak"
 
+    # This bool will add Dropouts layers to the NN
+    dropout = True
 
-
-
+    create_or_load_nn_classifier(folder_path, filename, epochs, features, labels,
+                                 batch_size=batch_size, model_path_filename=model_path_filename,
+                                 history_path_filename=history_path_filename, slice_data=slice_data,
+                                 save_model_bool=save_model_bool, fresh_start=fresh_start,
+                                 evaluate_model=evaluate_model, dropout=dropout)
