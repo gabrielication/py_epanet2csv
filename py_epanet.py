@@ -320,6 +320,22 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     else:
         print("Random Base Demands are NOT enabled")
 
+        # This list has 24 elements, representing the multiplier for each
+        # hour of the day. In this example, the multiplier is set to 0.5
+        # for the first 5 hours of the day (representing low demand during
+        # early morning), 0.8 for the next 2 hours (representing moderate
+        # demand during mid-morning), 1.5 for the next 3 hours (representing
+        # high demand during peak hours), 1.3 for the next 5 hours (representing
+        # moderate demand during the afternoon), 1.0 for the next hour
+        # (representing low demand during early evening), 0.8 for the next
+        # 3 hours (representing moderate demand during late evening), and 0.5
+        # for the last 2 hours (representing low demand during night time).
+
+        time_of_day_multiplier = [0.5, 0.5, 0.5, 0.5, 0.5, 0.8, 1.5, 1.5, 1.5, 1.3, 1.3, 1.3, 1.3, 1.3, 1.5, 1.5, 1.5,
+                                  1.3, 1.3, 1.0, 0.8, 0.8, 0.8, 0.5, 0.5]
+
+        wn.add_pattern('custom_pat', time_of_day_multiplier)
+
         results = execute_simulation(wn)
 
     nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
