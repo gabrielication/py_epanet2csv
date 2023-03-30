@@ -11,6 +11,8 @@ list_of_fixed_nodes_with_leaks = None
 
 node_names_for_leaks = []
 
+base_demands_for_nodes = {}
+
 def formatted_datetime():
     # current date and time
     now = str(datetime.now())
@@ -80,13 +82,21 @@ def create_custom_pattern(wn, name, min_mult, max_mult, step, duration):
 
     return out_pattern
 
-def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None):
+def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None, fixed_bd=False):
     node_names = wn.junction_name_list
 
     for juncID in node_names:
+
         junc_obj = wn.get_node(juncID)
 
-        new_demand = random.uniform(min_bd, max_bd)
+        if(fixed_bd):
+            if(juncID not in base_demands_for_nodes.keys()):
+                new_demand = random.uniform(min_bd, max_bd)
+                base_demands_for_nodes[juncID] = new_demand
+            else:
+                new_demand = base_demands_for_nodes[juncID]
+        else:
+            new_demand = random.uniform(min_bd, max_bd)
 
         # junc_obj.demand_timeseries_list[0].base_value = new_demand
 
@@ -536,7 +546,6 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
     datasets_to_merge = []
     stats_to_merge = []
 
-
     for i in range(number_of_sims):
         results_from_sim = run_sim(sim_folder_path, input_file_inp, sim_duration,
                                    out_filename, leaks_enabled=leaks_enabled,
@@ -560,20 +569,23 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
         merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=delete_old_files)
 
 def run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
-            time_of_day_multiplier, time_of_day_multiplier_weekend, leaks_enabled=False,
+            time_of_day_multiplier, time_of_day_multiplier_weekend=[], leaks_enabled=False,
             leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
-            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False):
+            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False, fixed_bd=True):
     global list_of_fixed_nodes_with_leaks
 
     wn = configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_duration)
 
     sim_duration_for_wntr = sim_duration - 3600
 
-    multipliers_for_a_week = time_of_day_multiplier * 5 + time_of_day_multiplier_weekend * 2
+    if(len(time_of_day_multiplier_weekend) > 0):
+        multipliers_for_a_week = time_of_day_multiplier * 5 + time_of_day_multiplier_weekend * 2
+    else:
+        multipliers_for_a_week = time_of_day_multiplier
 
     wn.add_pattern('custom_pat', multipliers_for_a_week)
 
-    assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_pat")
+    assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_pat", fixed_bd=fixed_bd)
 
     number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
 
@@ -585,6 +597,47 @@ def run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_f
                                                  number_of_junctions_with_leaks, file_timestamp=file_timestamp)
 
     print("Simulation finished")
+
+    return nodes_results_dataset
+
+def run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
+                      leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
+                      min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
+                      delete_old_files=False, merge_csv=True, fixed_leaks=False):
+
+    datasets_to_merge = []
+    stats_to_merge = []
+
+    for i in range(number_of_sims):
+        if(i % 5 == 0 or i % 6 == 0):
+            results_from_sim = run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
+                                time_of_day_multiplier,leaks_enabled=leaks_enabled,
+                                leak_area_size=leak_area_size, random_base_demands=random_base_demands, min_bd=min_bd,
+                                max_bd=max_bd, min_press=min_press, req_press=req_press, file_timestamp=file_timestamp,
+                                fixed_leaks=fixed_leaks)
+        else:
+            # Weekend
+            results_from_sim = run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
+                                                       time_of_day_multiplier_weekend,
+                                                       leaks_enabled=leaks_enabled,
+                                                       leak_area_size=leak_area_size,
+                                                       random_base_demands=random_base_demands, min_bd=min_bd,
+                                                       max_bd=max_bd, min_press=min_press, req_press=req_press,
+                                                       file_timestamp=file_timestamp,
+                                                       fixed_leaks=fixed_leaks)
+
+        datasets_to_merge.append(results_from_sim[0])
+        stats_to_merge.append(results_from_sim[1])
+
+    if(merge_csv):
+
+        print()
+
+        merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+
+        print()
+
+        merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=delete_old_files)
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -599,10 +652,11 @@ if __name__ == "__main__":
 
     leaks_enabled = True  # switch this to True to enable leaks assignments
     fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
-    leak_area_size = 0.0016  # 0.0000001  # area of the "hole" of the leak
+    # leak_area_size = 0.0016  # 0.0000001  # area of the "hole" of the leak
+    leak_area_size = 0.0004  # 0.0000001  # area of the "hole" of the leak
 
     # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
-    out_filename = "M_one_res_small_rand_leaks_rand_bd"
+    out_filename = "M_one_res_small_rand_leaks_rand_fixed_bd"
 
     random_base_demands = False  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
@@ -632,12 +686,6 @@ if __name__ == "__main__":
     time_of_day_multiplier_weekend = [0.6, 0.6, 0.6, 0.6, 0.6, 0.8, 1.2, 1.2, 1.2, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5,
                                       1.5, 1.5, 1.5, 1.5, 1.2, 1.0, 1.0, 1.0, 0.8, 0.6]
 
-    run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
-                            time_of_day_multiplier, time_of_day_multiplier_weekend,leaks_enabled=leaks_enabled,
-                            leak_area_size=leak_area_size, random_base_demands=random_base_demands, min_bd=min_bd,
-                            max_bd=max_bd, min_press=min_press, req_press=req_press, file_timestamp=file_timestamp,
-                            fixed_leaks=fixed_leaks)
-
     # SINGLE EXECUTION
 
     # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
@@ -647,21 +695,29 @@ if __name__ == "__main__":
     # MULTIPLE EXECUTION
     # Needed when some networks present strange behavior (e.g., demand = 0) when ran for a lot of hours
 
-    # merge_csv = True  # switch this to True to merge CSVs into one
-    # delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
+    merge_csv = True  # switch this to True to merge CSVs into one
+    delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
-    # # for i in range (1,5):
-    # for i in range(1, 2):
-    #     number_of_sims = i * 7 * 4
-    #     temp_filename = str(i)+out_filename
-    #
-    #     print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
-    #
-    #     run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
-    #                       leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-    #                       random_base_demands=random_base_demands,
-    #                       min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
-    #                       file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
-    #                       fixed_leaks=fixed_leaks)
+    # for i in range (1,5):
+    for i in range(1, 2):
+        number_of_sims = i * 7 * 4
+        number_of_sims = i * 2
+        temp_filename = str(i)+out_filename
+
+        print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
+
+        # run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
+        #                   leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+        #                   random_base_demands=random_base_demands,
+        #                   min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
+        #                   file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
+        #                   fixed_leaks=fixed_leaks)
+
+        run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
+                          leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+                          random_base_demands=random_base_demands,
+                          min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
+                          file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
+                          fixed_leaks=fixed_leaks)
 
     print("\nExiting...")
