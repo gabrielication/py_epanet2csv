@@ -29,7 +29,7 @@ def pick_rand_leaks(wn, number_of_junctions_with_leaks):
         for i in range(number_of_junctions_with_leaks):
 
             if len(node_names_for_leaks) == 0:
-                print("EMPTY LIST")
+                # print("EMPTY LIST")
                 node_names_for_leaks = wn.junction_name_list
 
             selected_junctions.append(node_names_for_leaks.pop(random.randrange(len(node_names_for_leaks))))
@@ -46,6 +46,25 @@ def assign_leaks(wn, area_size, selected_junctions):
         node_obj = wn.get_node(node_id)
 
         node_obj.add_leak(wn, area=area_size, start_time=0)
+
+def remove_leaks(wn, selected_junctions, hour=None):
+    for node_id in selected_junctions:
+        node_obj = wn.get_node(node_id)
+
+        if (hour != None):
+            # To keep track of the history of the different leaks we add a custom field to the Junction object of wntr
+            # if it is the first time that we call this, we have to create it, else we just append the new value to the list
+            if hasattr(node_obj, 'list_of_leaks'):
+                node_obj.list_of_leaks[hour] = [node_obj._leak, node_obj._leak_area, node_obj._leak_discharge_coeff,
+                                                node_obj._leak_demand]
+            else:
+                node_obj.list_of_leaks = {
+                    hour: [node_obj._leak, node_obj._leak_area, node_obj._leak_discharge_coeff, node_obj._leak_demand]}
+
+        node_obj.remove_leak(wn)
+        node_obj._leak_area = 0.0
+        node_obj._leak_discharge_coeff = 0.0
+        node_obj._leak_demand = 0
 
 def create_custom_pattern(wn, name, min_mult, max_mult, step, duration):
     timeops = wntr.network.options.TimeOptions(duration)
@@ -78,12 +97,13 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None):
         junc_obj.add_demand(base=new_demand, pattern_name=pattern)
         del junc_obj.demand_timeseries_list[0]
 
-        # To keep track of the history of the different random base demands we add a custom field to the Junction object of wntr
-        # if it is the first time that we call this, we have to create it, else we just append the new value to the list
-        if hasattr(junc_obj, 'list_of_bds'):
-            junc_obj.list_of_bds.append(junc_obj.base_demand)
-        else:
-            junc_obj.list_of_bds = [junc_obj.base_demand]
+        if(random_base_demands):
+            # To keep track of the history of the different random base demands we add a custom field to the Junction object of wntr
+            # if it is the first time that we call this, we have to create it, else we just append the new value to the list
+            if hasattr(junc_obj, 'list_of_bds'):
+                junc_obj.list_of_bds.append(junc_obj.base_demand)
+            else:
+                junc_obj.list_of_bds = [junc_obj.base_demand]
 
 def pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
     print("TODO")
@@ -157,6 +177,17 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             leak_discharge_value = node_obj.leak_discharge_coeff
 
             leak_demand_value = leak_demand_results.loc[hour_in_seconds, nodeID]
+
+            has_leak = node_obj._leak
+
+            if node_type == "Junction":
+                if(hasattr(node_obj, 'list_of_leaks')):
+                    if(timestamp in node_obj.list_of_leaks.keys()):
+                        has_leak = node_obj.list_of_leaks[timestamp][0]
+                        leak_area_value = node_obj.list_of_leaks[timestamp][1]
+                        leak_discharge_value = node_obj.list_of_leaks[timestamp][2]
+                        leak_demand_value = node_obj.list_of_leaks[timestamp][3]
+
             tot_leaks_demand += leak_demand_value
 
             if node_type == "Junction":
@@ -180,10 +211,12 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             leak_demand_value = "{:.8f}".format(leak_demand_value)
             demand_value = "{:.8f}".format(demand_value)
 
-            if (leak_area_value > 0.0):
-                has_leak = True  # this leak-flag is set to true if we see a hole in the node
-            else:
-                has_leak = False
+            # if (leak_area_value > 0.0):
+            #     has_leak = True  # this leak-flag is set to true if we see a hole in the node
+            # else:
+            #     has_leak = False
+
+
 
             tot_junctions_demand_str = "{:.8f}".format(tot_junctions_demand)
             tot_leaks_demand_str = "{:.8f}".format(tot_leaks_demand)
@@ -256,95 +289,6 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
 
     return outName
 
-def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False,
-            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
-            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False):
-
-    global list_of_fixed_nodes_with_leaks
-
-    print("Configuring simulation...")
-
-    complete_input_path = sim_folder_path + input_file_inp
-
-    print("Loading INP file at: "+complete_input_path)
-
-    wn = wntr.network.WaterNetworkModel(complete_input_path)
-
-    wn.options.hydraulic.demand_model = 'PDD' #Pressure Driven Demand mode
-
-    wn.options.hydraulic.minimum_pressure = min_press  # 5 psi = 3.516 m
-    wn.options.hydraulic.required_pressure = req_press  # 30 psi = 21.097 m
-
-    sim_duration_for_wntr = sim_duration - 3600
-
-    # Why -3600? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
-    wn.options.time.duration = sim_duration_for_wntr
-
-    # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
-    # wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
-
-    print("Demand mode: "+str(wn.options.hydraulic.demand_model))
-    print("Required pressure: "+str(wn.options.hydraulic.required_pressure))
-    print("Minimum pressure: "+str(wn.options.hydraulic.minimum_pressure))
-    print("Time duration (seconds): "+str(sim_duration))
-    print("WNTR duration (seconds): "+str(sim_duration_for_wntr))
-
-    if(leaks_enabled):
-        print("LEAKS ARE ENABLED")
-
-        # number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
-        number_of_junctions_with_leaks = 5
-
-        selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
-
-        if(fixed_leaks):
-            print("FIXED LEAKS ARE ENABLED!")
-            if(list_of_fixed_nodes_with_leaks is None):
-                list_of_fixed_nodes_with_leaks = selected_junctions.copy()
-            selected_junctions = list_of_fixed_nodes_with_leaks
-
-        print(selected_junctions)
-
-        assign_leaks(wn, leak_area_size, selected_junctions)
-
-    else:
-        number_of_junctions_with_leaks = 0
-        print("Leaks are NOT enabled")
-
-    if(random_base_demands):
-        print("RANDOM BASE DEMANDS ENABLED")
-
-        results_list = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd)
-
-        results = make_a_single_results_from_the_list(wn, results_list)
-    else:
-        print("Random Base Demands are NOT enabled")
-
-        # This list has 24 elements, representing the multiplier for each
-        # hour of the day. In this example, the multiplier is set to 0.5
-        # for the first 5 hours of the day (representing low demand during
-        # early morning), 0.8 for the next 2 hours (representing moderate
-        # demand during mid-morning), 1.5 for the next 3 hours (representing
-        # high demand during peak hours), 1.3 for the next 5 hours (representing
-        # moderate demand during the afternoon), 1.0 for the next hour
-        # (representing low demand during early evening), 0.8 for the next
-        # 3 hours (representing moderate demand during late evening), and 0.5
-        # for the last 2 hours (representing low demand during night time).
-
-        time_of_day_multiplier = [0.5, 0.5, 0.5, 0.5, 0.5, 0.8, 1.5, 1.5, 1.5, 1.3, 1.3, 1.3, 1.3, 1.3, 1.5, 1.5, 1.5,
-                                  1.3, 1.3, 1.0, 0.8, 0.8, 0.8, 0.5, 0.5]
-
-        wn.add_pattern('custom_pat', time_of_day_multiplier)
-
-        results = execute_simulation(wn)
-
-    nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
-    pipes_results_dataset = pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
-
-    print("Simulation finished")
-
-    return nodes_results_dataset
-
 def execute_simulation(wn):
     print("\nRunning simulation...")
 
@@ -360,7 +304,7 @@ def make_a_single_results_from_the_list(wn, results_list):
             self.node = node
 
     columns = wn.node_name_list
-    print(columns)
+    # print(columns)
     node = OrderedDict({'demand': pd.DataFrame(columns=columns), 'head': pd.DataFrame(columns=columns), 'pressure': pd.DataFrame(columns=columns), 'leak_demand': pd.DataFrame(columns=columns)})
 
     for results in results_list:
@@ -398,6 +342,37 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
         results = wntr.sim.WNTRSimulator(wn).run_sim()
 
         results_list.append(results)
+
+    return results_list
+
+def execute_simulation_with_random_leaks(wn, sim_duration_for_wntr, leak_area_size, number_of_junctions_with_leaks):
+    print("\nRunning simulation...")
+
+    sim_duration_in_hours = int(sim_duration_for_wntr / 3600) + 1
+    results_list = []
+    selected_junctions = []
+
+    for hour in range(sim_duration_in_hours):
+
+        wn.options.time.duration = hour * 3600
+
+        # leaks will happen three times out of four probability
+        if random.randint(1, 4) != 1:
+            selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
+
+            print("Leak Junctions: ",selected_junctions, " hour: ", hour)
+
+            assign_leaks(wn, leak_area_size, selected_junctions)
+        else:
+            print("No leaks at hour: ",hour)
+
+        results = wntr.sim.WNTRSimulator(wn).run_sim()
+
+        results_list.append(results)
+
+        remove_leaks(wn, selected_junctions, hour=hour)
+
+        selected_junctions = []
 
     return results_list
 
@@ -475,6 +450,84 @@ def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
             else:
                 print("Deletion NOT successful!: " + path)
 
+def configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_duration):
+    print("Configuring simulation...")
+
+    complete_input_path = sim_folder_path + input_file_inp
+
+    print("Loading INP file at: " + complete_input_path)
+
+    wn = wntr.network.WaterNetworkModel(complete_input_path)
+
+    wn.options.hydraulic.demand_model = 'PDD'  # Pressure Driven Demand mode
+
+    wn.options.hydraulic.minimum_pressure = min_press  # 5 psi = 3.516 m
+    wn.options.hydraulic.required_pressure = req_press  # 30 psi = 21.097 m
+
+    sim_duration_for_wntr = sim_duration - 3600
+
+    # Why -3600? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
+    wn.options.time.duration = sim_duration_for_wntr
+
+    # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
+    # wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
+
+    print("Demand mode: " + str(wn.options.hydraulic.demand_model))
+    print("Required pressure: " + str(wn.options.hydraulic.required_pressure))
+    print("Minimum pressure: " + str(wn.options.hydraulic.minimum_pressure))
+    print("Time duration (seconds): " + str(sim_duration))
+    print("WNTR duration (seconds): " + str(sim_duration_for_wntr))
+
+    return wn
+
+def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False,
+            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
+            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False):
+
+    global list_of_fixed_nodes_with_leaks
+
+    wn = configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_duration)
+
+    if(leaks_enabled):
+        print("LEAKS ARE ENABLED")
+
+        # number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
+        number_of_junctions_with_leaks = 5
+
+        selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
+
+        if(fixed_leaks):
+            print("FIXED LEAKS ARE ENABLED!")
+            if(list_of_fixed_nodes_with_leaks is None):
+                list_of_fixed_nodes_with_leaks = selected_junctions.copy()
+            selected_junctions = list_of_fixed_nodes_with_leaks
+
+        print(selected_junctions)
+
+        assign_leaks(wn, leak_area_size, selected_junctions)
+
+    else:
+        number_of_junctions_with_leaks = 0
+        print("Leaks are NOT enabled")
+
+    if(random_base_demands):
+        print("RANDOM BASE DEMANDS ENABLED")
+
+        results_list = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd)
+
+        results = make_a_single_results_from_the_list(wn, results_list)
+    else:
+        print("Random Base Demands are NOT enabled")
+
+        results = execute_simulation(wn)
+
+    nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+    # pipes_results_dataset = pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+
+    print("Simulation finished")
+
+    return nodes_results_dataset
+
 def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
                       leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
                       min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
@@ -506,6 +559,33 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
 
         merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=delete_old_files)
 
+def run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
+            time_of_day_multiplier, time_of_day_multiplier_weekend, leaks_enabled=False,
+            leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
+            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False):
+    global list_of_fixed_nodes_with_leaks
+
+    wn = configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_duration)
+
+    sim_duration_for_wntr = sim_duration - 3600
+
+    multipliers_for_a_week = time_of_day_multiplier * 5 + time_of_day_multiplier_weekend * 2
+
+    wn.add_pattern('custom_pat', multipliers_for_a_week)
+
+    assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_pat")
+
+    number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
+
+    results_list = execute_simulation_with_random_leaks(wn, sim_duration_for_wntr, leak_area_size, number_of_junctions_with_leaks)
+
+    results = make_a_single_results_from_the_list(wn, results_list)
+
+    nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename,
+                                                 number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+
+    print("Simulation finished")
+
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
 
@@ -524,7 +604,7 @@ if __name__ == "__main__":
     # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
     out_filename = "M_one_res_small_rand_leaks_rand_bd"
 
-    random_base_demands = True  # switch this to True to enable random base demand assignments
+    random_base_demands = False  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
     max_bd = 0.01  # maximum possible random base demand
 
@@ -535,6 +615,29 @@ if __name__ == "__main__":
 
     sim_duration = 24 * 3600  # hours in seconds
 
+    # This list has 24 elements, representing the multiplier for each
+    # hour of the day. In this example, the multiplier is set to 0.5
+    # for the first 5 hours of the day (representing low demand during
+    # early morning), 0.8 for the next 2 hours (representing moderate
+    # demand during mid-morning), 1.5 for the next 3 hours (representing
+    # high demand during peak hours), 1.3 for the next 5 hours (representing
+    # moderate demand during the afternoon), 1.0 for the next hour
+    # (representing low demand during early evening), 0.8 for the next
+    # 3 hours (representing moderate demand during late evening), and 0.5
+    # for the last 2 hours (representing low demand during night time).
+
+    time_of_day_multiplier = [0.5, 0.5, 0.5, 0.5, 0.5, 0.8, 1.5, 1.5, 1.5, 1.3, 1.3, 1.3, 1.3, 1.3, 1.5, 1.5, 1.5,
+                              1.3, 1.3, 1.0, 0.8, 0.8, 0.8, 0.5, 0.5]
+
+    time_of_day_multiplier_weekend = [0.6, 0.6, 0.6, 0.6, 0.6, 0.8, 1.2, 1.2, 1.2, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5,
+                                      1.5, 1.5, 1.5, 1.5, 1.2, 1.0, 1.0, 1.0, 0.8, 0.6]
+
+    run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
+                            time_of_day_multiplier, time_of_day_multiplier_weekend,leaks_enabled=leaks_enabled,
+                            leak_area_size=leak_area_size, random_base_demands=random_base_demands, min_bd=min_bd,
+                            max_bd=max_bd, min_press=min_press, req_press=req_press, file_timestamp=file_timestamp,
+                            fixed_leaks=fixed_leaks)
+
     # SINGLE EXECUTION
 
     # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
@@ -544,21 +647,21 @@ if __name__ == "__main__":
     # MULTIPLE EXECUTION
     # Needed when some networks present strange behavior (e.g., demand = 0) when ran for a lot of hours
 
-    merge_csv = True  # switch this to True to merge CSVs into one
-    delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
+    # merge_csv = True  # switch this to True to merge CSVs into one
+    # delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
-    # for i in range (1,5):
-    for i in range(1, 2):
-        number_of_sims = i * 7 * 4
-        temp_filename = str(i)+out_filename
-
-        print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
-
-        run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
-                          leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-                          random_base_demands=random_base_demands,
-                          min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
-                          file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
-                          fixed_leaks=fixed_leaks)
+    # # for i in range (1,5):
+    # for i in range(1, 2):
+    #     number_of_sims = i * 7 * 4
+    #     temp_filename = str(i)+out_filename
+    #
+    #     print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
+    #
+    #     run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
+    #                       leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+    #                       random_base_demands=random_base_demands,
+    #                       min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
+    #                       file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
+    #                       fixed_leaks=fixed_leaks)
 
     print("\nExiting...")
