@@ -43,11 +43,14 @@ def pick_rand_leaks(wn, number_of_junctions_with_leaks):
 
     return selected_junctions
 
-def assign_leaks(wn, area_size, selected_junctions):
+def assign_leaks(wn, area_size, selected_junctions, hour=None):
     for node_id in selected_junctions:
         node_obj = wn.get_node(node_id)
 
-        node_obj.add_leak(wn, area=area_size, start_time=0)
+        if(hour==None):
+            node_obj.add_leak(wn, area=area_size, start_time=0)
+        else:
+            node_obj.add_leak(wn, area=area_size, start_time=hour * 3600)
 
 def remove_leaks(wn, selected_junctions, hour=None):
     for node_id in selected_junctions:
@@ -57,11 +60,11 @@ def remove_leaks(wn, selected_junctions, hour=None):
             # To keep track of the history of the different leaks we add a custom field to the Junction object of wntr
             # if it is the first time that we call this, we have to create it, else we just append the new value to the list
             if hasattr(node_obj, 'list_of_leaks'):
-                node_obj.list_of_leaks[hour] = [node_obj._leak, node_obj._leak_area, node_obj._leak_discharge_coeff,
-                                                node_obj._leak_demand]
+                node_obj.list_of_leaks[hour] = [node_obj.leak_status, node_obj.leak_area, node_obj.leak_discharge_coeff,
+                                                node_obj.leak_demand]
             else:
                 node_obj.list_of_leaks = {
-                    hour: [node_obj._leak, node_obj._leak_area, node_obj._leak_discharge_coeff, node_obj._leak_demand]}
+                    hour: [node_obj.leak_status, node_obj.leak_area, node_obj.leak_discharge_coeff, node_obj.leak_demand]}
 
         node_obj.remove_leak(wn)
         node_obj._leak_area = 0.0
@@ -274,6 +277,9 @@ def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand,
     else:
         leak_percentage = 0.0
 
+    if(leak_percentage == 0):
+        print()
+
     tot_nodes_demand = "{:.8f}".format(tot_nodes_demand)
     tot_leak_demand = "{:.8f}".format(tot_leak_demand)
 
@@ -372,7 +378,7 @@ def execute_simulation_with_random_leaks(wn, sim_duration_for_wntr, leak_area_si
 
             print("Leak Junctions: ",selected_junctions, " hour: ", hour)
 
-            assign_leaks(wn, leak_area_size, selected_junctions)
+            assign_leaks(wn, leak_area_size, selected_junctions, hour=hour)
         else:
             print("No leaks at hour: ",hour)
 
@@ -701,7 +707,6 @@ if __name__ == "__main__":
     # for i in range (1,5):
     for i in range(1, 2):
         number_of_sims = i * 7 * 4
-        number_of_sims = i * 2
         temp_filename = str(i)+out_filename
 
         print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
