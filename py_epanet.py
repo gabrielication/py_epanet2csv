@@ -376,11 +376,11 @@ def execute_simulation_with_random_leaks(wn, sim_duration_for_wntr, leak_area_si
         if random.randint(1, 4) != 1:
             selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
 
-            print("Leak Junctions: ",selected_junctions, " hour: ", hour)
+            # print("Leak Junctions: ",selected_junctions, " hour: ", hour)
 
             assign_leaks(wn, leak_area_size, selected_junctions, hour=hour)
-        else:
-            print("No leaks at hour: ",hour)
+        # else:
+        #     print("No leaks at hour: ",hour)
 
         results = wntr.sim.WNTRSimulator(wn).run_sim()
 
@@ -659,7 +659,7 @@ if __name__ == "__main__":
     leaks_enabled = True  # switch this to True to enable leaks assignments
     fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
     # leak_area_size = 0.0016  # 0.0000001  # area of the "hole" of the leak
-    leak_area_size = 0.0004  # 0.0000001  # area of the "hole" of the leak
+    leak_area_size = 0.00027  # 0.0000001  # area of the "hole" of the leak
 
     # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
     out_filename = "M_one_res_small_rand_leaks_rand_fixed_bd"
