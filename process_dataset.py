@@ -45,4 +45,6 @@ for hour in range(max_hour):
         out_dict["has_leak"].append(leaks_temp)
 
 out_df = pd.DataFrame(out_dict)
-out_df.to_csv("transposed_dataset.csv",index=False)
+# out_df.to_csv("transposed_dataset.csv",index=False)
+
+df.to_pickle('file.pickle')
