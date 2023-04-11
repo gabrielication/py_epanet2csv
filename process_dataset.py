@@ -10,7 +10,7 @@ max_hour = int(df.iloc[-1]["hour"].split(":")[0])
 
 out_dict = {}
 
-for hour in range(max_hour):
+for hour in range(4):
     timestamp = str(hour) + ":00:00"
 
     print("Processing timestamp: ", timestamp)

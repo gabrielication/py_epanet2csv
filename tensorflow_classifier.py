@@ -54,67 +54,41 @@ import pandas as pd
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-df = pd.read_csv("tensorflow_datasets/one_res_small/gabriele_marzo_2023/1M_one_res_small_rand_leaks_rand_fixed_bd_with_multipliers_merged.csv")
+df = pd.read_pickle("tensorflow_datasets/one_res_small/gabriele_marzo_2023/processed_df.pickle")
 
-columns = df[df["hour"] == "0:00:00"]["nodeID"].array
-
-max_hour = int(df.iloc[-1]["hour"].split(":")[0])
-
-out_dict = []
-
-# TENSORFLOW ONLY ACCEPTS LISTS, not DF with lists!
-
-for hour in range(3):
-    timestamp = str(hour) + ":00:00"
-
-    print("Processing timestamp: ", timestamp)
-
-    temp2 = []
-    for nodeID in columns:
-        # print(timestamp, nodeID)
-
-        temp = df[df["hour"] == timestamp]
-        temp = temp[temp["nodeID"] == nodeID]
-
-        base_demand = float(temp.iloc[-1]["base_demand"])
-        demand_value = float(temp.iloc[-1]["demand_value"])
-        head_value = float(temp.iloc[-1]["head_value"])
-        pressure_value = float(temp.iloc[-1]["pressure_value"])
-        x_pos = float(temp.iloc[-1]["x_pos"])
-        y_pos = float(temp.iloc[-1]["y_pos"])
-
-        has_leak = int(temp.iloc[-1]["has_leak"])
-
-        output = [base_demand, demand_value, head_value, pressure_value, x_pos, y_pos]
-
-        temp2.append(output)
-
-    out_dict.append(temp2)
-
-X = out_dict
-
-y = [1,0,1]
-
+target = df.pop("has_leak")
+features = df.values.tolist()
 # # Define the model architecture
 # model = tf.keras.models.Sequential([
 #   tf.keras.layers.LSTM(units=32, input_shape=(83, 6)),
 #   tf.keras.layers.Dense(units=1, activation='sigmoid')
 # ])
 
+X = features
+y = target.values.tolist()
+
 # Define the input shape
 input_shape = (83, 6)
 
 # Define the model
-model = tf.keras.Sequential([
-    tf.keras.layers.Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
-    tf.keras.layers.MaxPooling1D(pool_size=2),
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(units=64, activation='relu'),
-    tf.keras.layers.Dense(units=1, activation='sigmoid')
+# model = tf.keras.Sequential([
+#     tf.keras.layers.Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
+#     tf.keras.layers.MaxPooling1D(pool_size=2),
+#     tf.keras.layers.Flatten(),
+#     tf.keras.layers.Dense(units=64, activation='relu'),
+#     tf.keras.layers.Dense(units=83)
+# ])
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.BatchNormalization(input_shape=(83, 6)),
+    tf.keras.layers.LSTM(units=32),
+    tf.keras.layers.Dense(units=83)
 ])
 
+loss=tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
 # Compile the model
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer='adam', loss=loss, metrics=['accuracy'])
 
 # Train the model
-model.fit(X, y, epochs=10)
+model.fit(X, y, epochs=1000)
