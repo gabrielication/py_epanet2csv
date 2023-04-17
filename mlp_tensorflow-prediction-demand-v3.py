@@ -55,7 +55,7 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 
 	input_filename_full_fitted_model = ""
 
-	for filename in Path(".").glob("domenico_demand_prediction_model"):
+	for filename in Path(".").glob("tensorflow_models/domenico_demand_prediction_model"):
 		input_filename_full_fitted_model = str(filename)
 		# cheap hack. we just have one model file. break at first finding.
 		break
@@ -725,11 +725,11 @@ def create_prediction_report(folder_input, input_full_dataset, input_list_of_alt
 	print("Quitting...")
 
 
-def create_file_prediction_report(input_full_dataset, test_predictions, test_labels, test_has_leak, fresh_start=False):
+def create_file_prediction_report(input_full_dataset, test_predictions, test_labels, test_has_leak, scenario, node_list, fresh_start=False):
 	now = formatted_datetime()
 
 	# output_filename = input_full_dataset[0:3] + "tensorflow_report_" + now + ".csv"
-	output_filename = input_full_dataset[0:10] + "test_prediction_report_" + now + ".csv"
+	output_filename = input_full_dataset[0:10] + "_" + scenario + "_test_prediction_report_" + now + ".csv"
 
 	# open the file in the write mode
 	f = open(output_filename, "w", newline='', encoding='utf-8')
@@ -737,15 +737,15 @@ def create_file_prediction_report(input_full_dataset, test_predictions, test_lab
 	# create the csv writer
 	writer = csv.writer(f)
 
-	header = ["predictions","true_test_values","error","leakage"]
+	header = ["nodeID","predictions","true_test_values","error","leakage"]
 
 	writer.writerow(header)
 
 	if (fresh_start):
 		clean_old_files()
 
-	for pred,test,has_leak in zip(test_predictions,test_labels.values,test_has_leak.values):
-		output_row = [pred,test,pred-test,has_leak]
+	for nodeID,pred,test,has_leak in zip(node_list, test_predictions,test_labels.values,test_has_leak.values):
+		output_row = [nodeID,pred,test,pred-test,has_leak]
 		writer.writerow(output_row)
 
 	f.close()
@@ -834,8 +834,11 @@ if __name__ == "__main__":
 	complete_path_stat = folder_input + input_stat_full_dataset
 
 	### 1M leak
-	folder_network_leakage = "one_res_small/1_at_2_leaks_rand_base_demand/1M/"
-	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_a0005_merged.csv' # '1M_one_res_small_leaks_rand_bd_merged.csv'
+	# folder_network_leakage = "one_res_small/1_at_2_leaks_rand_base_demand/1M/"
+	# input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_a0005_merged.csv' # '1M_one_res_small_leaks_rand_bd_merged.csv'
+	folder_network_leakage = "one_res_small/1_leaks_rand_base_demand/1M/"
+	# input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_1_node_merged.csv' # '1M_one_res_small_leaks_rand_bd_merged.csv'
+	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_rand_bd_8620_node_merged.csv' # '1M_one_res_small_leaks_rand_bd_merged.csv'
 	input_stat_full_dataset_leakage = folder_network_leakage + "1W_one_res_small_no_leaks_rand_base_dem_nodes_simulation_stats.csv"
 	complete_path_leakage = folder_input + input_full_dataset_leakage
 	complete_path_stat_leakage = folder_input + input_stat_full_dataset_leakage
@@ -851,7 +854,7 @@ if __name__ == "__main__":
 	epochs = 100
 	batch_size = 10 #10
 
-	cols = ["pressure_value", "base_demand", "demand_value", "has_leak"]
+	cols = ["nodeID", "pressure_value", "base_demand", "demand_value", "has_leak"]
 	label = "demand_value"
 
 	print("PREDICT ANALYSIS:\n")
@@ -875,10 +878,11 @@ if __name__ == "__main__":
 																										 pairplot=False)
 
 	train_features.pop("has_leak")
+	train_features.pop("nodeID")
 
 	# creazione modello basato su training dati senza perdita
 	model, history = fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size,
-										   callbacks, complete_path_stat, save_model=False, visualize_model_bool=False)
+										   callbacks, complete_path_stat, save_model=True, visualize_model_bool=False)
 
 
 
@@ -892,9 +896,16 @@ if __name__ == "__main__":
 	# print(mse)
 	# print(mae)
 
+
+
+	print("********************************")
+	print("REPORT TEST DATASET (no leak)")
+	print("********************************")
 	#test del modello sui dati di test senza perdita
 	test_has_leak = test_features['has_leak']
 	test_features.pop('has_leak')
+	test_features.pop("nodeID")
+
 	evaluate_regression_after_fit(model, test_features, test_labels)
 	test_predictions = predict_and_collect_results(model, test_features)
 
@@ -903,12 +914,17 @@ if __name__ == "__main__":
 	# print(mse)
 	# print(mae)
 
-	create_file_prediction_report(input_full_dataset, test_predictions, test_labels, test_has_leak, fresh_start=True)
+	create_file_prediction_report(input_full_dataset, test_predictions, test_labels, test_has_leak, "NO_LEAK", test_dataset.nodeID.values, fresh_start=True)
 
 
+
+	print("********************************")
+	print("REPORT LEAK TEST DATASET (leak)")
+	print("********************************")
 	#test del modello sui dati di test con perdita
 	test_has_leak_leakage = test_features_leakage['has_leak']
 	test_features_leakage.pop('has_leak')
+	test_features_leakage.pop('nodeID')
 	evaluate_regression_after_fit(model, test_features_leakage, test_labels_leakage)
 	test_predictions_leakage = predict_and_collect_results(model, test_features_leakage)
 
@@ -917,7 +933,9 @@ if __name__ == "__main__":
 	# print(mse)
 	# print(mae)
 
-	create_file_prediction_report(input_full_dataset_leakage, test_predictions_leakage, test_labels_leakage, test_has_leak_leakage, fresh_start=True)
+	create_file_prediction_report(input_full_dataset_leakage, test_predictions_leakage, test_labels_leakage, test_has_leak_leakage, "LEAK", test_dataset_leakage.nodeID.values, fresh_start=True)
+
+	sys.exit(1)
 
 
 	#test del modello sui dati di traning con perdita

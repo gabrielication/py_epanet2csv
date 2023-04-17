@@ -1,3 +1,4 @@
+import sys
 import wntr
 import csv
 import random
@@ -72,6 +73,8 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None):
 def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
     print("Printing Nodes CSV. Please wait...")
 
+    link_names = wn.link_name_list
+
     # node_names = wn.node_name_list
     node_names = ["8614", "8600", "8610", "9402", "8598", "8608", "8620", "8616", "4922", "J106", "8618", "8604", "8596", "9410", "8612", "8602", "8606", "5656", "8622",
                       "8624", "8626", "8628", "8630", "8644", "8634", "8632", "8636", "8646", "8688", "8640", "8642", "8638", "8698", "8692", "8648", "8690", "8718",
@@ -95,13 +98,13 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
         out_filename_complete = out_filename + "_nodes_output.csv"
 
     out = open(out_filename_complete, "w", newline='', encoding='utf-8')
-    writer = csv.writer(out)
+    writer = csv.writer(out, delimiter=';')
 
     header = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
               "leak_area_value", "leak_discharge_value",
               "leak_demand_value",
-              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand"]
+              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand", "end_node_link"]
 
     writer.writerow(header)
 
@@ -119,6 +122,15 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
 
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
+
+            end_node_values = []
+            for linkID in link_names:
+                link_obj = wn.get_link(linkID)
+                # print(link_obj.start_node_name)
+                if link_obj.start_node_name == nodeID :
+                    end_node_values.append(link_obj.end_node_name)
+
+
             node_type = node_obj.__class__.__name__
 
             hour_in_seconds = int(timestamp * 3600)
@@ -175,7 +187,7 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
                        x_pos, y_pos, node_type, has_leak, leak_area_value,
                        leak_discharge_value, leak_demand_value,
-                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str]
+                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str, end_node_values]
 
             writer.writerow(out_row)
 
@@ -267,6 +279,9 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     # wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
+
+
+
     print("Demand mode: "+str(wn.options.hydraulic.demand_model))
     print("Required pressure: "+str(wn.options.hydraulic.required_pressure))
     print("Minimum pressure: "+str(wn.options.hydraulic.minimum_pressure))
@@ -276,9 +291,10 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     if(leaks_enabled):
         print("LEAKS ARE ENABLED")
 
-        number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
+        number_of_junctions_with_leaks = 1 #int(len(wn.junction_name_list) / 2)
 
-        selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
+        # node_names = wn.junction_name_list
+        selected_junctions = ['8620'] #pick_rand_leaks(wn, number_of_junctions_with_leaks)
 
         if(fixed_leaks):
             print("FIXED LEAKS ARE ENABLED!")
@@ -386,7 +402,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
     print(path_to_first_df)
 
     # We read our entire dataset
-    first_df = pd.read_csv(path_to_first_df)
+    first_df = pd.read_csv(path_to_first_df, delimiter=';')
 
     last_row_from_first_df = first_df.iloc[-1]["hour"]
 
@@ -399,7 +415,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
         data_path = datasets_to_merge.pop(0)
         print(data_path)
 
-        next_df = pd.read_csv(data_path, header=0)
+        next_df = pd.read_csv(data_path, header=0, delimiter=';')
 
         n_iterations = int(len(next_df) / number_of_nodes)
 
@@ -419,7 +435,8 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
             else:
                 print("Deletion NOT successful!: "+data_path)
 
-    first_df.to_csv(output_filename_merge, float_format='%.8f', index=False)
+    #first_df.to_csv(output_filename_merge, float_format='%.8f', index=False, sep=';', decimal= ",")
+    first_df.to_csv(output_filename_merge, float_format='%.8f', index=False, sep=';')
 
     if (delete_old_files):
         if os.path.exists(path_to_first_df):
@@ -480,17 +497,21 @@ if __name__ == "__main__":
     sim_folder_path = "./networks/"
 
 
-    # leaks_enabled = False  # switch this to True to enable leaks assignments
-    # out_filename = "M_one_res_small_no_leaks_rand_bd_ordered"
-
     leaks_enabled = False  # switch this to True to enable leaks assignments
+    out_filename = "M_one_res_small_no_leaks_rand_bd_ordered_new_delimited"
+
+    # leaks_enabled = True  # switch this to True to enable leaks assignments
     fixed_leaks = True  # switch this to True to have the random picks for nodes executed only once in multiple sims
-    leak_area_size = 0.0002  # 0.0000001  # area of the "hole" of the leak
+    leak_area_size = 0.0002 * 82 / 2  # 0.0000001  # area of the "hole" of the leak
 
     # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
-    out_filename = "M_one_res_small_no_leaks_rand_bd_filtered"
+    # out_filename = "M_one_res_small_no_leaks_rand_bd_filtered"
+    # out_filename = "M_one_res_small_no_leaks_pattern_bd_filtered"
+    # out_filename = "M_one_res_small_leaks_rand_bd_8620_node"
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
+
+    # random_base_demands = True  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
     max_bd = 0.01  # maximum possible random base demand
 
@@ -512,8 +533,6 @@ if __name__ == "__main__":
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
     sim_duration = 24 * 3600  # hours in seconds
-
-
 
     # for i in range (1,5):
     for i in range(1, 2):
