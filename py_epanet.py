@@ -122,7 +122,7 @@ def pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
     print("TODO")
     return None
 
-def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
+def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False, default_separator_csv=","):
     print("Printing Nodes CSV. Please wait...")
 
     node_names = wn.node_name_list
@@ -144,7 +144,7 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
         out_filename_complete = out_filename + "_nodes_output.csv"
 
     out = open(out_filename_complete, "w", newline='', encoding='utf-8')
-    writer = csv.writer(out)
+    writer = csv.writer(out, delimiter=default_separator_csv)
 
     header = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
@@ -392,7 +392,7 @@ def execute_simulation_with_random_leaks(wn, sim_duration_for_wntr, leak_area_si
 
     return results_list
 
-def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files=False):
+def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files=False, default_separator_csv=","):
     print("Merging CSVs...")
 
     if(delete_old_files):
@@ -411,7 +411,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
     print(path_to_first_df)
 
     # We read our entire dataset
-    first_df = pd.read_csv(path_to_first_df)
+    first_df = pd.read_csv(path_to_first_df, delimiter=default_separator_csv)
 
     last_row_from_first_df = first_df.iloc[-1]["hour"]
 
@@ -424,7 +424,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
         data_path = datasets_to_merge.pop(0)
         print(data_path)
 
-        next_df = pd.read_csv(data_path, header=0)
+        next_df = pd.read_csv(data_path, header=0, delimiter=default_separator_csv)
 
         n_iterations = int(len(next_df) / number_of_nodes)
 
@@ -444,7 +444,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
             else:
                 print("Deletion NOT successful!: "+data_path)
 
-    first_df.to_csv(output_filename_merge, float_format='%.8f', index=False)
+    first_df.to_csv(output_filename_merge, float_format='%.8f', index=False, sep=default_separator_csv)
 
     if (delete_old_files):
         if os.path.exists(path_to_first_df):
@@ -498,7 +498,7 @@ def configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_dur
 
 def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False,
             leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
-            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False):
+            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False, default_separator_csv=","):
 
     global list_of_fixed_nodes_with_leaks
 
@@ -537,7 +537,8 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         results = execute_simulation(wn)
 
-    nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+    nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp,
+                                                 default_separator_csv=default_separator_csv)
     # pipes_results_dataset = pipes_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
 
     print("Simulation finished")
@@ -547,7 +548,7 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
                       leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
                       min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
-                      delete_old_files=False, merge_csv=True, fixed_leaks=False):
+                      delete_old_files=False, merge_csv=True, fixed_leaks=False, default_separator_csv=","):
 
     datasets_to_merge = []
     stats_to_merge = []
@@ -559,7 +560,7 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
                                    random_base_demands=random_base_demands,
                                    min_bd=min_bd, max_bd=max_bd, min_press=min_press,
                                    req_press=req_press, file_timestamp=file_timestamp,
-                                   fixed_leaks=fixed_leaks)
+                                   fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv)
 
         datasets_to_merge.append(results_from_sim[0])
         stats_to_merge.append(results_from_sim[1])
@@ -568,7 +569,7 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
 
         print()
 
-        merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+        merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files, default_separator_csv=default_separator_csv)
 
         print()
 
@@ -577,7 +578,9 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
 def run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
             time_of_day_multiplier, time_of_day_multiplier_weekend=[], leaks_enabled=False,
             leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
-            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False, fixed_bd=True):
+            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False, fixed_bd=True,
+            default_separator_csv=","):
+
     global list_of_fixed_nodes_with_leaks
 
     wn = configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_duration)
@@ -600,7 +603,8 @@ def run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_f
     results = make_a_single_results_from_the_list(wn, results_list)
 
     nodes_results_dataset = nodes_results_to_csv(results, sim_duration, wn, out_filename,
-                                                 number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+                                                 number_of_junctions_with_leaks, file_timestamp=file_timestamp,
+                                                 default_separator_csv=default_separator_csv)
 
     print("Simulation finished")
 
@@ -609,7 +613,7 @@ def run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_f
 def run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
                       leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
                       min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
-                      delete_old_files=False, merge_csv=True, fixed_leaks=False):
+                      delete_old_files=False, merge_csv=True, fixed_leaks=False, default_separator_csv=","):
 
     datasets_to_merge = []
     stats_to_merge = []
@@ -620,7 +624,7 @@ def run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_durat
                                 time_of_day_multiplier,leaks_enabled=leaks_enabled,
                                 leak_area_size=leak_area_size, random_base_demands=random_base_demands, min_bd=min_bd,
                                 max_bd=max_bd, min_press=min_press, req_press=req_press, file_timestamp=file_timestamp,
-                                fixed_leaks=fixed_leaks)
+                                fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv)
         else:
             # Weekend
             results_from_sim = run_sim_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, out_filename,
@@ -630,7 +634,8 @@ def run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_durat
                                                        random_base_demands=random_base_demands, min_bd=min_bd,
                                                        max_bd=max_bd, min_press=min_press, req_press=req_press,
                                                        file_timestamp=file_timestamp,
-                                                       fixed_leaks=fixed_leaks)
+                                                       fixed_leaks=fixed_leaks,
+                                                       default_separator_csv=default_separator_csv)
 
         datasets_to_merge.append(results_from_sim[0])
         stats_to_merge.append(results_from_sim[1])
@@ -639,7 +644,7 @@ def run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_durat
 
         print()
 
-        merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+        merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files, default_separator_csv=default_separator_csv)
 
         print()
 
@@ -704,9 +709,11 @@ if __name__ == "__main__":
     merge_csv = True  # switch this to True to merge CSVs into one
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
+    default_separator_csv = ";"
+
     # for i in range (1,5):
     for i in range(1, 2):
-        number_of_sims = i * 7 * 4
+        number_of_sims = i
         temp_filename = str(i)+out_filename
 
         print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
@@ -723,6 +730,6 @@ if __name__ == "__main__":
                           random_base_demands=random_base_demands,
                           min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
                           file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
-                          fixed_leaks=fixed_leaks)
+                          fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv)
 
     print("\nExiting...")
