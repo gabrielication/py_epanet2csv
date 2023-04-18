@@ -8,7 +8,7 @@ from pathlib import Path
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Dense, Flatten, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import BatchNormalization
 
@@ -75,20 +75,7 @@ def formatted_datetime():
 
     return now
 
-def nn_classifier(folder_path, filename, epochs, batch_size=None,
-                  model_path_filename="", history_path_filename="",
-                  validation_split=0.2, patience_early_stop=10, save_model_bool=False):
-    print("\nNN Classifier launched!\n")
-
-    print("Parameters:")
-    print("epochs:", epochs)
-    print("batch_size:", batch_size)
-    print("model_path_filename:", model_path_filename)
-    print("history_path_filename:", history_path_filename)
-    print("validation_split:", validation_split)
-    print("save_model_bool:", save_model_bool)
-    print("patience_early_stop:", patience_early_stop)
-    print()
+def obtain_features_and_labels(folder_path, filename):
 
     complete_path_filename = folder_path + filename
 
@@ -109,25 +96,48 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
 
     y = np.reshape(temp_lab, (num_samples, num_features))
 
+    return X, y, num_samples, num_features, num_channels
+
+def nn_classifier(folder_path, filename, epochs, batch_size=None,
+                  model_path_filename="", history_path_filename="",
+                  validation_split=0.2, patience_early_stop=10, save_model_bool=False):
+    print("\nNN Classifier launched!\n")
+
+    print("Parameters:")
+    print("epochs:", epochs)
+    print("batch_size:", batch_size)
+    print("model_path_filename:", model_path_filename)
+    print("history_path_filename:", history_path_filename)
+    print("validation_split:", validation_split)
+    print("save_model_bool:", save_model_bool)
+    print("patience_early_stop:", patience_early_stop)
+    print()
+
+    X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+
     # Define the MLP model
     model = Sequential([
         Flatten(input_shape=(num_features, num_channels)),
         BatchNormalization(),
-        Dense(1024, activation='relu'),
-        Dense(1024, activation='relu'),
-        Dense(1024, activation='relu'),
+        Dense(4096, activation='relu'), #
+        Dropout(0.2),
+        Dense(512, activation='relu'),
+        Dropout(0.2),
+        Dense(256, activation='relu'),
+        Dropout(0.2),
         Dense(num_features, activation='sigmoid')
     ])
 
     loss = tf.keras.losses.BinaryCrossentropy()
 
-    # accuracy measures the overall correctness of the model's predictions,
+    # accuracy is a metric that calculates the fraction of correctly classified samples over the total number of samples
+    # binary accuracy calculates how often predictions match binary labels
     # precision measures how often the model is correct when it predicts a positive instance,
     # recall measures how well the model can identify positive instances,
     # F1 score combines precision and recall to give a single measure of the model's performance
 
     # These are the metrics for a binary classification problem
-    metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=83)]
+    metrics = ['accuracy', tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=83)]
 
     # Compile the model with binary crossentropy loss and Adam optimizer
     model.compile(loss=loss, optimizer='adam', metrics=metrics)
@@ -136,7 +146,7 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     callbacks = [earlystop]
 
     # Train the model
-    history = model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split, shuffle=False,
+    history = model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split,
                         callbacks=callbacks)
 
     if (save_model_bool):
@@ -152,6 +162,17 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
 
     return model, history
 
+def predict_leakages(X, y=None, model=None, history=None, load_model_bool=False, model_path="", history_path=""):
+    model = model
+    history = history
+
+    if(load_model_bool):
+        model,history = load_model(model_path, history_path)
+
+    results = model.predict(X)
+
+    print(results)
+
 
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
@@ -159,8 +180,8 @@ if __name__ == "__main__":
     is_gpu_supported()
 
     folder_path = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
-    # filename = "12M_processed_df.pickle"
-    filename = "processed_df.pickle"
+    filename = "12M_processed_df.pickle"
+    # filename = "processed_df.pickle"
 
     # Where to save/load the fitted model and its history file
     model_path_filename = "tensorflow_models/classification_12M_processed"
@@ -170,10 +191,10 @@ if __name__ == "__main__":
     save_model_bool = True
 
     # epochs during fit
-    epochs = 2
+    epochs = 1000
 
     # batch size to be used during fit
-    batch_size = 4
+    batch_size = 32
 
     # This float will split the data for validation during fit
     validation_split = 0.2
@@ -182,9 +203,15 @@ if __name__ == "__main__":
     dropout = True
 
     # This int determines how many epochs should we monitor before stopping fitting if the situation does not improve
-    patience_early_stop = 10
+    patience_early_stop = 100
 
     nn_classifier(folder_path, filename, epochs, batch_size=batch_size,
                   model_path_filename=model_path_filename, history_path_filename=history_path_filename,
                   validation_split=validation_split, patience_early_stop=patience_early_stop,
                   save_model_bool=save_model_bool)
+
+    # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+    #
+    # model_path_filename = "tensorflow_models/classification_12M_processed_2023-04-14_16_35_55_939637"
+    #
+    # predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
