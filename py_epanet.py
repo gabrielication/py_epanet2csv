@@ -126,6 +126,8 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
     print("Printing Nodes CSV. Please wait...")
 
     node_names = wn.node_name_list
+
+    link_names = wn.link_name_list
     # node_names = ["8614", "8600", "8610", \", "8724", "8744", "8736", "8728", "8670", "8734", "7384"]
 
 
@@ -150,7 +152,7 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
               "leak_area_value", "leak_discharge_value",
               "leak_demand_value",
-              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand"]
+              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand", "end_node_link"]
 
     writer.writerow(header)
 
@@ -169,6 +171,13 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
             node_type = node_obj.__class__.__name__
+
+            end_node_values = []
+            for linkID in link_names:
+                link_obj = wn.get_link(linkID)
+                # print(link_obj.start_node_name)
+                if link_obj.start_node_name == nodeID:
+                    end_node_values.append(link_obj.end_node_name)
 
             hour_in_seconds = int(timestamp * 3600)
 
@@ -229,15 +238,13 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             # else:
             #     has_leak = False
 
-
-
             tot_junctions_demand_str = "{:.8f}".format(tot_junctions_demand)
             tot_leaks_demand_str = "{:.8f}".format(tot_leaks_demand)
 
             out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
                        x_pos, y_pos, node_type, has_leak, leak_area_value,
                        leak_discharge_value, leak_demand_value,
-                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str]
+                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str, end_node_values]
 
             writer.writerow(out_row)
 
