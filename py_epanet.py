@@ -720,7 +720,7 @@ if __name__ == "__main__":
 
     # for i in range (1,5):
     for i in range(1, 2):
-        number_of_sims = i
+        number_of_sims = i * 7 * 4
         temp_filename = str(i)+out_filename
 
         print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
