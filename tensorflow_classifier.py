@@ -119,7 +119,7 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     model = Sequential([
         Flatten(input_shape=(num_features, num_channels)),
         BatchNormalization(),
-        Dense(4096, activation='relu'), #
+        Dense(4096, activation='relu'),
         Dropout(0.2),
         Dense(512, activation='relu'),
         Dropout(0.2),
@@ -146,7 +146,7 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     callbacks = [earlystop]
 
     # Train the model
-    history = model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split,
+    history = model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split, shuffle=False,
                         callbacks=callbacks)
 
     if (save_model_bool):
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     epochs = 1000
 
     # batch size to be used during fit
-    batch_size = 32
+    batch_size = 16
 
     # This float will split the data for validation during fit
     validation_split = 0.2
