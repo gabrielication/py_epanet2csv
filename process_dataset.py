@@ -10,18 +10,26 @@ max_hour = int(df.iloc[-1]["hour"].split(":")[0])
 
 out_dict = {}
 
-for hour in range(4):
+for hour in range(max_hour):
     timestamp = str(hour) + ":00:00"
 
     print("Processing timestamp: ", timestamp)
 
     leaks_temp = []
+
+    if "hour" not in out_dict:
+        out_dict["hour"] = [timestamp]
+    else:
+        out_dict["hour"].append(timestamp)
+
     for nodeID in columns:
         # print(timestamp, nodeID)
 
         temp = df[df["hour"] == timestamp]
         temp = temp[temp["nodeID"] == nodeID]
 
+        node_id = nodeID
+        node_type = temp.iloc[-1]["node_type"]
         base_demand = float(temp.iloc[-1]["base_demand"])
         demand_value = float(temp.iloc[-1]["demand_value"])
         head_value = float(temp.iloc[-1]["head_value"])
@@ -32,7 +40,7 @@ for hour in range(4):
         has_leak = int(temp.iloc[-1]["has_leak"])
         leaks_temp.append(has_leak)
 
-        output = [base_demand, demand_value, head_value, pressure_value, x_pos, y_pos]
+        output = [nodeID, node_type, base_demand, demand_value, head_value, pressure_value, x_pos, y_pos]
 
         if nodeID not in out_dict:
             out_dict[nodeID] = [output]
@@ -45,6 +53,6 @@ for hour in range(4):
         out_dict["has_leak"].append(leaks_temp)
 
 out_df = pd.DataFrame(out_dict)
-# out_df.to_csv("transposed_dataset.csv",index=False)
+out_df.to_csv("transposed_dataset.csv",index=False)
 
 out_df.to_pickle('filknkne.pickle')
