@@ -487,7 +487,7 @@ def configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_dur
     wn.options.hydraulic.minimum_pressure = min_press  # 5 psi = 3.516 m
     wn.options.hydraulic.required_pressure = req_press  # 30 psi = 21.097 m
 
-    sim_duration_for_wntr = sim_duration - 3600
+    sim_duration_for_wntr = sim_duration
 
     # Why -3600? WNTR adds an hour to the sim! e.g. if we set 24 hrs it will simulate from 0:00 to 24:00 (included), so 25 hrs in total
     wn.options.time.duration = sim_duration_for_wntr
@@ -509,13 +509,14 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
     global list_of_fixed_nodes_with_leaks
 
-    wn = configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_duration)
+    sim_duration_for_wntr = sim_duration - 3600
+
+    wn = configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_duration_for_wntr)
 
     if(leaks_enabled):
         print("LEAKS ARE ENABLED")
 
-        # number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
-        number_of_junctions_with_leaks = 5
+        number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
 
         selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
 
@@ -526,6 +527,10 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
             selected_junctions = list_of_fixed_nodes_with_leaks
 
         print(selected_junctions)
+
+        # number_of_junctions_with_leaks = 1
+        #
+        # selected_junctions = ["8668"]
 
         assign_leaks(wn, leak_area_size, selected_junctions)
 
@@ -671,12 +676,12 @@ if __name__ == "__main__":
     leaks_enabled = True  # switch this to True to enable leaks assignments
     fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
     # leak_area_size = 0.0016  # 0.0000001  # area of the "hole" of the leak
-    leak_area_size = 0.00027  # 0.0000001  # area of the "hole" of the leak
+    leak_area_size = 0.03  # 0.0000001  # area of the "hole" of the leak
 
     # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
-    out_filename = "M_one_res_small_rand_leaks_rand_fixed_bd"
+    out_filename = "M_one_res_small_8668_leak_rand_bd"
 
-    random_base_demands = False  # switch this to True to enable random base demand assignments
+    random_base_demands = True  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
     max_bd = 0.01  # maximum possible random base demand
 
@@ -723,20 +728,22 @@ if __name__ == "__main__":
         number_of_sims = i * 7 * 4
         temp_filename = str(i)+out_filename
 
+        temp_filename = "tiziana_datasets/"+temp_filename
+
         print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
 
-        # run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
-        #                   leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-        #                   random_base_demands=random_base_demands,
-        #                   min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
-        #                   file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
-        #                   fixed_leaks=fixed_leaks)
-
-        run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
+        run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
                           leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
                           random_base_demands=random_base_demands,
                           min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
                           file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
                           fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv)
+
+        # run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
+        #                   leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+        #                   random_base_demands=random_base_demands,
+        #                   min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
+        #                   file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
+        #                   fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv)
 
     print("\nExiting...")
