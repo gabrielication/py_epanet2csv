@@ -675,11 +675,11 @@ if __name__ == "__main__":
 
     leaks_enabled = True  # switch this to True to enable leaks assignments
     fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
-    # leak_area_size = 0.0016  # 0.0000001  # area of the "hole" of the leak
-    leak_area_size = 0.03  # 0.0000001  # area of the "hole" of the leak
+    leak_area_size = 0.00025  # 0.0000001  # area of the "hole" of the leak
+    # leak_area_size = 0.03  # 0.0000001  # area of the "hole" of the leak
 
-    # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
-    out_filename = "M_one_res_small_8668_leak_rand_bd"
+    out_filename = "M_one_res_small_fixed_leaks_rand_bd"
+    # out_filename = "M_one_res_small_8668_leak_rand_bd"
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
@@ -721,14 +721,14 @@ if __name__ == "__main__":
     merge_csv = True  # switch this to True to merge CSVs into one
     delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
-    default_separator_csv = ";"
+    default_separator_csv = ","
 
     # for i in range (1,5):
     for i in range(1, 2):
         number_of_sims = i * 7 * 4
         temp_filename = str(i)+out_filename
 
-        temp_filename = "tiziana_datasets/"+temp_filename
+        # temp_filename = "tiziana_datasets/"+temp_filename
 
         print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
 

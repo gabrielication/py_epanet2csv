@@ -2,7 +2,8 @@ import pandas as pd
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-df = pd.read_csv("tensorflow_datasets/one_res_small/gabriele_marzo_2023/1M_one_res_small_rand_leaks_rand_fixed_bd_with_multipliers_merged.csv")
+df = pd.read_csv(
+    "tensorflow_datasets/one_res_small/gabriele_maggio_2023/1M_one_res_small_fixed_leaks_rand_bd_merged.csv")
 
 columns = df[df["hour"] == "0:00:00"]["nodeID"].array
 
@@ -36,6 +37,7 @@ for hour in range(max_hour):
         pressure_value = float(temp.iloc[-1]["pressure_value"])
         x_pos = float(temp.iloc[-1]["x_pos"])
         y_pos = float(temp.iloc[-1]["y_pos"])
+        # end_node_link = float(temp.iloc[-1]["end_node_link"])
 
         has_leak = int(temp.iloc[-1]["has_leak"])
         leaks_temp.append(has_leak)
@@ -55,4 +57,4 @@ for hour in range(max_hour):
 out_df = pd.DataFrame(out_dict)
 out_df.to_csv("transposed_dataset.csv",index=False)
 
-out_df.to_pickle('filknkne.pickle')
+out_df.to_pickle('transposed_dataset.pickle')
