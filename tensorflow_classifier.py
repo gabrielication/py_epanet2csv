@@ -115,17 +115,17 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
 
     X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
 
-    # Define the MLP model
-    model = Sequential([
-        Flatten(input_shape=(num_features, num_channels)),
-        BatchNormalization(),
-        Dense(4096, activation='relu'),
-        Dropout(0.2),
-        Dense(512, activation='relu'),
-        Dropout(0.2),
-        Dense(256, activation='relu'),
-        Dropout(0.2),
-        Dense(num_features, activation='sigmoid')
+    # Create model
+    model = tf.keras.Sequential([
+        # Input normalization layer
+        tf.keras.layers.BatchNormalization(input_shape=(num_features, num_channels)),
+        tf.keras.layers.Conv1D(filters=64, kernel_size=3, activation='relu'),
+        tf.keras.layers.MaxPooling1D(pool_size=2),
+        tf.keras.layers.Conv1D(filters=128, kernel_size=3, activation='relu'),
+        tf.keras.layers.MaxPooling1D(pool_size=2),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(num_features*num_channels, activation='relu'),
+        tf.keras.layers.Dense(num_features, activation='sigmoid')
     ])
 
     loss = tf.keras.losses.BinaryCrossentropy()
@@ -146,8 +146,7 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     callbacks = [earlystop]
 
     # Train the model
-    history = model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split, shuffle=False,
-                        callbacks=callbacks)
+    history = model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
 
     if (save_model_bool):
         print()
@@ -179,8 +178,8 @@ if __name__ == "__main__":
     print('Keras ', tf.keras.__version__)
     is_gpu_supported()
 
-    folder_path = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
-    filename = "12M_processed_df.pickle"
+    folder_path = ""
+    filename = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/conv1d_transposed_dataset.pickle"
     # filename = "processed_df.pickle"
 
     # Where to save/load the fitted model and its history file
@@ -194,7 +193,7 @@ if __name__ == "__main__":
     epochs = 1000
 
     # batch size to be used during fit
-    batch_size = 16
+    batch_size = 32
 
     # This float will split the data for validation during fit
     validation_split = 0.2
