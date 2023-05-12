@@ -137,7 +137,8 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     # F1 score combines precision and recall to give a single measure of the model's performance
 
     # These are the metrics for a binary classification problem
-    metrics = ['accuracy', tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=83)]
+    # metrics = ['accuracy', tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=83)]
+    metrics = [tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.Precision()]
 
     # Compile the model with binary crossentropy loss and Adam optimizer
     model.compile(loss=loss, optimizer='adam', metrics=metrics)
@@ -170,6 +171,8 @@ def predict_leakages(X, y=None, model=None, history=None, load_model_bool=False,
 
     results = model.predict(X)
 
+    results_binary = np.where(results > 0.5, 1, 0)
+
     print(results)
 
 
@@ -179,7 +182,7 @@ if __name__ == "__main__":
     is_gpu_supported()
 
     folder_path = ""
-    filename = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/conv1d_transposed_dataset.pickle"
+    filename = "conv1d_transposed_dataset.pickle"
     # filename = "processed_df.pickle"
 
     # Where to save/load the fitted model and its history file
@@ -190,7 +193,7 @@ if __name__ == "__main__":
     save_model_bool = True
 
     # epochs during fit
-    epochs = 1000
+    epochs = 150
 
     # batch size to be used during fit
     batch_size = 32
@@ -209,8 +212,11 @@ if __name__ == "__main__":
                   validation_split=validation_split, patience_early_stop=patience_early_stop,
                   save_model_bool=save_model_bool)
 
+    # folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
+    # filename = "conv1d_transposed_dataset.pickle"
+    #
     # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
     #
-    # model_path_filename = "tensorflow_models/classification_12M_processed_2023-04-14_16_35_55_939637"
+    # model_path_filename = "tensorflow_models/classification_12M_processed_2023-05-12_00_40_14_789068"
     #
     # predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)

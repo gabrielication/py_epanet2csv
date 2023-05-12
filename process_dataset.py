@@ -7,7 +7,7 @@ from sklearn.preprocessing import OneHotEncoder
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 df = pd.read_csv(
-    "tensorflow_datasets/one_res_small/gabriele_maggio_2023/1M_one_res_small_fixed_leaks_rand_bd_merged.csv")
+    "1M_one_res_small_fixed_leaks_rand_bd_merged.csv")
 
 columns = df[df["hour"] == "0:00:00"]["nodeID"].array
 

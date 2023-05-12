@@ -347,7 +347,7 @@ def make_a_single_results_from_the_list(wn, results_list):
 
     return out
 
-def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=0, max_bd=0.000005):
+def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=0, max_bd=0.000005, leaks_enabled=False, randomize_leaks=False, number_of_junctions_with_leaks=0):
     print("\nRunning simulation...")
 
     pattern = create_custom_pattern(wn,"custom_1",1,1,1,sim_duration_for_wntr)
@@ -356,15 +356,26 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 
     results_list = []
 
+    selected_junctions = []
+
     for hour in range(sim_duration_in_hours):
 
         wn.options.time.duration = hour * 3600
 
         assign_rand_demand_to_junctions(wn, min_bd, max_bd, "custom_1")
 
+        if(leaks_enabled and randomize_leaks_each_hour):
+            # print("rand bd and rand leaks each hour")
+            selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
+            assign_leaks(wn, leak_area_size, selected_junctions, hour=hour)
+
         results = wntr.sim.WNTRSimulator(wn).run_sim()
 
         results_list.append(results)
+
+        if (leaks_enabled and randomize_leaks_each_hour):
+            remove_leaks(wn, selected_junctions, hour=hour)
+            selected_junctions = []
 
     return results_list
 
@@ -505,7 +516,8 @@ def configure_sim(sim_folder_path, input_file_inp, min_press, req_press, sim_dur
 
 def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_enabled=False,
             leak_area_size=0.0000001, random_base_demands=False, min_bd=0, max_bd=0.000005,
-            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False, default_separator_csv=","):
+            min_press=0.0, req_press=0.07, file_timestamp=False, fixed_leaks=False, default_separator_csv=",",
+            randomize_leaks_each_hour=False):
 
     global list_of_fixed_nodes_with_leaks
 
@@ -518,21 +530,21 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 2)
 
-        selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
-
-        if(fixed_leaks):
-            print("FIXED LEAKS ARE ENABLED!")
-            if(list_of_fixed_nodes_with_leaks is None):
-                list_of_fixed_nodes_with_leaks = selected_junctions.copy()
-            selected_junctions = list_of_fixed_nodes_with_leaks
-
-        print(selected_junctions)
-
-        # number_of_junctions_with_leaks = 1
+        # selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
         #
-        # selected_junctions = ["8668"]
-
-        assign_leaks(wn, leak_area_size, selected_junctions)
+        # if(fixed_leaks):
+        #     print("FIXED LEAKS ARE ENABLED!")
+        #     if(list_of_fixed_nodes_with_leaks is None):
+        #         list_of_fixed_nodes_with_leaks = selected_junctions.copy()
+        #     selected_junctions = list_of_fixed_nodes_with_leaks
+        #
+        # print(selected_junctions)
+        #
+        # # number_of_junctions_with_leaks = 1
+        # #
+        # # selected_junctions = ["8668"]
+        #
+        # assign_leaks(wn, leak_area_size, selected_junctions)
 
     else:
         number_of_junctions_with_leaks = 0
@@ -541,7 +553,7 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     if(random_base_demands):
         print("RANDOM BASE DEMANDS ENABLED")
 
-        results_list = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd)
+        results_list = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd, leaks_enabled=leaks_enabled, randomize_leaks=randomize_leaks_each_hour, number_of_junctions_with_leaks=number_of_junctions_with_leaks)
 
         results = make_a_single_results_from_the_list(wn, results_list)
     else:
@@ -560,7 +572,8 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
                       leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
                       min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
-                      delete_old_files=False, merge_csv=True, fixed_leaks=False, default_separator_csv=","):
+                      delete_old_files=False, merge_csv=True, fixed_leaks=False, default_separator_csv=",",
+                      randomize_leaks_each_hour=False):
 
     datasets_to_merge = []
     stats_to_merge = []
@@ -572,7 +585,8 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
                                    random_base_demands=random_base_demands,
                                    min_bd=min_bd, max_bd=max_bd, min_press=min_press,
                                    req_press=req_press, file_timestamp=file_timestamp,
-                                   fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv)
+                                   fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv,
+                                   randomize_leaks_each_hour=randomize_leaks_each_hour)
 
         datasets_to_merge.append(results_from_sim[0])
         stats_to_merge.append(results_from_sim[1])
@@ -723,6 +737,8 @@ if __name__ == "__main__":
 
     default_separator_csv = ","
 
+    randomize_leaks_each_hour = True
+
     # for i in range (1,5):
     for i in range(1, 2):
         number_of_sims = i * 7 * 4
@@ -737,7 +753,7 @@ if __name__ == "__main__":
                           random_base_demands=random_base_demands,
                           min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
                           file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
-                          fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv)
+                          fixed_leaks=fixed_leaks, default_separator_csv=default_separator_csv, randomize_leaks_each_hour=randomize_leaks_each_hour)
 
         # run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
         #                   leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
