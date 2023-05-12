@@ -116,15 +116,15 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
 
     # Create model
+    # Preferire sempre una rete semplice!
+    # Dropout 0.9 - richiederà almeno 1000 (?) epochs. scaliamo a 0.8, 0.7... fino a che converge
+
     model = tf.keras.Sequential([
-        # Input normalization layer
         tf.keras.layers.BatchNormalization(input_shape=(num_features, num_channels)),
         tf.keras.layers.Conv1D(filters=64, kernel_size=3, activation='relu'),
-        tf.keras.layers.MaxPooling1D(pool_size=2),
-        tf.keras.layers.Conv1D(filters=128, kernel_size=3, activation='relu'),
+        tf.keras.layers.Dropout(rate=0.9),
         tf.keras.layers.MaxPooling1D(pool_size=2),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(num_features*num_channels, activation='relu'),
         tf.keras.layers.Dense(num_features, activation='sigmoid')
     ])
 
@@ -181,8 +181,8 @@ if __name__ == "__main__":
     print('Keras ', tf.keras.__version__)
     is_gpu_supported()
 
-    folder_path = ""
-    filename = "conv1d_transposed_dataset.pickle"
+    folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
+    filename = "conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
     # filename = "processed_df.pickle"
 
     # Where to save/load the fitted model and its history file
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     save_model_bool = True
 
     # epochs during fit
-    epochs = 150
+    epochs = 1000
 
     # batch size to be used during fit
     batch_size = 32
