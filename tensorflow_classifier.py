@@ -12,6 +12,8 @@ from tensorflow.keras.layers import Dense, Flatten, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import BatchNormalization
 
+from sklearn.model_selection import train_test_split
+
 # from keras_visualizer import visualizer
 
 def is_gpu_supported():
@@ -115,14 +117,15 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
 
     X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
 
-    # Create model
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
     # Preferire sempre una rete semplice!
     # Dropout 0.9 - richiederà almeno 1000 (?) epochs. scaliamo a 0.8, 0.7... fino a che converge
 
     model = tf.keras.Sequential([
         tf.keras.layers.BatchNormalization(input_shape=(num_features, num_channels)),
         tf.keras.layers.Conv1D(filters=64, kernel_size=3, activation='relu'),
-        tf.keras.layers.Dropout(rate=0.9),
+        # tf.keras.layers.Dropout(rate=0.9),
         tf.keras.layers.MaxPooling1D(pool_size=2),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(num_features, activation='sigmoid')
@@ -147,7 +150,7 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     callbacks = [earlystop]
 
     # Train the model
-    history = model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val))
 
     if (save_model_bool):
         print()

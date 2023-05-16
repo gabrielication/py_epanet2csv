@@ -59,7 +59,7 @@ def convert_dataset_to_json(folder_path, filename):
 if __name__ == "__main__":
     # We read our entire dataset
 
-    folder_path = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
+    folder_path = "../tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
     #  filename = "1M_one_res_small_no_leaks_rand_bd_filtered_merged.csv"
     filename = "1M_one_res_small_fixed_leaks_rand_bd_filtered_merged.csv"
 

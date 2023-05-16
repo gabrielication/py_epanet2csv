@@ -1,15 +1,17 @@
-# EPANET TO CSV
+# py_epanet
 
-This set of tools convert and elaborates outputs from EPANET 2.2. They can firstly convert output files to CSV readable file format. It currently is in (very) experimental development and might be unstable. Use at your own risk.
+Py_EPANET2CSV is a Python-based project that started as a repository for hosting simple EPANET scripts. However, it has evolved into a much richer project that includes data analysis and machine learning analysis using TensorFlow and neural networks.
 
-## Requirements
+EPANET is a software tool used for modeling water distribution systems. It is widely used by engineers and researchers in the field of water resources engineering.
+Purpose of the Project
 
-All functionalities require Python 3.8 to execute.
+The purpose of this project is to provide a Python-based interface to the EPANET software. The main goal of the project is to extract data from EPANET simulations and perform various types of analyses on the data.
 
-## Structure
+## Generate a dataset
 
-The main tool is `py_epanet2csv.py` which takes an output analysis file from EPANET 2.2 and (optionally) its `.inp` file in order to extract node coordinates and link start-end nodes.
+The main script of the Py_EPANET2CSV project is `py_epanet.py`. This script does not provide a GUI or a CLI but it is easily configurable from the main function of the source code itself. Most of the parameters are clearly self-explanatory.
 
-Other tools are `epanet_map_extractor.py` which extracts a subsection from the analysis in order to analyze specific parts of the network and `csv_to_plot` which plots specifics values from the CSV converted file.
+To use py_epanet.py, simply indicate the source map and EPANET (or more precisely WNTR) will generate a CSV from that simulation. You can enable leakages, pressure dependent simulation, and more by modifying the parameters in the main() function.
 
-**!TODO!**
+# Process a dataset
+
