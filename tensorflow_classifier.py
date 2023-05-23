@@ -102,7 +102,8 @@ def obtain_features_and_labels(folder_path, filename):
 
 def nn_classifier(folder_path, filename, epochs, batch_size=None,
                   model_path_filename="", history_path_filename="",
-                  validation_split=0.2, patience_early_stop=10, save_model_bool=False):
+                  validation_split=0.2, patience_early_stop=10, save_model_bool=False,
+                  folder_path_val="", filename_val=""):
     print("\nNN Classifier launched!\n")
 
     print("Parameters:")
@@ -110,25 +111,32 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     print("batch_size:", batch_size)
     print("model_path_filename:", model_path_filename)
     print("history_path_filename:", history_path_filename)
-    print("validation_split:", validation_split)
+    # print("validation_split:", validation_split)
     print("save_model_bool:", save_model_bool)
-    print("patience_early_stop:", patience_early_stop)
+    # print("patience_early_stop:", patience_early_stop)
     print()
 
-    X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+    if (folder_path_val != "" and filename_val != ""):
+        X_train, y_train, num_samples_train, num_features_train, num_channels_train = obtain_features_and_labels(
+            folder_path, filename)
 
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_val, y_val, num_samples_val, num_features_val, num_channels_val = obtain_features_and_labels(folder_path_val, filename_val)
+
+    else:
+        X, y, num_samples_train, num_features_train, num_channels_train = obtain_features_and_labels(
+            folder_path, filename)
+
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Preferire sempre una rete semplice!
     # Dropout 0.9 - richiederà almeno 1000 (?) epochs. scaliamo a 0.8, 0.7... fino a che converge
 
     model = tf.keras.Sequential([
-        tf.keras.layers.BatchNormalization(input_shape=(num_features, num_channels)),
+        tf.keras.layers.BatchNormalization(input_shape=(num_features_train, num_channels_train)),
         tf.keras.layers.Conv1D(filters=64, kernel_size=3, activation='relu'),
-        # tf.keras.layers.Dropout(rate=0.9),
         tf.keras.layers.MaxPooling1D(pool_size=2),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(num_features, activation='sigmoid')
+        tf.keras.layers.Dense(num_features_train, activation='sigmoid')
     ])
 
     loss = tf.keras.losses.BinaryCrossentropy()
@@ -146,8 +154,8 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     # Compile the model with binary crossentropy loss and Adam optimizer
     model.compile(loss=loss, optimizer='adam', metrics=metrics)
 
-    earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=patience_early_stop)
-    callbacks = [earlystop]
+    # earlystop = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=patience_early_stop)
+    # callbacks = [earlystop]
 
     # Train the model
     history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val))
@@ -165,18 +173,22 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
 
     return model, history
 
-def predict_leakages(X, y=None, model=None, history=None, load_model_bool=False, model_path="", history_path=""):
+def evaluate_and_predict_leakages(X, y=None, model=None, history=None, load_model_bool=False, model_path="", history_path=""):
     model = model
     history = history
 
     if(load_model_bool):
         model,history = load_model(model_path, history_path)
 
-    results = model.predict(X)
+    print("Evaluate on test data")
+    results = model.evaluate(X, y, batch_size=128)
+    print("test loss, test acc:", results)
 
-    results_binary = np.where(results > 0.5, 1, 0)
+    print("Generate predictions for 3 samples")
+    predictions = model.predict(X[:3])
+    predictions_binary = np.where(predictions > 0.5, 1, 0)
 
-    print(results)
+    print("predictions shape:", predictions.shape)
 
 
 if __name__ == "__main__":
@@ -185,8 +197,10 @@ if __name__ == "__main__":
     is_gpu_supported()
 
     folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
-    filename = "conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
-    # filename = "processed_df.pickle"
+    filename = "1M_conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
+
+    folder_path_val = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
+    filename_val = "conv1d_rand_leaks_each_sim_transposed_dataset.pickle"
 
     # Where to save/load the fitted model and its history file
     model_path_filename = "tensorflow_models/classification_12M_processed"
@@ -210,16 +224,16 @@ if __name__ == "__main__":
     # This int determines how many epochs should we monitor before stopping fitting if the situation does not improve
     patience_early_stop = 100
 
-    nn_classifier(folder_path, filename, epochs, batch_size=batch_size,
-                  model_path_filename=model_path_filename, history_path_filename=history_path_filename,
-                  validation_split=validation_split, patience_early_stop=patience_early_stop,
-                  save_model_bool=save_model_bool)
+    # nn_classifier(folder_path, filename, epochs, batch_size=batch_size,
+    #               model_path_filename=model_path_filename, history_path_filename=history_path_filename,
+    #               validation_split=validation_split, patience_early_stop=patience_early_stop,
+    #               save_model_bool=save_model_bool, folder_path_val=folder_path_val, filename_val=filename_val)
 
-    # folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
-    # filename = "conv1d_transposed_dataset.pickle"
-    #
-    # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
-    #
-    # model_path_filename = "tensorflow_models/classification_12M_processed_2023-05-12_00_40_14_789068"
-    #
-    # predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
+    folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
+    filename = "1M_conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
+
+    X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+
+    model_path_filename = "tensorflow_models/91ACCURACY_classification_1Y_processed_2023-05-17_18_28_31_052484"
+
+    evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
