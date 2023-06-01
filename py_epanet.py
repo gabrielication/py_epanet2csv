@@ -23,23 +23,30 @@ def formatted_datetime():
     return now
 
 def pick_rand_leaks(wn, number_of_junctions_with_leaks):
-    if(not fixed_leaks):
-        global node_names_for_leaks
 
-        selected_junctions = []
+    forbidden_nodes = ["9410", "8608", "8618", "8628", "8648", "8666", "8740", "8728", "8682", "8680"]
 
-        for i in range(number_of_junctions_with_leaks):
+    # if(not fixed_leaks):
+    #     global node_names_for_leaks
+    #
+    #     selected_junctions = []
+    #
+    #     for i in range(number_of_junctions_with_leaks):
+    #
+    #         if len(node_names_for_leaks) == 0:
+    #             # print("EMPTY LIST")
+    #             node_names_for_leaks = wn.junction_name_list
+    #
+    #         selected_junctions.append(node_names_for_leaks.pop(random.randrange(len(node_names_for_leaks))))
+    #
+    # else:
+    node_names = wn.junction_name_list
 
-            if len(node_names_for_leaks) == 0:
-                # print("EMPTY LIST")
-                node_names_for_leaks = wn.junction_name_list
+    # remove the forbidden nodes from the list of nodes
+    for node_id in forbidden_nodes:
+        node_names.remove(node_id)
 
-            selected_junctions.append(node_names_for_leaks.pop(random.randrange(len(node_names_for_leaks))))
-
-    else:
-        node_names = wn.junction_name_list
-
-        selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
+    selected_junctions = random.sample(node_names, number_of_junctions_with_leaks)
 
     return selected_junctions
 

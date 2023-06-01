@@ -111,22 +111,26 @@ def nn_classifier(folder_path, filename, epochs, batch_size=None,
     print("batch_size:", batch_size)
     print("model_path_filename:", model_path_filename)
     print("history_path_filename:", history_path_filename)
-    # print("validation_split:", validation_split)
+    print("validation_split:", validation_split)
     print("save_model_bool:", save_model_bool)
     # print("patience_early_stop:", patience_early_stop)
     print()
 
     if (folder_path_val != "" and filename_val != ""):
+        print("Validation set provided. Loading validation set...")
+
         X_train, y_train, num_samples_train, num_features_train, num_channels_train = obtain_features_and_labels(
             folder_path, filename)
 
         X_val, y_val, num_samples_val, num_features_val, num_channels_val = obtain_features_and_labels(folder_path_val, filename_val)
 
     else:
+        print("No validation set provided. Splitting training set into training and validation sets...")
+
         X, y, num_samples_train, num_features_train, num_channels_train = obtain_features_and_labels(
             folder_path, filename)
 
-        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=validation_split, random_state=42)
 
     # Preferire sempre una rete semplice!
     # Dropout 0.9 - richiederà almeno 1000 (?) epochs. scaliamo a 0.8, 0.7... fino a che converge
@@ -197,13 +201,13 @@ if __name__ == "__main__":
     is_gpu_supported()
 
     folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
-    filename = "1M_conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
+    filename = "1Y_one_res_small_filtered_rand_leaks_rand_bd_conv1d_transposed_dataset.pickle"
 
-    folder_path_val = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
-    filename_val = "conv1d_rand_leaks_each_sim_transposed_dataset.pickle"
+    # folder_path_val = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
+    # filename_val = "conv1d_rand_leaks_each_sim_transposed_dataset.pickle"
 
     # Where to save/load the fitted model and its history file
-    model_path_filename = "tensorflow_models/classification_12M_processed"
+    model_path_filename = "tensorflow_models/classification_1Y_processed"
     history_path_filename = "classification_history_model"
 
     # This bool will determine if the (new) fitted model will be saved to the path and names indicated above
@@ -224,16 +228,16 @@ if __name__ == "__main__":
     # This int determines how many epochs should we monitor before stopping fitting if the situation does not improve
     patience_early_stop = 100
 
-    # nn_classifier(folder_path, filename, epochs, batch_size=batch_size,
-    #               model_path_filename=model_path_filename, history_path_filename=history_path_filename,
-    #               validation_split=validation_split, patience_early_stop=patience_early_stop,
-    #               save_model_bool=save_model_bool, folder_path_val=folder_path_val, filename_val=filename_val)
+    nn_classifier(folder_path, filename, epochs, batch_size=batch_size,
+                  model_path_filename=model_path_filename, history_path_filename=history_path_filename,
+                  validation_split=validation_split, patience_early_stop=patience_early_stop,
+                  save_model_bool=save_model_bool)
 
-    folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
-    filename = "1M_conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
-
-    X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
-
-    model_path_filename = "tensorflow_models/91ACCURACY_classification_1Y_processed_2023-05-17_18_28_31_052484"
-
-    evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
+    # folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
+    # filename = "1M_conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
+    #
+    # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+    #
+    # model_path_filename = "tensorflow_models/91ACCURACY_classification_1Y_processed_2023-05-17_18_28_31_052484"
+    #
+    # evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
