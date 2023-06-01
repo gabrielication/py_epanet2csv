@@ -26,6 +26,22 @@ def pick_rand_leaks(wn, number_of_junctions_with_leaks):
 
     return selected_junctions
 
+def pick_rand_group_leaks(wn, number_of_junctions_with_leaks, leak_group):
+    node_names = ["8614", "8600", "8610", "9402", "8598", "8608", "8620", "8616", "4922", "J106", "8618", "8604", "8596", "9410", "8612", "8602", "8606", "5656", "8622",
+                      "8624", "8626", "8628", "8630", "8644", "8634", "8632", "8636", "8646", "8688", "8640", "8642", "8638", "8698", "8692", "8648", "8690", "8718",
+                      "8702", "8700", "8694", "8738", "8696", "8740", "8720", "8706", "8704", "8686", "8708", "8660", "8656", "8664", "8662", "8654", "8716", "8650",
+                      "8746", "8732", "8684", "8668", "8730", "8658", "8678", "8652", "8676", "8714", "8710", "8712", "8682", "8666", "8674", "8742", "8680", "8672",
+                      "8792", "8722", "8726", "8724", "8744", "8736", "8728", "8670", "8734", "7384"]
+
+    # random_group = np.random.random_integers(8)
+    random_group = leak_group #5
+    selected_junctions = node_names[((random_group-1)*10)+5:((random_group-1)*10)+6]
+
+    return selected_junctions
+
+
+
+
 def assign_leaks(wn, area_size, selected_junctions):
     for node_id in selected_junctions:
         node_obj = wn.get_node(node_id)
@@ -82,6 +98,7 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
                       "8746", "8732", "8684", "8668", "8730", "8658", "8678", "8652", "8676", "8714", "8710", "8712", "8682", "8666", "8674", "8742", "8680", "8672",
                       "8792", "8722", "8726", "8724", "8744", "8736", "8728", "8670", "8734", "7384"]
 
+    nodes_index = [*range(len(node_names))]
 
     demand_results = results.node['demand']
     head_results = results.node['head']
@@ -104,13 +121,28 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
               "leak_area_value", "leak_discharge_value",
               "leak_demand_value",
-              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand", "end_node_link"]
+              # "tot_junctions_demand", "tot_leaks_demand", "tot_network_demand",
+              #"end_node_link",
+              # "lost_0", "head_0", "pressure_0", "lost_1", "head_1", "pressure_1", "lost_2", "head_2", "pressure_2",
+              # "lost_3", "head_3", "pressure_3", "lost_4", "head_4", "pressure_4", "lost_5", "head_5", "pressure_5",
+              # "lost_6", "head_6", "pressure_6", "lost_7", "head_7", "pressure_7", "lost_8", "head_8", "pressure_8",
+              # "lost_9", "head_9", "pressure_9"
+              "flow_demand_in",
+              "demand_0", "head_0", "pressure_0", "demand_1", "head_1", "pressure_1", "demand_2", "head_2", "pressure_2",
+              "demand_3", "head_3", "pressure_3", "demand_4", "head_4", "pressure_4", "demand_5", "head_5", "pressure_5",
+              "demand_6", "head_6", "pressure_6", "demand_7", "head_7", "pressure_7", "demand_8", "head_8", "pressure_8",
+              "demand_9", "head_9", "pressure_9",
+              "flow_demand_out",
+              "leak_group",
+              ]
 
     writer.writerow(header)
 
     # These two variables are needed for the simulation stats
     tot_juncts_demand_in_entire_simulation = np.float64(0)
     tot_juncts_leak_demand_in_entire_simulation = np.float64(0)
+
+
 
     for timestamp in range(sim_duration_in_hours):
 
@@ -119,26 +151,81 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
         tot_junctions_demand = np.float64(0)
         tot_network_demand = np.float64(0)
 
+        nodeGroupInfo = []
+        nodeIndex = 0
+
+        hour_in_seconds = int(timestamp * 3600)
+        flow_demand = demand_results.loc[hour_in_seconds, "7384"]*-1
 
         for nodeID in node_names:
             node_obj = wn.get_node(nodeID)
-
-            end_node_values = []
-            for linkID in link_names:
-                link_obj = wn.get_link(linkID)
-                # print(link_obj.start_node_name)
-                if link_obj.start_node_name == nodeID :
-                    end_node_values.append(link_obj.end_node_name)
-
-
             node_type = node_obj.__class__.__name__
 
-            hour_in_seconds = int(timestamp * 3600)
+            if nodeIndex%10==0:
+                # print(nodeIndex)
+                group_has_leak = False
+                nodeGroupInfo = []
+                nodeGroupInfo.append(flow_demand)
+
+                for nodeIndexGroup in nodes_index[nodeIndex:nodeIndex+10]:
+                    node_group_obj = wn.get_node(node_names[nodeIndexGroup])
+                    node_group_type = node_group_obj.__class__.__name__
+                    leak_area_value = node_group_obj.leak_area
+                    if (leak_area_value > 0.0):
+                        group_has_leak = True  # this leak-flag is set to true if we see a hole in the node
+
+                    if node_group_type == "Junction":
+                        if hasattr(node_group_obj, 'list_of_bds'):
+                            # happens if we set random_base_demands to True
+                            base_demand_group = node_group_obj.list_of_bds[timestamp]
+                        else:
+                            base_demand_group = node_group_obj.demand_timeseries_list[0].base_value
+                    else:
+                        base_demand_group = 0.0
+
+                    demand_value_group = demand_results.loc[hour_in_seconds, node_names[nodeIndexGroup]]
+
+                    flow_demand = flow_demand - demand_value_group
+
+                    demand_lost_group = base_demand_group - demand_value_group
+                    demand_lost_group = "{:.8f}".format(demand_lost_group)
+                    base_demand_group = "{:.8f}".format(base_demand_group)
+
+                    demand_value_group = "{:.8f}".format(demand_value_group)
+
+                    head_value_group = head_results.loc[hour_in_seconds, node_names[nodeIndexGroup]]
+                    head_value_group = "{:.8f}".format(head_value_group)
+
+                    pressure_value_group = pressure_results.loc[hour_in_seconds, node_names[nodeIndexGroup]]
+                    pressure_value_group = "{:.8f}".format(pressure_value_group)
+
+                    # print(nodeID)
+                    # print(base_demand_group)
+                    # print(demand_value_group)
+                    # print(demand_lost_group)
+                    # print(head_value_group)
+                    # print(pressure_value_group)
+                    # # sys.exit(1)
+                    # nodeGroupInfo.extend((demand_lost_group,head_value_group,pressure_value_group))
+                    nodeGroupInfo.extend((demand_value_group, head_value_group, pressure_value_group))
+
+                nodeGroupInfo.append(flow_demand)
+                nodeGroupInfo.append(group_has_leak)
+
+            nodeIndex += 1
+
+            # end_node_values = []
+            # for linkID in link_names:
+            #     link_obj = wn.get_link(linkID)
+            #     # print(link_obj.start_node_name)
+            #     if link_obj.start_node_name == nodeID :
+            #         end_node_values.append(link_obj.end_node_name)
+
 
             hour = str(timestamp) + ":00:00"
 
             demand_value = demand_results.loc[hour_in_seconds,nodeID]
-            tot_junctions_demand += demand_value
+            # tot_junctions_demand += demand_value
 
             head_value = head_results.loc[hour_in_seconds, nodeID]
             head_value = "{:.8f}".format(head_value)
@@ -153,7 +240,8 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             leak_discharge_value = node_obj.leak_discharge_coeff
 
             leak_demand_value = leak_demand_results.loc[hour_in_seconds, nodeID]
-            tot_leaks_demand += leak_demand_value
+            # tot_leaks_demand += leak_demand_value
+            tot_network_demand += demand_value + leak_demand_value
 
             if node_type == "Junction":
 
@@ -169,8 +257,7 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
                 tot_juncts_leak_demand_in_entire_simulation += leak_demand_value
             else:
                 base_demand = 0.0
-
-            tot_network_demand += demand_value + leak_demand_value
+                demand_value = demand_value * -1
 
             tot_network_demand_str = "{:.8f}".format(tot_network_demand)
             leak_demand_value = "{:.8f}".format(leak_demand_value)
@@ -184,12 +271,18 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             tot_junctions_demand_str = "{:.8f}".format(tot_junctions_demand)
             tot_leaks_demand_str = "{:.8f}".format(tot_leaks_demand)
 
+
             out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
                        x_pos, y_pos, node_type, has_leak, leak_area_value,
                        leak_discharge_value, leak_demand_value,
-                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str, end_node_values]
+                       # tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str, #end_node_values,
+                       # leak_group]
+                       ]
+            out_row.extend(nodeGroupInfo)
 
-            writer.writerow(out_row)
+            if len(nodeGroupInfo)>5*6:
+                writer.writerow(out_row)
+
 
     out.close()
     print("CSV saved to: "+out_filename_complete+"\n")
@@ -291,10 +384,13 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     if(leaks_enabled):
         print("LEAKS ARE ENABLED")
 
-        number_of_junctions_with_leaks = 1 #int(len(wn.junction_name_list) / 2)
+        # number_of_junctions_with_leaks = 1 #int(len(wn.junction_name_list) / 2)
+        number_of_junctions_with_leaks = int(len(wn.junction_name_list) / 4)
 
         # node_names = wn.junction_name_list
-        selected_junctions = ['8620'] #pick_rand_leaks(wn, number_of_junctions_with_leaks)
+        # selected_junctions = ['8620'] #pick_rand_leaks(wn, number_of_junctions_with_leaks)
+        # selected_junctions = pick_rand_leaks(wn, number_of_junctions_with_leaks)
+        selected_junctions = pick_rand_group_leaks(wn, number_of_junctions_with_leaks, leak_group)
 
         if(fixed_leaks):
             print("FIXED LEAKS ARE ENABLED!")
@@ -497,12 +593,16 @@ if __name__ == "__main__":
     sim_folder_path = "./networks/"
 
 
-    leaks_enabled = False  # switch this to True to enable leaks assignments
-    out_filename = "M_one_res_small_no_leaks_rand_bd_ordered_new_delimited"
+    leaks_enabled = True  # switch this to True to enable leaks assignments
+    leak_group = 3
+    out_filename = "M_one_res_small_leaks_ordered_group_3_0246"
 
     # leaks_enabled = True  # switch this to True to enable leaks assignments
     fixed_leaks = True  # switch this to True to have the random picks for nodes executed only once in multiple sims
-    leak_area_size = 0.0002 * 82 / 2  # 0.0000001  # area of the "hole" of the leak
+    # leak_area_size = 0.0002 * 82 / 2  # 0.0000001  # area of the "hole" of the leak
+    # leak_area_size = 0.0002 * 82 / 2 / 10  # 0.0000001  # area of the "hole" of the leak
+    # leak_area_size = 0.0002 * 82 / 2   # 0.0082  # area of the "hole" of the leak
+    leak_area_size = 0.0002 * 82 * 1.5  # 0.082  # area of the "hole" of the leak
 
     # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
     # out_filename = "M_one_res_small_no_leaks_rand_bd_filtered"
@@ -510,6 +610,7 @@ if __name__ == "__main__":
     # out_filename = "M_one_res_small_leaks_rand_bd_8620_node"
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
+    # out_filename = "M_one_res_small_no_leaks_ordered_group"
 
     # random_base_demands = True  # switch this to True to enable random base demand assignments
     min_bd = 0  # minimum possible random base demand
