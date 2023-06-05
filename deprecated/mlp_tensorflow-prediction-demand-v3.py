@@ -27,14 +27,14 @@ from tensorflow.keras import Sequential
 def clean_old_files():
 	print("FRESH START ENABLED. Cleaning ALL old models and their files...")
 
-	for filename in Path(".").glob("*.png"):
+	for filename in Path("..").glob("*.png"):
 		try:
 			os.remove(filename)
 			print(str(filename) + " deleted")
 		except OSError:
 			print("\nError while deleting " + str(filename) + "\n")
 
-	for filename in Path(".").glob("my_model"):
+	for filename in Path("..").glob("my_model"):
 		try:
 			shutil.rmtree(filename)
 
@@ -42,7 +42,7 @@ def clean_old_files():
 		except OSError:
 			print("\nError while deleting " + str(filename) + "\n")
 
-	for filename in Path(".").glob("my_history.npy"):
+	for filename in Path("..").glob("my_history.npy"):
 		try:
 			os.remove(filename)
 			print(str(filename) + " deleted")
@@ -55,7 +55,7 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 
 	input_filename_full_fitted_model = ""
 
-	for filename in Path(".").glob("domenico_demand_prediction_model"):
+	for filename in Path("..").glob("domenico_demand_prediction_model"):
 		input_filename_full_fitted_model = str(filename)
 		# cheap hack. we just have one model file. break at first finding.
 		break
@@ -66,7 +66,7 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 
 		model = tf.keras.models.load_model(input_filename_full_fitted_model)
 
-		history = np.load('tensorflow_models/domenico_demand_prediction_model/demand_prediction_model.npy', allow_pickle='TRUE').item()
+		history = np.load('../tensorflow_models/domenico_demand_prediction_model/demand_prediction_model.npy', allow_pickle='TRUE').item()
 
 
 		return model, history
@@ -81,9 +81,9 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
 											 callbacks=callbacks, verbose=1)
 
 		if(save_model):
-			np.save('tensorflow_models/domenico_demand_prediction_model/demand_prediction_model.npy', history.history)
+			np.save('../tensorflow_models/domenico_demand_prediction_model/demand_prediction_model.npy', history.history)
 
-			output_filename_full_fitted_model = 'tensorflow_models/domenico_demand_prediction_model'
+			output_filename_full_fitted_model = '../tensorflow_models/domenico_demand_prediction_model'
 			model.save(output_filename_full_fitted_model)
 
 			print("Model saved to: " + output_filename_full_fitted_model)

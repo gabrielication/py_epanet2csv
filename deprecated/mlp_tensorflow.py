@@ -30,7 +30,7 @@ def is_gpu_supported():
 def clean_old_models(model_path):
     print("FRESH START ENABLED. Cleaning ALL old models and their files...")
 
-    for filename in Path(".").glob(model_path):
+    for filename in Path("..").glob(model_path):
         try:
             shutil.rmtree(filename)
 
@@ -552,7 +552,7 @@ if __name__ == "__main__":
     # This bool will determine if the (new) fitted model will be saved to the path and names indicated above
     save_model_bool = True
 
-    folder_path = "tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
+    folder_path = "../tensorflow_datasets/one_res_small/gabriele_marzo_2023/"
     filename = "2M_one_res_small_rand_leaks_rand_no_leaks_rand_bd.csv"
 
     features = ['base_demand', 'demand_value', 'head_value', 'pressure_value', 'x_pos', 'y_pos']

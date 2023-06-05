@@ -23,14 +23,14 @@ from tensorflow.keras import layers
 def clean_old_files():
     print("FRESH START ENABLED. Cleaning ALL old models and their files...")
 
-    for filename in Path(".").glob("*.png"):
+    for filename in Path("..").glob("*.png"):
         try:
             os.remove(filename)
             print(str(filename) + " deleted")
         except OSError:
             print("\nError while deleting " + str(filename) + "\n")
 
-    for filename in Path(".").glob("my_model"):
+    for filename in Path("..").glob("my_model"):
         try:
             shutil.rmtree(filename)
 
@@ -38,7 +38,7 @@ def clean_old_files():
         except OSError:
             print("\nError while deleting " + str(filename) + "\n")
 
-    for filename in Path(".").glob("my_history.npy"):
+    for filename in Path("..").glob("my_history.npy"):
         try:
             os.remove(filename)
             print(str(filename) + " deleted")
@@ -50,7 +50,7 @@ def clean_old_files():
 def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat, save_model=True, visualize_model_bool=True):
     input_filename_full_fitted_model = ""
 
-    for filename in Path(".").glob("my_model"):
+    for filename in Path("..").glob("my_model"):
         input_filename_full_fitted_model = str(filename)
 
         # cheap hack. we just have one model file. break at first finding.
@@ -80,7 +80,7 @@ def fit_and_or_load_model(train_features, train_labels, epochs, validation_split
         if(save_model):
             np.save('tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1W/my_history.npy', history.history)
 
-            output_filename_full_fitted_model = 'tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1W/my_model'
+            output_filename_full_fitted_model = '../tensorflow_datasets/one_res_small/no_leaks_rand_base_demand/1W/my_model'
             model.save(output_filename_full_fitted_model)
 
             print("Model saved to: " + output_filename_full_fitted_model)

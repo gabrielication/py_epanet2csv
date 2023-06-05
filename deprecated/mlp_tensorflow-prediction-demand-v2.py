@@ -26,14 +26,14 @@ from tensorflow.keras import Sequential
 def clean_old_files():
 	print("FRESH START ENABLED. Cleaning ALL old models and their files...")
 
-	for filename in Path(".").glob("*.png"):
+	for filename in Path("..").glob("*.png"):
 		try:
 			os.remove(filename)
 			print(str(filename) + " deleted")
 		except OSError:
 			print("\nError while deleting " + str(filename) + "\n")
 
-	for filename in Path(".").glob("my_model"):
+	for filename in Path("..").glob("my_model"):
 		try:
 			shutil.rmtree(filename)
 
@@ -41,7 +41,7 @@ def clean_old_files():
 		except OSError:
 			print("\nError while deleting " + str(filename) + "\n")
 
-	for filename in Path(".").glob("my_history.npy"):
+	for filename in Path("..").glob("my_history.npy"):
 		try:
 			os.remove(filename)
 			print(str(filename) + " deleted")
@@ -53,7 +53,7 @@ def clean_old_files():
 def fit_and_or_load_model(train_features, train_labels, epochs, validation_split, batch_size, callbacks, complete_path_stat, save_model=True, visualize_model_bool=True):
 	input_filename_full_fitted_model = ""
 
-	for filename in Path(".").glob("my_model"):
+	for filename in Path("..").glob("my_model"):
 		input_filename_full_fitted_model = str(filename)
 
 		# cheap hack. we just have one model file. break at first finding.
