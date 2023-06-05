@@ -34,6 +34,7 @@ def pick_rand_group_leaks(wn, number_of_junctions_with_leaks, leak_group, leak_n
                       "8792", "8722", "8726", "8724", "8744", "8736", "8728", "8670", "8734", "7384"]
 
     # random_group = np.random.random_integers(8)
+    print("**************** TEST leak group : ", leak_group)
     random_group = leak_group #5
     selected_junctions = node_names[((random_group-1)*10)+leak_node:((random_group-1)*10)+leak_node+1]
 
@@ -212,6 +213,8 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
                 nodeGroupInfo.append(flow_demand)
                 nodeGroupInfo.append(group_has_leak)
 
+                print("nodeIndex : ",nodeIndex,  " - group has leak : ",group_has_leak)
+
             nodeIndex += 1
 
             # end_node_values = []
@@ -282,6 +285,8 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
 
             if len(nodeGroupInfo)>5*6:
                 writer.writerow(out_row)
+
+        # sys.exit(1)
 
 
     out.close()
@@ -479,7 +484,7 @@ def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_b
 
     return results_list
 
-def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files=False):
+def merge_multiple_datasets(exported_path, datasets_to_merge, output_filename, delete_old_files=False):
     print("Merging CSVs...")
 
     if(delete_old_files):
@@ -489,7 +494,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
 
     print("Merging these datasets:")
 
-    output_filename_merge = output_filename+"_merged.csv"
+    output_filename_merge = exported_path + output_filename+"_merged.csv"
 
     pd.options.display.float_format = '{:,.8f}'.format
 
@@ -543,7 +548,7 @@ def merge_multiple_datasets(datasets_to_merge, output_filename, delete_old_files
     print()
     print("Merge finished. Final csv saved to: "+output_filename_merge)
 
-def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
+def merge_multiple_stats(exported_path, stats_to_merge, out_filename, delete_old_files=False):
     print("merge_multiple_stats is currently UNSUPPORTED! (will delete old files anyway...)")
 
     for path in stats_to_merge:
@@ -554,7 +559,7 @@ def merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=False):
             else:
                 print("Deletion NOT successful!: " + path)
 
-def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
+def run_multiple_sims(exported_path, sim_folder_path, input_file_inp, sim_duration, out_filename, number_of_sims,
                       leaks_enabled=False, leak_area_size=0.0000001, random_base_demands=False,
                       min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
                       delete_old_files=False, merge_csv=True, fixed_leaks=False):
@@ -579,11 +584,11 @@ def run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, out_filenam
 
         print()
 
-        merge_multiple_datasets(datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+        merge_multiple_datasets(exported_path, datasets_to_merge, out_filename, delete_old_files=delete_old_files)
 
         print()
 
-        merge_multiple_stats(stats_to_merge, out_filename, delete_old_files=delete_old_files)
+        merge_multiple_stats(exported_path, stats_to_merge, out_filename, delete_old_files=delete_old_files)
 
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
@@ -592,69 +597,78 @@ if __name__ == "__main__":
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
 
+    exported_path = 'tensorflow_group_datasets/one_res_small/1_at_82_leaks_rand_base_demand/'
+
 
     leaks_enabled = True  # switch this to True to enable leaks assignments
     leak_area = "0164" #"0246"  # "0164"
-    leak_group = 1
-    leak_node = 1
-    out_filename = "M_one_res_small_leaks_ordered_group_"+str(leak_group)+"_node_"+str(leak_node)+ "_" + leak_area
 
-    # leaks_enabled = True  # switch this to True to enable leaks assignments
-    fixed_leaks = True  # switch this to True to have the random picks for nodes executed only once in multiple sims
-    # leak_area_size = 0.0002 * 82 / 2  # 0.0000001  # area of the "hole" of the leak
-    # leak_area_size = 0.0002 * 82 / 2 / 10  # 0.0000001  # area of the "hole" of the leak
+    for leak_group_index in range(1,8,1):
+        for leak_node_index in range(1,10,1):
+    # for leak_group_index in range(3, 8, 1):
+    #     for leak_node_index in range(5, 10, 1):
 
-    if leak_area=="0164":
-        leak_area_size = 0.0002 * 82 / 2   # 0.0082  # area of the "hole" of the leak
-    elif leak_area=="0246":
-        leak_area_size = 0.0002 * 82 * 1.5  # 0.082  # area of the "hole" of the leak
-    else:
-        print("select leak area")
-        sys.exit(1)
+            leak_group = leak_group_index
+            leak_node = leak_node_index
 
-    # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
-    # out_filename = "M_one_res_small_no_leaks_rand_bd_filtered"
-    # out_filename = "M_one_res_small_no_leaks_pattern_bd_filtered"
-    # out_filename = "M_one_res_small_leaks_rand_bd_8620_node"
+            out_filename = "M_one_res_small_leaks_ordered_group_"+str(leak_group)+"_node_"+str(leak_node)+ "_" + leak_area
 
-    random_base_demands = True  # switch this to True to enable random base demand assignments
-    # out_filename = "M_one_res_small_no_leaks_ordered_group"
+            # leaks_enabled = True  # switch this to True to enable leaks assignments
+            fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
+            # leak_area_size = 0.0002 * 82 / 2  # 0.0000001  # area of the "hole" of the leak
+            # leak_area_size = 0.0002 * 82 / 2 / 10  # 0.0000001  # area of the "hole" of the leak
 
-    # random_base_demands = True  # switch this to True to enable random base demand assignments
-    min_bd = 0  # minimum possible random base demand
-    max_bd = 0.01  # maximum possible random base demand
+            if leak_area=="0164":
+                leak_area_size = 0.0002 * 82 / 2   # 0.0082  # area of the "hole" of the leak
+            elif leak_area=="0246":
+                leak_area_size = 0.0002 * 82 * 1.5  # 0.082  # area of the "hole" of the leak
+            else:
+                print("select leak area")
+                sys.exit(1)
 
-    min_press = 3.516   # 5 psi = 3.516 m
-    req_press = 21.097  # 30 psi = 21.097 m
+            # out_filename = "M_one_res_small_fixed_leaks_rand_bd"
+            # out_filename = "M_one_res_small_no_leaks_rand_bd_filtered"
+            # out_filename = "M_one_res_small_no_leaks_pattern_bd_filtered"
+            # out_filename = "M_one_res_small_leaks_rand_bd_8620_node"
 
-    file_timestamp = True  # switch this to True to write a current timestamp to the output filename
+            random_base_demands = True  # switch this to True to enable random base demand assignments
+            # out_filename = "M_one_res_small_no_leaks_ordered_group"
 
-    # SINGLE EXECUTION
+            # random_base_demands = True  # switch this to True to enable random base demand assignments
+            min_bd = 0  # minimum possible random base demand
+            max_bd = 0.01  # maximum possible random base demand
 
-    # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
-    #         leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-    #         random_base_demands=random_base_demands, file_timestamp=file_timestamp)
+            min_press = 3.516   # 5 psi = 3.516 m
+            req_press = 21.097  # 30 psi = 21.097 m
 
-    # MULTIPLE EXECUTION
-    # Needed when some networks present strange behavior (e.g., demand = 0) when ran for a lot of hours
+            file_timestamp = True  # switch this to True to write a current timestamp to the output filename
 
-    merge_csv = True  # switch this to True to merge CSVs into one
-    delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
+            # SINGLE EXECUTION
 
-    sim_duration = 24 * 3600  # hours in seconds
+            # run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename,
+            #         leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+            #         random_base_demands=random_base_demands, file_timestamp=file_timestamp)
 
-    # for i in range (1,5):
-    for i in range(1, 2):
-        number_of_sims = i * 7 * 4
-        temp_filename = str(i)+out_filename
+            # MULTIPLE EXECUTION
+            # Needed when some networks present strange behavior (e.g., demand = 0) when ran for a lot of hours
 
-        print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
+            merge_csv = True  # switch this to True to merge CSVs into one
+            delete_old_files = True  # switch this to True to delete old unmerged CSVs after merging them into one
 
-        run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
-                          leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
-                          random_base_demands=random_base_demands,
-                          min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
-                          file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
-                          fixed_leaks=fixed_leaks)
+            sim_duration = 24 * 3600  # hours in seconds
+
+            # for i in range (1,5):
+            for i in range(1, 2):
+                number_of_sims = i * 7 * 4
+                temp_filename = str(i)+out_filename
+
+                print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
+
+                run_multiple_sims(exported_path, sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
+                                  leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
+                                  random_base_demands=random_base_demands,
+                                  min_bd=min_bd, max_bd=max_bd, min_press=min_press, req_press=req_press,
+                                  file_timestamp=file_timestamp, delete_old_files=delete_old_files, merge_csv=merge_csv,
+                                  fixed_leaks=fixed_leaks)
 
     print("\nExiting...")
