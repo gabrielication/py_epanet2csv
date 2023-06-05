@@ -686,25 +686,23 @@ def run_multiple_sims_with_rand_leaks(sim_folder_path, input_file_inp, sim_durat
 if __name__ == "__main__":
     print("******   py_epanet started!  ******\n")
 
-    # input_file_inp = "Net3.inp"
-    input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
-
+    input_file_inp = "8_junctions_1_res.inp"
 
     # leaks_enabled = False  # switch this to True to enable leaks assignments
     # out_filename = "M_one_res_small_no_leaks_rand_bd_ordered"
 
-    leaks_enabled = True  # switch this to True to enable leaks assignments
+    leaks_enabled = False  # switch this to True to enable leaks assignments
     fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
     leak_area_size = 0.00025  # 0.0000001  # area of the "hole" of the leak
     # leak_area_size = 0.03  # 0.0000001  # area of the "hole" of the leak
 
-    out_filename = "M_one_res_small_fixed_leaks_rand_bd"
+    out_filename = "Y_8_juncs_1_res_no_leak_rand_bd"
     # out_filename = "M_one_res_small_8668_leak_rand_bd"
 
     random_base_demands = True  # switch this to True to enable random base demand assignments
-    min_bd = 0  # minimum possible random base demand
-    max_bd = 0.01  # maximum possible random base demand
+    min_bd = 100  # minimum possible random base demand
+    max_bd = 150  # maximum possible random base demand
 
     min_press = 3.516   # 5 psi = 3.516 m
     req_press = 21.097  # 30 psi = 21.097 m
@@ -748,7 +746,7 @@ if __name__ == "__main__":
 
     # for i in range (1,5):
     for i in range(1, 2):
-        number_of_sims = i * 7 * 4
+        number_of_sims = (i * 7 * 4) * 12
         temp_filename = str(i)+out_filename
 
         # temp_filename = "tiziana_datasets/"+temp_filename
