@@ -871,13 +871,16 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 
 	fig2, axs2 = plt.subplots(1, 1, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
 	colorIndex = 0
+
 	for jj in range(0,80,1):
 		# print(jj)
 		node = nodeList[jj]
 		cs = colors[colorIndex]
 		lostDemandToPlot = nodeGroup.loc[node, colsCoordinates]
 		axs2.scatter(lostDemandToPlot['x_pos'], lostDemandToPlot['y_pos'], marker='o', c=cs, s=30)
-		if jj%10==0:
+
+		# if jj%10==0:
+		if jj == 30 or jj == 40:
 			colorIndex += 1
 
 
@@ -918,81 +921,81 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 
 
 
-	cols = ["lost_0",  "lost_1", "lost_2",
-			"lost_3",  "lost_4", "lost_5",
-			"lost_6",  "lost_7", "lost_8",
-			"lost_9" ]
-
-
-	for ii in range(0,1):
-		print("FIGURE : ", ii)
-		# fig = plt.figure()
-		fig, axs = plt.subplots(1, 1, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
-		# if ii<3:
-		# 	fig, axs = plt.subplots(4, 6, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
-		# else:
-		# 	fig, axs = plt.subplots(2, 6, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
-		# fig.suptitle('Sharing both axes')
-
-		# nodeGroup = data[0:int(24*82)].groupby('nodeID').mean()
-		# nodeLeakageGroup = data_leakage[0:int(24*82)].groupby('nodeID').mean()
-
-		# nodeGroup = data[0:int(24*82)].groupby('nodeID').mean()
-		# nodeLeakageGroup = data_leakage[0:int(24*82)].groupby('nodeID').mean()
-
-
-
-		colorIndex = 0
-		for jj in range(0,80,10):
-			# print(jj)
-			node = nodeList[jj]
-			print("SUBPLOT node : ", node)
-			# ax1 = fig.add_subplot(4, 6, nodeIndex)
-
-			# dataToPlot = data.loc[(data['nodeID'] == node)]
-
-			#hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
-			# baseDemandToPlot = dataToPlot['base_demand'].values #*  3.785412 * 60
-			# leakDemandToPlot = dataToPlot['leak_demand_value'].values #*  3.785412 * 60
-			# demandToPlot = dataToPlot['demand_value'].values #*  3.785412 * 60
-
-			# lostDemandToPlot = dataToPlot.loc[jj, cols]
-
-			lostDemandToPlot = nodeGroup.loc[node, cols]
-			leakageLostDemandPlot = nodeLeakageGroup.loc[node, cols]
-			leakage2LostDemandPlot = nodeLeakageGroup2.loc[node, cols]
-
-			# for c, k in zip(colors, yticks):
-			cs = colors[colorIndex]
-			colorIndex += 1
-			# k = yticks[nodeIndex];
-
-			# create data for the y=k 'layer'.
-			xs = np.arange(len(lostDemandToPlot))
-
-
-			# Plot the bar graph given by xs and ys on the plane y=k with 80% opacity.
-			# ax1.bar(xs, ys, k, zdir='y', color=cs, alpha=0.8)
-			# ax1.plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
-			# ax1.plot(xs, demandToPlot, label='Demand value node ' + str(node))
-
-			# print(plotIndexRow, ' : ', plotIndexColumn)
-
-			# axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
-			# axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ' + str(node))
-
-			# axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node')
-			# axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ')
-			# axs[plotIndexRow, plotIndexColumn].plot(xs, leakDemandToPlot, label='Leak Demand value node ')
-			#
-			# axs[plotIndexRow, plotIndexColumn].plot(xs, lostDemandToPlot, label='Lost Demand group ')
-			axs.plot(xs, lostDemandToPlot, linestyle='-', color=cs, label='Lost D G '+str(jj))
-			axs.plot(xs, leakageLostDemandPlot, linestyle='--', color=cs, label='Lost leak D G '+str(jj))
-			axs.plot(xs, leakage2LostDemandPlot, linestyle='-.', color=cs, label='Lost leak D G '+str(jj))
-
-			axs.set_xlabel('Nodes')
-			axs.set_ylabel('[G/M]')
-
+	# cols = ["lost_0",  "lost_1", "lost_2",
+	# 		"lost_3",  "lost_4", "lost_5",
+	# 		"lost_6",  "lost_7", "lost_8",
+	# 		"lost_9" ]
+	#
+	#
+	# for ii in range(0,1):
+	# 	print("FIGURE : ", ii)
+	# 	# fig = plt.figure()
+	# 	fig, axs = plt.subplots(1, 1, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+	# 	# if ii<3:
+	# 	# 	fig, axs = plt.subplots(4, 6, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+	# 	# else:
+	# 	# 	fig, axs = plt.subplots(2, 6, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+	# 	# fig.suptitle('Sharing both axes')
+	#
+	# 	# nodeGroup = data[0:int(24*82)].groupby('nodeID').mean()
+	# 	# nodeLeakageGroup = data_leakage[0:int(24*82)].groupby('nodeID').mean()
+	#
+	# 	# nodeGroup = data[0:int(24*82)].groupby('nodeID').mean()
+	# 	# nodeLeakageGroup = data_leakage[0:int(24*82)].groupby('nodeID').mean()
+	#
+	#
+	#
+	# 	colorIndex = 0
+	# 	for jj in range(0,80,10):
+	# 		# print(jj)
+	# 		node = nodeList[jj]
+	# 		print("SUBPLOT node : ", node)
+	# 		# ax1 = fig.add_subplot(4, 6, nodeIndex)
+	#
+	# 		# dataToPlot = data.loc[(data['nodeID'] == node)]
+	#
+	# 		#hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
+	# 		# baseDemandToPlot = dataToPlot['base_demand'].values #*  3.785412 * 60
+	# 		# leakDemandToPlot = dataToPlot['leak_demand_value'].values #*  3.785412 * 60
+	# 		# demandToPlot = dataToPlot['demand_value'].values #*  3.785412 * 60
+	#
+	# 		# lostDemandToPlot = dataToPlot.loc[jj, cols]
+	#
+	# 		lostDemandToPlot = nodeGroup.loc[node, cols]
+	# 		leakageLostDemandPlot = nodeLeakageGroup.loc[node, cols]
+	# 		leakage2LostDemandPlot = nodeLeakageGroup2.loc[node, cols]
+	#
+	# 		# for c, k in zip(colors, yticks):
+	# 		cs = colors[colorIndex]
+	# 		colorIndex += 1
+	# 		# k = yticks[nodeIndex];
+	#
+	# 		# create data for the y=k 'layer'.
+	# 		xs = np.arange(len(lostDemandToPlot))
+	#
+	#
+	# 		# Plot the bar graph given by xs and ys on the plane y=k with 80% opacity.
+	# 		# ax1.bar(xs, ys, k, zdir='y', color=cs, alpha=0.8)
+	# 		# ax1.plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
+	# 		# ax1.plot(xs, demandToPlot, label='Demand value node ' + str(node))
+	#
+	# 		# print(plotIndexRow, ' : ', plotIndexColumn)
+	#
+	# 		# axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
+	# 		# axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ' + str(node))
+	#
+	# 		# axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node')
+	# 		# axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ')
+	# 		# axs[plotIndexRow, plotIndexColumn].plot(xs, leakDemandToPlot, label='Leak Demand value node ')
+	# 		#
+	# 		# axs[plotIndexRow, plotIndexColumn].plot(xs, lostDemandToPlot, label='Lost Demand group ')
+	# 		axs.plot(xs, lostDemandToPlot, linestyle='-', color=cs, label='Lost D G '+str(jj))
+	# 		axs.plot(xs, leakageLostDemandPlot, linestyle='--', color=cs, label='Lost leak D G '+str(jj))
+	# 		axs.plot(xs, leakage2LostDemandPlot, linestyle='-.', color=cs, label='Lost leak D G '+str(jj))
+	#
+	# 		axs.set_xlabel('Nodes')
+	# 		axs.set_ylabel('[G/M]')
+	#
 
 
 	cols = ["pressure_0",  "pressure_1", "pressure_2",
@@ -1114,7 +1117,7 @@ if __name__ == "__main__":
 
 	### 1M no leak
 	folder_network = "one_res_small/no_leaks_rand_base_demand/"
-	input_full_dataset = folder_network + '1M_one_res_small_no_leaks_ordered_group_merged.csv'
+	input_full_dataset = folder_network + '1M_one_res_small_leaks_ordered_group_0_node_0_0164_merged.csv'
 	complete_path = folder_input + input_full_dataset
 
 	### 1M leak

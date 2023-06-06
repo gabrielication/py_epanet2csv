@@ -649,7 +649,7 @@ if __name__ == "__main__":
         temp_filename = str(i)+out_filename
 
         print("i: ",i, " number_of_sims: ",number_of_sims, " out: ",temp_filename)
-
+        print("test")
         run_multiple_sims(sim_folder_path, input_file_inp, sim_duration, temp_filename, number_of_sims,
                           leaks_enabled=leaks_enabled, leak_area_size=leak_area_size,
                           random_base_demands=random_base_demands,
