@@ -151,7 +151,7 @@ def process_dataset_for_regression(input_filename, output_filename):
 if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
-    input_filename = "1Y_8_junctions_1_res_no_leaks_rand_bd_merged.csv"
+    input_filename = "tensorflow_datasets/8_juncs_1_res/1Y_8_junctions_1_res_no_leaks_rand_bd_merged.csv"
     output_filename = "1Y_8_junctions_1_res_no_leaks_rand_bd_conv1d_regression"
 
     # process_dataset_for_binary_classification(input_filename, output_filename)

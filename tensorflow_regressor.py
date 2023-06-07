@@ -178,7 +178,6 @@ def evaluate_and_predict_leakages(X, y=None, model=None, history=None, load_mode
 
     print("Generate predictions for 3 samples")
     predictions = model.predict(X[:3])
-    predictions_binary = np.where(predictions > 0.5, 1, 0)
 
     print("predictions shape:", predictions.shape)
 
@@ -195,14 +194,14 @@ if __name__ == "__main__":
     # filename_val = "conv1d_rand_leaks_each_sim_transposed_dataset.pickle"
 
     # Where to save/load the fitted model and its history file
-    model_path_filename = "tensorflow_models/classification_1Y_processed"
-    history_path_filename = "classification_history_model"
+    model_path_filename = "tensorflow_models/regression_1Y_processed"
+    history_path_filename = "regression_history_model"
 
     # This bool will determine if the (new) fitted model will be saved to the path and names indicated above
     save_model_bool = True
 
     # epochs during fit
-    epochs = 100
+    epochs = 50
 
     # batch size to be used during fit
     batch_size = 32
@@ -216,16 +215,25 @@ if __name__ == "__main__":
     # This int determines how many epochs should we monitor before stopping fitting if the situation does not improve
     patience_early_stop = 100
 
-    nn_regressor(folder_path, filename, epochs, batch_size=batch_size,
-                  model_path_filename=model_path_filename, history_path_filename=history_path_filename,
-                  validation_split=validation_split, patience_early_stop=patience_early_stop,
-                  save_model_bool=save_model_bool)
+    # nn_regressor(folder_path, filename, epochs, batch_size=batch_size,
+    #               model_path_filename=model_path_filename, history_path_filename=history_path_filename,
+    #               validation_split=validation_split, patience_early_stop=patience_early_stop,
+    #               save_model_bool=save_model_bool)
 
-    # folder_path = "tensorflow_datasets/one_res_small/gabriele_maggio_2023/"
-    # filename = "1M_conv1d_rand_leaks_rand_bd_transposed_dataset.pickle"
-    #
+    # folder_path = "tensorflow_datasets/8_juncs_1_res/"
+    # filename = "1M_8_junctions_1_res_no_leaks_rand_bd_regression_validation.pickle"
+    # #
     # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
-    #
-    # model_path_filename = "tensorflow_models/91ACCURACY_classification_1Y_processed_2023-05-17_18_28_31_052484"
-    #
+    # #
+    # model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
+    # #
     # evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
+
+    folder_path = "tensorflow_datasets/8_juncs_1_res/"
+    filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation.pickle"
+    #
+    X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+    #
+    model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
+    #
+    evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
