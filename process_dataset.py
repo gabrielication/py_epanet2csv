@@ -116,13 +116,13 @@ def process_dataset_for_regression(input_filename, output_filename):
             else:
                 node_type = 1.0
 
-            base_demand = float(temp.iloc[-1]["base_demand"])
-            head_value = float(temp.iloc[-1]["head_value"])
-            pressure_value = float(temp.iloc[-1]["pressure_value"])
+            base_demand = float(temp.iloc[-1]["base_demand"]) * 1000
+            head_value = float(temp.iloc[-1]["head_value"]) * 1000
+            pressure_value = float(temp.iloc[-1]["pressure_value"]) * 1000
             x_pos = float(temp.iloc[-1]["x_pos"])
             y_pos = float(temp.iloc[-1]["y_pos"])
 
-            demand_value = float(temp.iloc[-1]["demand_value"])
+            demand_value = float(temp.iloc[-1]["demand_value"]) * 1000
             demands_temp.append(demand_value)
 
             output = [node_type, base_demand, head_value, pressure_value, x_pos, y_pos]
@@ -151,8 +151,8 @@ def process_dataset_for_regression(input_filename, output_filename):
 if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
-    input_filename = "tensorflow_datasets/8_juncs_1_res/1Y_8_junctions_1_res_no_leaks_rand_bd_merged.csv"
-    output_filename = "1Y_8_junctions_1_res_no_leaks_rand_bd_conv1d_regression"
+    input_filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation_merged.csv"
+    output_filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation"
 
     # process_dataset_for_binary_classification(input_filename, output_filename)
 

@@ -220,20 +220,20 @@ if __name__ == "__main__":
     #               validation_split=validation_split, patience_early_stop=patience_early_stop,
     #               save_model_bool=save_model_bool)
 
-    # folder_path = "tensorflow_datasets/8_juncs_1_res/"
-    # filename = "1M_8_junctions_1_res_no_leaks_rand_bd_regression_validation.pickle"
-    # #
-    # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
-    # #
-    # model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
-    # #
-    # evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
-
     folder_path = "tensorflow_datasets/8_juncs_1_res/"
-    filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation.pickle"
+    filename = "1M_8_junctions_1_res_no_leaks_rand_bd_regression_validation.pickle"
     #
     X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
     #
     model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
     #
     evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
+
+    # folder_path = "tensorflow_datasets/8_juncs_1_res/"
+    # filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation.pickle"
+    # #
+    # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+    # #
+    # model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
+    # #
+    # evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
