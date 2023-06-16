@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import csv
 import os
 import shutil
 from datetime import datetime
@@ -7,14 +8,13 @@ from pathlib import Path
 
 import tensorflow as tf
 import tensorflow_addons as tfa
+import visualkeras
 
 from tensorflow.keras.layers import Dense, Flatten, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import BatchNormalization
 
 from sklearn.model_selection import train_test_split
-
-# from keras_visualizer import visualizer
 
 def is_gpu_supported():
     gpu_list = tf.config.list_physical_devices('GPU')
@@ -27,6 +27,11 @@ def is_gpu_supported():
         print("GPU SUPPORTED: ", gpu_list)
 
         return True
+
+def visualize_model(model_path_filename, history_path_filename):
+    model, history = load_model(model_path_filename, history_path_filename)
+
+    visualkeras.layered_view(model, legend=False, spacing=200, scale_xy=10).show()
 
 def clean_old_models(model_path):
     print("FRESH START ENABLED. Cleaning ALL old models and their files...")
@@ -177,10 +182,33 @@ def evaluate_and_predict_leakages(X, y=None, model=None, history=None, load_mode
     print("test loss, test acc:", results)
 
     print("Generate predictions for 3 samples")
-    predictions = model.predict(X[:3])
+    predictions = model.predict(X[:10])
 
     print("predictions shape:", predictions.shape)
 
+    output_csv_with_predictions_diff(y[:10], predictions)
+
+def output_csv_with_predictions_diff(true_values, pred_values, output_filename):
+    # Calculate the difference between array1 and array2
+    difference = true_values - pred_values
+
+    # Define the CSV file path
+    csv_file = output_filename
+
+    # Write the data to CSV
+    with open(csv_file, "w", newline="") as file:
+        writer = csv.writer(file, delimiter=";")
+        writer.writerow(["True Values", "Predictions", "Difference"])  # Write header
+
+        for i in range(true_values.shape[0]):
+            for j in range(true_values.shape[1]):
+                true = format(true_values[i][j], '.4f').replace('.', ',')
+                pred = format(pred_values[i][j], '.4f').replace('.', ',')
+                diff = format(difference[i][j], '.4f').replace('.', ',')
+
+                writer.writerow([true, pred, diff])
+
+    print(f"CSV file '{csv_file}' created successfully.")
 
 if __name__ == "__main__":
     print('Tensorflow ', tf.__version__)
@@ -215,19 +243,19 @@ if __name__ == "__main__":
     # This int determines how many epochs should we monitor before stopping fitting if the situation does not improve
     patience_early_stop = 100
 
-    # nn_regressor(folder_path, filename, epochs, batch_size=batch_size,
-    #               model_path_filename=model_path_filename, history_path_filename=history_path_filename,
-    #               validation_split=validation_split, patience_early_stop=patience_early_stop,
-    #               save_model_bool=save_model_bool)
+    nn_regressor(folder_path, filename, epochs, batch_size=batch_size,
+                  model_path_filename=model_path_filename, history_path_filename=history_path_filename,
+                  validation_split=validation_split, patience_early_stop=patience_early_stop,
+                  save_model_bool=save_model_bool)
 
-    folder_path = "tensorflow_datasets/8_juncs_1_res/"
-    filename = "1M_8_junctions_1_res_no_leaks_rand_bd_regression_validation.pickle"
-    #
-    X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
-    #
-    model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
-    #
-    evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
+    # folder_path = "tensorflow_datasets/8_juncs_1_res/"
+    # filename = "1M_8_junctions_1_res_no_leaks_rand_bd_regression_validation.pickle"
+
+    # X, y, num_samples, num_features, num_channels = obtain_features_and_labels(folder_path, filename)
+    # #
+    # model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
+    # #
+    # evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
 
     # folder_path = "tensorflow_datasets/8_juncs_1_res/"
     # filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation.pickle"
@@ -237,3 +265,4 @@ if __name__ == "__main__":
     # model_path_filename = "tensorflow_models/regression_1Y_processed_2023-06-07_16_47_27_362593"
     # #
     # evaluate_and_predict_leakages(X, y, load_model_bool=True, model_path=model_path_filename, history_path=history_path_filename)
+
