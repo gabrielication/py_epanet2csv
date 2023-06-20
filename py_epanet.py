@@ -157,9 +157,9 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
 
     header = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
-              "leak_area_value", "leak_discharge_value",
-              "leak_demand_value",
-              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand", "end_node_link"]
+              "leak_area_value", "leak_discharge_value", "leak_demand_value",
+              "tot_junctions_demand", "tot_leaks_demand","tot_network_demand",
+              "start_node_link", "end_node_link"]
 
     writer.writerow(header)
 
@@ -179,12 +179,15 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             node_obj = wn.get_node(nodeID)
             node_type = node_obj.__class__.__name__
 
+            start_node_values = []
             end_node_values = []
             for linkID in link_names:
                 link_obj = wn.get_link(linkID)
                 # print(link_obj.start_node_name)
                 if link_obj.start_node_name == nodeID:
                     end_node_values.append(link_obj.end_node_name)
+                if link_obj.end_node_name == nodeID:
+                    start_node_values.append(link_obj.start_node_name)
 
             hour_in_seconds = int(timestamp * 3600)
 
@@ -251,7 +254,7 @@ def nodes_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
                        x_pos, y_pos, node_type, has_leak, leak_area_value,
                        leak_discharge_value, leak_demand_value,
-                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str, end_node_values]
+                       tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str, start_node_values, end_node_values]
 
             writer.writerow(out_row)
 

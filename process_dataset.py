@@ -1,6 +1,7 @@
 import pandas as pd
 import warnings
 import numpy as np
+import ast
 
 from sklearn.preprocessing import OneHotEncoder
 
@@ -148,12 +149,72 @@ def process_dataset_for_regression(input_filename, output_filename):
 
     out_df.to_pickle(output_filename+'.pickle')
 
+def create_group(nodeID, group_id, groups_dict, nodes_dict):
+    group = [nodeID]
+    groups_dict[group_id] = group
+    nodes_dict[nodeID] = group_id
+
+def extract_subgroups_from_epanet_network(input_filename, max_number_of_nodes_in_group):
+    df = pd.read_csv(input_filename)
+
+    nodes_df = df[df["hour"] == "0:00:00"][["nodeID","x_pos","y_pos", "start_node_link", "end_node_link"]]
+
+    sorted_coordinates_df = nodes_df.sort_values(by=["x_pos","y_pos"])
+
+    set_of_node_ids = sorted_coordinates_df["nodeID"]
+
+    # Convert array elements to dictionary keys
+    nodes_dict = {elem: -1 for elem in set_of_node_ids}
+
+    groups_dict = {}
+
+    group_id = 0
+
+    for nodeID in nodes_dict.keys():
+        print(nodeID)
+        if (nodes_dict[nodeID] == -1):
+            if(len(groups_dict) > 0):
+                start_nodes = sorted_coordinates_df["start_node_link"]
+                end_nodes = sorted_coordinates_df["end_node_link"]
+
+                index = sorted_coordinates_df[sorted_coordinates_df["nodeID"] == nodeID].index.values[0]
+
+                start_nodes = ast.literal_eval(start_nodes[index])
+                end_nodes = ast.literal_eval(end_nodes[index])
+
+                connected_nodes = start_nodes + end_nodes
+
+                for connected_nodeID in connected_nodes:
+                    connected_group_id = nodes_dict[int(connected_nodeID)]
+                    if (connected_group_id >= 0):
+                        group = groups_dict[connected_group_id]
+                        if (len(group) < max_number_of_nodes_in_group):
+                            group.append(nodeID)
+                            nodes_dict[nodeID] = connected_group_id
+                            break
+
+                if(nodes_dict[nodeID] == -1):
+                    create_group(nodeID, group_id, groups_dict, nodes_dict)
+                    group_id += 1
+            else:
+                create_group(nodeID, group_id, groups_dict, nodes_dict)
+                group_id += 1
+
+    print(groups_dict)
+
+    return groups_dict
+
+
 if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     input_filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation_merged.csv"
     output_filename = "1M_8_junctions_1_res_with_1_leak_rand_bd_validation"
 
+    x = "tensorflow_datasets/8_juncs_1_res/temp.csv"
+
     # process_dataset_for_binary_classification(input_filename, output_filename)
 
-    process_dataset_for_regression(input_filename, output_filename)
+    # process_dataset_for_regression(input_filename, output_filename)
+
+    extract_subgroups_from_epanet_network(x, 2)
