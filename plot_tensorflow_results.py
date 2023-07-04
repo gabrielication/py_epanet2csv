@@ -827,6 +827,10 @@ def plot_model_analysis(path, save=False, show=True):
 
 def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 
+
+
+
+
 	colors = ['black',  'blue', 'red', 'grey', 'brown',  'orange', 'gold', 'yellow', 'cyan', 'pink']
 	nodeList = data.nodeID.unique()
 	print(nodeList)
@@ -843,37 +847,41 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 	nodeLeakageGroup2 = data_leakage_2.groupby('nodeID').mean()
 
 	#print network topology
-	if False:
+	if True:
+		min_x_pos = data["x_pos"].min()
+		min_y_pos = data["y_pos"].min()
 		colsCoordinates = ["x_pos", "y_pos", "has_leak"]
 
 		fig2, axs2 = plt.subplots(1, 1, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
 		colorIndex = 0
 
-		for jj in range(1,81,1):
+		for jj in range(1,76,1):
 			# print(jj)
 			node = nodeList[jj-1]
 			cs = colors[colorIndex]
 			lostDemandToPlot = nodeGroup.loc[node, colsCoordinates]
 
 			if jj % 10 == 0:
-				axs2.scatter(lostDemandToPlot['x_pos'], lostDemandToPlot['y_pos'], marker='o', c=cs, s=30, label = 'Group '+str(colorIndex+1))
-				axs2.annotate(str(nodeGroup.index[jj-1]), xy=(lostDemandToPlot['x_pos'], lostDemandToPlot['y_pos']), xytext=(10,20), textcoords='offset points', fontsize=6)
+				axs2.scatter((lostDemandToPlot['x_pos']-min_x_pos)/1000, (lostDemandToPlot['y_pos']-min_y_pos)/1000, marker='o', c=cs, s=30, label = 'Group '+str(colorIndex+1))
+				# axs2.annotate(str(nodeGroup.index[jj-1]), xy=(lostDemandToPlot['x_pos'], lostDemandToPlot['y_pos']), xytext=(10,20), textcoords='offset points', fontsize=6)
 			else:
-				axs2.scatter(lostDemandToPlot['x_pos'], lostDemandToPlot['y_pos'], marker='o', c=cs, s=30)
-				axs2.annotate(str(nodeGroup.index[jj-1]), xy=(lostDemandToPlot['x_pos'], lostDemandToPlot['y_pos']), xytext=(10,20), textcoords='offset points', fontsize=6)
+				axs2.scatter((lostDemandToPlot['x_pos']-min_x_pos)/1000, (lostDemandToPlot['y_pos']-min_y_pos)/1000, marker='o', c=cs, s=30)
+				# axs2.annotate(str(nodeGroup.index[jj-1]), xy=(lostDemandToPlot['x_pos'], lostDemandToPlot['y_pos']), xytext=(10,20), textcoords='offset points', fontsize=6)
 
 			if jj % 10==0:
 				colorIndex += 1
 
 		axs2.legend(ncol=4, loc='lower right')
-		axs2.set_xlabel('Y')
-		axs2.set_xlabel('X')
+		axs2.set_ylabel('Y [km]')
+		axs2.set_xlabel('X [km]')
+		axs2.set_ylim([-0.2, 3.57])
+
 		output_filename = "tensorflow_group_datasets/fig/node_network_group_position.png"
 		plt.savefig(output_filename, dpi=300, bbox_inches="tight")
 		plt.show()
 
 
-	if True:
+	if False:
 		#average base_demand and demand_value for each node
 		print("FIGURE : average base_demand and demand_value for each node")
 
@@ -1314,48 +1322,48 @@ if __name__ == "__main__":
 	# sys.exit(1)
 
 
-	# folder_input = "tensorflow_group_datasets/"
-	#
-	# ### 1M no leak
-	# folder_network = "one_res_small/no_leaks_rand_base_demand/"
-	# input_full_dataset = folder_network + '1M_one_res_small_leaks_ordered_group_0_node_0_0164_merged.csv'
-	# complete_path = folder_input + input_full_dataset
-	#
-	# ### 1M leak
-	# folder_network_leakage = "one_res_small/1_at_82_leaks_rand_base_demand/"
-	# input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_ordered_group_3_node_4_0164_merged.csv'
-	# complete_path_leakage = folder_input + input_full_dataset_leakage
-	#
-	# ### 1M leak
-	# folder_network_leakage_2 = "one_res_small/1_at_82_leaks_rand_base_demand/"
-	# input_full_dataset_leakage_2 = folder_network_leakage_2 + '1M_one_res_small_leaks_ordered_group_5_node_4_0164_merged.csv'
-	# complete_path_leakage_2 = folder_input + input_full_dataset_leakage_2
-	#
-	# # cols = ["nodeID", "pressure_value", "base_demand", "demand_value", "has_leak"]
-	# cols = None
-	#
-	# # load dati senza perdita
-	# train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
-	# 																									 cols,
-	# 																									 scaling=False,
-	# 																									 pairplot=False)
-	#
-	# # load dati con perdita
-	# train_dataset_leakage, test_dataset_leakage, train_features_leakage, \
-	# 	test_features_leakage, train_labels_leakage, test_labels_leakage = load_dataset(complete_path_leakage,
-	# 																					cols,
-	# 																					scaling=False,
-	# 																					pairplot=False)
-	#
-	# # load dati con perdita 2
-	# train_dataset_leakage_2, test_dataset_leakage_2, train_features_leakage_2, \
-	# 	test_features_leakage_2, train_labels_leakage_2, test_labels_leakage_2 = load_dataset(complete_path_leakage_2,
-	# 																						  cols,
-	# 																						  scaling=False,
-	# 																						  pairplot=False)
-	#
-	# plot_lost_demand(train_dataset, train_dataset_leakage, train_dataset_leakage_2, True, True)
-	# sys.exit(1)
+	folder_input = "tensorflow_group_datasets/"
+
+	### 1M no leak
+	folder_network = "one_res_small/0_no_leaks_rand_base_demand/"
+	input_full_dataset = folder_network + '1M_one_res_small_leaks_ordered_group_0_node_0_0164_merged.csv'
+	complete_path = folder_input + input_full_dataset
+
+	### 1M leak
+	folder_network_leakage = "one_res_small/1_at_82_leaks_rand_base_demand/"
+	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_ordered_group_3_node_4_0164_merged.csv'
+	complete_path_leakage = folder_input + input_full_dataset_leakage
+
+	### 1M leak
+	folder_network_leakage_2 = "one_res_small/1_at_82_leaks_rand_base_demand/"
+	input_full_dataset_leakage_2 = folder_network_leakage_2 + '1M_one_res_small_leaks_ordered_group_5_node_4_0164_merged.csv'
+	complete_path_leakage_2 = folder_input + input_full_dataset_leakage_2
+
+	# cols = ["nodeID", "pressure_value", "base_demand", "demand_value", "has_leak"]
+	cols = None
+
+	# load dati senza perdita
+	train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
+																										 cols,
+																										 scaling=False,
+																										 pairplot=False)
+
+	# load dati con perdita
+	train_dataset_leakage, test_dataset_leakage, train_features_leakage, \
+		test_features_leakage, train_labels_leakage, test_labels_leakage = load_dataset(complete_path_leakage,
+																						cols,
+																						scaling=False,
+																						pairplot=False)
+
+	# load dati con perdita 2
+	train_dataset_leakage_2, test_dataset_leakage_2, train_features_leakage_2, \
+		test_features_leakage_2, train_labels_leakage_2, test_labels_leakage_2 = load_dataset(complete_path_leakage_2,
+																							  cols,
+																							  scaling=False,
+																							  pairplot=False)
+
+	plot_lost_demand(train_dataset, train_dataset_leakage, train_dataset_leakage_2, True, True)
+	sys.exit(1)
 
 
 

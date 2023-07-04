@@ -600,11 +600,11 @@ if __name__ == "__main__":
     exported_path = 'tensorflow_group_datasets/one_res_small/1_at_82_leaks_rand_base_demand/'
 
 
-    leaks_enabled = False  # switch this to True to enable leaks assignments
+    leaks_enabled = True  # switch this to True to enable leaks assignments
     leak_area = "0164" #"0246"  # "0164"
 
-    for leak_group_index in range(5,8,1):
-        for leak_node_index in range(1,10,1):
+    for leak_group_index in range(1,7,1):
+        for leak_node_index in range(10,11,1):
     # for leak_group_index in range(3, 8, 1):
     #     for leak_node_index in range(5, 10, 1):
 
