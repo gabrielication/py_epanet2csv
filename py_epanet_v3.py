@@ -87,7 +87,7 @@ def assign_rand_demand_to_junctions(wn, min_bd, max_bd, pattern=None):
         else:
             junc_obj.list_of_bds = [junc_obj.base_demand]
 
-def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
+def write_results_to_csv(results_node, results_link, sim_duration, wn, out_filename, number_of_nodes_with_leaks, file_timestamp=False):
     print("Printing Nodes CSV. Please wait...")
 
     link_names = wn.link_name_list
@@ -101,24 +101,30 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
 
     nodes_index = [*range(len(node_names))]
 
-    demand_results = results.node['demand']
-    head_results = results.node['head']
-    pressure_results = results.node['pressure']
-    leak_demand_results = results.node["leak_demand"]
+    demand_results = results_node.node['demand']
+    head_results = results_node.node['head']
+    pressure_results = results_node.node['pressure']
+    leak_demand_results = results_node.node["leak_demand"]
+
+    flowrate_results = results_link.node['flowrate']
+    velocity_results = results_link.node['velocity']
+    status_results = results_link.node['status']
 
     sim_duration_in_hours = int(sim_duration / 3600)
 
     now = formatted_datetime()
 
     if(file_timestamp):
-        out_filename_complete = out_filename + "_nodes_output_"+now+".csv"
+        out_filename_complete_node = out_filename + "_nodes_output_"+now+".csv"
+        out_filename_complete_link = out_filename + "_links_output_"+now+".csv"
     else:
-        out_filename_complete = out_filename + "_nodes_output.csv"
+        out_filename_complete_node = out_filename + "_nodes_output.csv"
+        out_filename_complete_link = out_filename + "_links_output.csv"
 
-    out = open(out_filename_complete, "w", newline='', encoding='utf-8')
-    writer = csv.writer(out, delimiter=';')
+    out_node = open(out_filename_complete_node, "w", newline='', encoding='utf-8')
+    writer_node = csv.writer(out_node, delimiter=';')
 
-    header = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
+    header_node = ["hour", "nodeID", "base_demand", "demand_value", "head_value",
               "pressure_value", "x_pos", "y_pos", "node_type", "has_leak",
               "leak_area_value", "leak_discharge_value",
               "leak_demand_value",
@@ -128,16 +134,24 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
               # "lost_3", "head_3", "pressure_3", "lost_4", "head_4", "pressure_4", "lost_5", "head_5", "pressure_5",
               # "lost_6", "head_6", "pressure_6", "lost_7", "head_7", "pressure_7", "lost_8", "head_8", "pressure_8",
               # "lost_9", "head_9", "pressure_9"
-              "flow_demand_in",
-              "demand_0", "head_0", "pressure_0", "demand_1", "head_1", "pressure_1", "demand_2", "head_2", "pressure_2",
-              "demand_3", "head_3", "pressure_3", "demand_4", "head_4", "pressure_4", "demand_5", "head_5", "pressure_5",
-              "demand_6", "head_6", "pressure_6", "demand_7", "head_7", "pressure_7", "demand_8", "head_8", "pressure_8",
-              "demand_9", "head_9", "pressure_9",
-              "flow_demand_out",
-              "leak_group",
+              # "flow_demand_in",
+              # "demand_0", "head_0", "pressure_0", "demand_1", "head_1", "pressure_1", "demand_2", "head_2", "pressure_2",
+              # "demand_3", "head_3", "pressure_3", "demand_4", "head_4", "pressure_4", "demand_5", "head_5", "pressure_5",
+              # "demand_6", "head_6", "pressure_6", "demand_7", "head_7", "pressure_7", "demand_8", "head_8", "pressure_8",
+              # "demand_9", "head_9", "pressure_9",
+              # "flow_demand_out",
+              # "leak_group",
               ]
 
-    writer.writerow(header)
+    writer_node.writerow(header_node)
+
+    out_link = open(out_filename_complete_link, "w", newline='', encoding='utf-8')
+    writer_link = csv.writer(out_link, delimiter=';')
+
+    header_link = ["hour", "linkID", "link_type", "start_node", "end_node", "flowrate", "velocity", "status"]
+
+    writer_link.writerow(header_link)
+
 
     # These two variables are needed for the simulation stats
     tot_juncts_demand_in_entire_simulation = np.float64(0)
@@ -154,6 +168,7 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
 
         nodeGroupInfo = []
         nodeIndex = 0
+        pipeIndex = 0
 
         hour_in_seconds = int(timestamp * 3600)
         flow_demand = demand_results.loc[hour_in_seconds, "7384"]*-1
@@ -162,7 +177,7 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             node_obj = wn.get_node(nodeID)
             node_type = node_obj.__class__.__name__
 
-            if nodeIndex%10==0:
+            if False: #nodeIndex%10==0:
                 # print(nodeIndex)
                 group_has_leak = False
                 nodeGroupInfo = []
@@ -275,26 +290,77 @@ def write_results_to_csv(results, sim_duration, wn, out_filename, number_of_node
             tot_leaks_demand_str = "{:.8f}".format(tot_leaks_demand)
 
 
-            out_row = [hour,nodeID,base_demand, demand_value, head_value, pressure_value,
+            out_row = [hour, nodeID, base_demand, demand_value, head_value, pressure_value,
                        x_pos, y_pos, node_type, has_leak, leak_area_value,
                        leak_discharge_value, leak_demand_value,
                        # tot_junctions_demand_str, tot_leaks_demand_str, tot_network_demand_str, #end_node_values,
                        # leak_group]
                        ]
-            out_row.extend(nodeGroupInfo)
+            # out_row.extend(nodeGroupInfo)
 
-            if len(nodeGroupInfo)>5*6:
-                writer.writerow(out_row)
-
-        # sys.exit(1)
+            writer_node.writerow(out_row)
 
 
-    out.close()
-    print("CSV saved to: "+out_filename_complete+"\n")
+        for linkID in link_names:
+            link_obj = wn.get_link(linkID)
+            # print(linkID)
+            # print(link_obj.start_node_name)
+            # print(link_obj.end_node_name)
+            # print(link_obj.flow)
+            # link_type = link_obj.__class__.__name__
+
+            pipeIndex += 1
+
+            # end_node_values = []
+            # for linkID in link_names:
+            #     link_obj = wn.get_link(linkID)
+            #     # print(link_obj.start_node_name)
+            #     if link_obj.start_node_name == nodeID :
+            #         end_node_values.append(link_obj.end_node_name)
+
+
+            hour = str(timestamp) + ":00:00"
+
+            flow_value = flowrate_results.loc[hour_in_seconds,linkID]
+            velocity_value = velocity_results.loc[hour_in_seconds,linkID]
+            status_value = status_results.loc[hour_in_seconds,linkID]
+
+            # x_pos = node_obj.coordinates[0]
+            # y_pos = node_obj.coordinates[1]
+
+
+            # if node_type == "Pipe":
+            #
+            #     if hasattr(node_obj, 'list_of_bds'):
+            #         #happens if we set random_base_demands to True
+            #         base_demand = node_obj.list_of_bds[timestamp]
+            #     else:
+            #         base_demand = node_obj.demand_timeseries_list[0].base_value
+            #
+            #     base_demand = "{:.8f}".format(base_demand)
+            #
+            #     tot_juncts_demand_in_entire_simulation += demand_value
+            #     tot_juncts_leak_demand_in_entire_simulation += leak_demand_value
+            # else:
+            #     base_demand = 0.0
+            #     demand_value = demand_value * -1
+
+
+            out_row = [hour,linkID, link_obj.link_type, link_obj.start_node_name, link_obj.end_node_name,
+                       flow_value, velocity_value, status_value ]
+
+            writer_link.writerow(out_row)
+
+
+
+    out_node.close()
+    out_link.close()
+    print("CSV saved to: "+out_filename_complete_node+"\n")
+    print("CSV saved to: "+out_filename_complete_link+"\n")
 
     stats_filename = write_simulation_stats(wn, out_filename, tot_juncts_demand_in_entire_simulation, tot_juncts_leak_demand_in_entire_simulation, number_of_nodes_with_leaks, now=now)
 
-    return out_filename_complete, stats_filename
+    return out_filename_complete_node, out_filename_complete_link, stats_filename
 
 def write_simulation_stats(wn, out_file_name, tot_nodes_demand, tot_leak_demand, number_of_nodes_with_leaks, now=None):
     print("Writing simulation stats CSV...")
@@ -377,9 +443,6 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
     # wn.options.hydraulic.required_pressure = 21.097  # 30 psi = 21.097 m
     # wn.options.hydraulic.minimum_pressure = 3.516  # 5 psi = 3.516 m
 
-
-
-
     print("Demand mode: "+str(wn.options.hydraulic.demand_model))
     print("Required pressure: "+str(wn.options.hydraulic.required_pressure))
     print("Minimum pressure: "+str(wn.options.hydraulic.minimum_pressure))
@@ -416,13 +479,15 @@ def run_sim(sim_folder_path, input_file_inp, sim_duration, out_filename, leaks_e
 
         results_list = execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=min_bd, max_bd=max_bd)
 
-        results = make_a_single_results_from_the_list(wn, results_list)
+        results_node, results_link = make_a_single_results_from_the_list(wn, results_list)
     else:
         print("Random Base Demands are NOT enabled")
 
         results = execute_simulation(wn)
+        results_node = results
+        results_link = results
 
-    saved_datasets = write_results_to_csv(results, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
+    saved_datasets = write_results_to_csv(results_node, results_link, sim_duration, wn, out_filename, number_of_junctions_with_leaks, file_timestamp=file_timestamp)
 
     print("Simulation finished")
 
@@ -446,6 +511,10 @@ def make_a_single_results_from_the_list(wn, results_list):
     print(columns)
     node = OrderedDict({'demand': pd.DataFrame(columns=columns), 'head': pd.DataFrame(columns=columns), 'pressure': pd.DataFrame(columns=columns), 'leak_demand': pd.DataFrame(columns=columns)})
 
+    columns_link = wn.link_name_list
+    print(columns_link)
+    link = OrderedDict({'flowrate': pd.DataFrame(columns=columns_link), 'velocity': pd.DataFrame(columns=columns_link), 'status': pd.DataFrame(columns=columns_link)})
+
     for results in results_list:
 
         demand_results = results.node['demand']
@@ -453,15 +522,23 @@ def make_a_single_results_from_the_list(wn, results_list):
         pressure_results = results.node['pressure']
         leak_demand_results = results.node["leak_demand"]
 
+        flow_results = results.link['flowrate']
+        velocity_results = results.link['velocity']
+        status_results = results.link['status']
+
         # merge the two dataframes vertically (row-wise) using pd.concat
         node['demand'] = pd.concat([node['demand'], demand_results], axis=0)
         node['head'] = pd.concat([node['head'], head_results], axis=0)
         node['pressure'] = pd.concat([node['pressure'], pressure_results], axis=0)
         node['leak_demand'] = pd.concat([node['leak_demand'], leak_demand_results], axis=0)
 
-    out = Results(node)
+        link['flowrate'] = pd.concat([link['flowrate'], flow_results], axis=0)
+        link['velocity'] = pd.concat([link['velocity'], velocity_results], axis=0)
+        link['status'] = pd.concat([link['status'], status_results], axis=0)
 
-    return out
+    out_node = Results(node)
+    out_link = Results(link)
+    return out_node, out_link
 
 def execute_simulation_with_random_base_demands(wn, sim_duration_for_wntr, min_bd=0, max_bd=0.000005):
     print("\nRunning simulation...")
@@ -564,7 +641,8 @@ def run_multiple_sims(exported_path, sim_folder_path, input_file_inp, sim_durati
                       min_bd=0, max_bd=0.000005, min_press=0.0, req_press=0.07, file_timestamp=False,
                       delete_old_files=False, merge_csv=True, fixed_leaks=False):
 
-    datasets_to_merge = []
+    datasets_to_merge_node = []
+    datasets_to_merge_link = []
     stats_to_merge = []
 
 
@@ -577,14 +655,16 @@ def run_multiple_sims(exported_path, sim_folder_path, input_file_inp, sim_durati
                                    req_press=req_press, file_timestamp=file_timestamp,
                                    fixed_leaks=fixed_leaks)
 
-        datasets_to_merge.append(results_from_sim[0])
-        stats_to_merge.append(results_from_sim[1])
+        datasets_to_merge_node.append(results_from_sim[0])
+        datasets_to_merge_link.append(results_from_sim[1])
+        stats_to_merge.append(results_from_sim[2])
 
     if(merge_csv):
 
         print()
 
-        merge_multiple_datasets(exported_path, datasets_to_merge, out_filename, delete_old_files=delete_old_files)
+        merge_multiple_datasets(exported_path, datasets_to_merge_node, out_filename+"_node", delete_old_files=delete_old_files)
+        merge_multiple_datasets(exported_path, datasets_to_merge_link, out_filename+"_link", delete_old_files=delete_old_files)
 
         print()
 
@@ -597,21 +677,23 @@ if __name__ == "__main__":
     input_file_inp = "exported_month_large_complete_one_reservoirs_small.inp"
     sim_folder_path = "./networks/"
 
-    exported_path = 'tensorflow_group_datasets/one_res_small/1_at_82_leaks_rand_base_demand/'
+    # exported_path = 'tensorflow_group_datasets/one_res_small/1_at_82_leaks_rand_base_demand/'
+    exported_path = 'graph_models/one_res_small/'
 
 
-    leaks_enabled = True  # switch this to True to enable leaks assignments
+    leaks_enabled = False  # switch this to True to enable leaks assignments
     leak_area = "0164" #"0246"  # "0164"
 
-    for leak_group_index in range(1,7,1):
-        for leak_node_index in range(10,11,1):
-    # for leak_group_index in range(3, 8, 1):
-    #     for leak_node_index in range(5, 10, 1):
+    # for leak_group_index in range(1,7,1):
+    #     for leak_node_index in range(10,11,1):
+    #         leak_group = leak_group_index
+    #         leak_node = leak_node_index
+    if True:
+        if True:
+            leak_group = 0
+            leak_node = 0
 
-            leak_group = leak_group_index
-            leak_node = leak_node_index
-
-            out_filename = "M_one_res_small_leaks_ordered_group_"+str(leak_group)+"_node_"+str(leak_node)+ "_" + leak_area
+            out_filename = "M_one_res_small_leaks_ordered_node_"+str(leak_node)+ "_" + leak_area
 
             # leaks_enabled = True  # switch this to True to enable leaks assignments
             fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims

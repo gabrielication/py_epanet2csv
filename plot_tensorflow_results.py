@@ -676,7 +676,7 @@ def plot_model_analysis(path, save=False, show=True):
 	yticks = [0,1,2,3,4,5,6,7]
 
 
-	for ii in range(1,8):
+	for ii in range(3,5):
 		print("FIGURE : ", ii)
 		# fig = plt.figure()
 
@@ -726,7 +726,7 @@ def plot_model_analysis(path, save=False, show=True):
 
 			# axs[plotIndexRow, plotIndexColumn].plot(xs, baseDemandToPlot, label='Base Demand node ' + str(node))
 			# axs[plotIndexRow, plotIndexColumn].plot(xs, demandToPlot, label='Demand value node ' + str(node))
-			axs.plot(xs, accuracyPlot, label="learning node : "+str(data.loc[(jj-1)*9, 'leak_node_model']))
+			axs.plot(xs, accuracyPlot, label="Model "+str(jj))
 
 			# ls = LightSource(270, 45)
 			# # To use a custom hillshading mode, override the built-in shading and pass
@@ -735,10 +735,11 @@ def plot_model_analysis(path, save=False, show=True):
 			# surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=rgb,
 			#                        linewidth=0, antialiased=False, shade=False)
 
-		axs.set_xlabel('Node for test')
+		axs.set_xlabel('Leakage position')
 		axs.set_ylabel('Accuracy')
-		axs.set_title("group node model : "+str(data.loc[ii, 'leak_group_model']))
-		axs.legend(ncol=2)
+		plt.grid(True)
+		# axs.set_title("group node model : "+str(data.loc[ii, 'leak_group_model']))
+		axs.legend(ncol=3)
 
 
 		plotIndexColumn += 1
@@ -746,7 +747,7 @@ def plot_model_analysis(path, save=False, show=True):
 			plotIndexRow += 1
 			plotIndexColumn = 0
 
-		axs.axis(ymin=0.7, ymax=1.1)
+		axs.axis(ymin=0.8, ymax=1.02)
 		# nodeIndex += 1
 		# # if nodeIndex>len(colors)-1:
 		# if nodeIndex > 24:
@@ -789,7 +790,7 @@ def plot_model_analysis(path, save=False, show=True):
 		#     plot_title = plot_title + "base_demand and pressure"
 		#     output_filename = output_filename + "base_demand_pressure"
 		#
-		output_filename = path + str(ii) + ".png"
+		output_filename = path + str(ii) + ".pdf"
 		#
 		# # plt.yticks(np.arange(0, max(y), 0.00001))
 		#
@@ -871,12 +872,32 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 			if jj % 10==0:
 				colorIndex += 1
 
+		# prepare graphics and add sink
+		if True:
+			axs2.scatter(1.8, 1.7, marker='^', s=120, c='b', label='GW')
+
+			axs2.add_artist(plt.Circle((1.8, 1.7), 2.4, fill=False, color='blue'))
+			axs2.add_artist(plt.Circle((5, 1.7), 2.4, fill=False, color='blue'))
+			axs2.scatter(5, 1.7, marker='^', s=120, c='b')
+			# ax.add_artist(plt.Circle((bsx, bsy), maxDist, fill=False, color='green'))
+			# color = [(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 0, 1), (0, 1, 1), (1, 1, 0)]
+			# all_color = []
+			# for (r, g, b) in color:
+			# 	all_color.append('#%02x%02x%02x' % (int(r * 255), int(g * 255), int(b * 255)))
+			# for ii in [0]:
+			# 	ax.add_artist(plt.Circle((self.x, self.y), all_Dist[ii], fill=False, color=all_color[ii]))
+			# # print(all_Dist[ii])
+			# for ii in [5]:
+			# 	if self.id in [6, 8, 16, 18]:
+			# 		ax.add_artist(plt.Circle((self.x, self.y), all_Dist[ii], fill=False, color=all_color[ii]))
+
+
 		axs2.legend(ncol=4, loc='lower right')
 		axs2.set_ylabel('Y [km]')
 		axs2.set_xlabel('X [km]')
-		axs2.set_ylim([-0.2, 3.57])
+		axs2.set_ylim([-0.8, 4.2])
 
-		output_filename = "tensorflow_group_datasets/fig/node_network_group_position.png"
+		output_filename = "tensorflow_group_datasets/fig/node_network_group_position.pdf"
 		plt.savefig(output_filename, dpi=300, bbox_inches="tight")
 		plt.show()
 
@@ -885,33 +906,33 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 		#average base_demand and demand_value for each node
 		print("FIGURE : average base_demand and demand_value for each node")
 
-		#1
-		# fig = plt.figure()
-		fig, axs = plt.subplots(1, 1, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
-
-		BaseDemandToPlotScenario1 = nodeGroup['base_demand'].values[0:75]
-		BaseDemandToPlotScenario2 = nodeLeakageGroup['base_demand'].values[0:75]
-		BaseDemandToPlotScenario3 = nodeLeakageGroup2['base_demand'].values[0:75]
-		# DemandValueToPlot = nodeGroup['demand_value']
-		# PressureValueToPlot = nodeGroup['pressure_value']
-
-		xs = np.arange(len(BaseDemandToPlotScenario1))
-		cs = colors[0]
-		axs.plot(xs, BaseDemandToPlotScenario1, linestyle='-', color=cs, label='Base demand no leak')
-		cs = colors[1]
-		axs.plot(xs, BaseDemandToPlotScenario2, linestyle='--', color=cs, label='Base demand leak group 3(4)')
-		cs = colors[2]
-		axs.plot(xs, BaseDemandToPlotScenario3, linestyle='-.', color=cs, label='Base demand leak group 5(4)')
-		axs.set_ylim([0, 0.007])
-
-		axs.set_xlabel('Nodes')
-		axs.set_ylabel('[GPM]')
-		axs.legend(ncol=2, loc='upper right')
-
-		if (save):
-			output_filename = "tensorflow_group_datasets/fig/node_network_group_slope_1.png"
-			plt.savefig(output_filename, dpi=300, bbox_inches="tight")
-			print("Saved to: " + output_filename)
+		# #1
+		# # fig = plt.figure()
+		# fig, axs = plt.subplots(1, 1, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+		#
+		# BaseDemandToPlotScenario1 = nodeGroup['base_demand'].values[0:75]
+		# BaseDemandToPlotScenario2 = nodeLeakageGroup['base_demand'].values[0:75]
+		# BaseDemandToPlotScenario3 = nodeLeakageGroup2['base_demand'].values[0:75]
+		# # DemandValueToPlot = nodeGroup['demand_value']
+		# # PressureValueToPlot = nodeGroup['pressure_value']
+		#
+		# xs = np.arange(len(BaseDemandToPlotScenario1))
+		# cs = colors[0]
+		# axs.plot(xs, BaseDemandToPlotScenario1, linestyle='-', color=cs, label='Base demand no leak')
+		# cs = colors[1]
+		# axs.plot(xs, BaseDemandToPlotScenario2, linestyle='--', color=cs, label='Base demand leak group 3(4)')
+		# cs = colors[2]
+		# axs.plot(xs, BaseDemandToPlotScenario3, linestyle='-.', color=cs, label='Base demand leak group 5(4)')
+		# axs.set_ylim([0, 0.007])
+		#
+		# axs.set_xlabel('Nodes')
+		# axs.set_ylabel('[GPM]')
+		# axs.legend(ncol=2, loc='upper right')
+		#
+		# if (save):
+		# 	output_filename = "tensorflow_group_datasets/fig/node_network_group_slope_1.png"
+		# 	plt.savefig(output_filename, dpi=300, bbox_inches="tight")
+		# 	print("Saved to: " + output_filename)
 
 		#2
 		# fig = plt.figure()
@@ -923,12 +944,13 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 
 		xs = np.arange(len(DemandValueToPlotScenario1))
 		cs = colors[0]
-		axs.plot(xs, DemandValueToPlotScenario1, linestyle='-', color=cs, label='demand value no leak')
+		axs.plot(xs, DemandValueToPlotScenario1, linestyle='-', color=cs, label='Demand values in no leak scenario')
 		cs = colors[1]
-		axs.plot(xs, DemandValueToPlotScenario2, linestyle='--', color=cs, label='demand value leak group 3(4)')
+		axs.plot(xs, DemandValueToPlotScenario2, linestyle='--', color=cs, label='Demand values with a leak in group 3')
 		cs = colors[2]
-		axs.plot(xs, DemandValueToPlotScenario3, linestyle='-.', color=cs, label='demand value leak group 5(4)')
+		axs.plot(xs, DemandValueToPlotScenario3, linestyle='-.', color=cs, label='Demand values with a leak in group 5')
 		axs.set_ylim([0, 0.007])
+		axs.set_xlim([0, 75])
 
 
 		for kk in range(10, 71, 10):
@@ -939,12 +961,12 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 
 		axs.set_xlabel('Nodes')
 		axs.set_ylabel('[GPM]')
-		axs.legend(ncol=2, loc='upper right')
+		axs.legend(ncol=1, loc='upper right')
 
 
 
 		if (save):
-			output_filename = "tensorflow_group_datasets/fig/node_network_group_slope_2.png"
+			output_filename = "tensorflow_group_datasets/fig/node_network_group_slope_2.pdf"
 			plt.savefig(output_filename, dpi=300, bbox_inches="tight")
 			print("Saved to: " + output_filename)
 
@@ -958,17 +980,27 @@ def plot_lost_demand(data, data_leakage, data_leakage_2, save=False, show=True):
 
 		xs = np.arange(len(PressureValueToPlotScenario1))
 		cs = colors[0]
-		axs.plot(xs, PressureValueToPlotScenario1, linestyle='-', color=cs, label='pressure value no leak')
+		axs.plot(xs, PressureValueToPlotScenario1, linestyle='-', color=cs, label='Pressure nodes values in no leak scenario')
 		cs = colors[1]
-		axs.plot(xs, PressureValueToPlotScenario2, linestyle='--', color=cs, label='pressure value leak group 3(4)')
+		axs.plot(xs, PressureValueToPlotScenario2, linestyle='--', color=cs, label='Pressure nodes values with a leak in group 3')
 		cs = colors[2]
-		axs.plot(xs, PressureValueToPlotScenario3, linestyle='-.', color=cs, label='pressure value leak group 5(4)')
-		axs.set_xlabel('Nodes')
+		axs.plot(xs, PressureValueToPlotScenario3, linestyle='-.', color=cs, label='Pressure nodes values with a leak in group 5')
+		axs.set_xlabel('Node')
 		axs.set_ylabel('[PSI]')
-		axs.legend(ncol=2, loc='upper right')
+		axs.legend(ncol=1, loc='upper right')
+
+		for kk in range(10, 71, 10):
+			xs = np.ones(41)*kk
+			ys = np.arange(0,41,1)
+			cs = colors[3]
+			axs.plot(xs, ys, linestyle='dotted', color=cs)
+
+		axs.set_ylim([0, 40])
+		axs.set_xlim([0, 75])
+
 
 		if (save):
-			output_filename = "tensorflow_group_datasets/fig/node_network_group_slope_3.png"
+			output_filename = "tensorflow_group_datasets/fig/node_network_group_slope_3.pdf"
 			plt.savefig(output_filename, dpi=300, bbox_inches="tight")
 			print("Saved to: " + output_filename)
 
@@ -1313,9 +1345,10 @@ def plot_model_figure():
 
 if __name__ == "__main__":
 
-	# exported_path = 'tensorflow_group_datasets/fig/'
-	# path_base = exported_path + "report_model_comparison_leak_group_"
-	# plot_model_analysis(path_base, save=True, show=False)
+	exported_path = 'tensorflow_group_datasets/fig/'
+	path_base = exported_path + "report_model_comparison_leak_group_"
+	plot_model_analysis(path_base, save=True, show=True)
+	sys.exit(1)
 
 
 	# plot_model_figure()
