@@ -693,7 +693,7 @@ if __name__ == "__main__":
             leak_group = 0
             leak_node = 0
 
-            out_filename = "M_one_res_small_leaks_ordered_node_"+str(leak_node)+ "_" + leak_area
+            out_filename = "M_one_res_small_leaks_ordered_node_"+str(leak_node)+ "_" + leak_area + "base_demand_001"
 
             # leaks_enabled = True  # switch this to True to enable leaks assignments
             fixed_leaks = False  # switch this to True to have the random picks for nodes executed only once in multiple sims
@@ -718,7 +718,9 @@ if __name__ == "__main__":
 
             # random_base_demands = True  # switch this to True to enable random base demand assignments
             min_bd = 0  # minimum possible random base demand
-            max_bd = 0.01  # maximum possible random base demand
+            # max_bd = 0  # maximum possible random base demand
+            max_bd = 0.001  # maximum possible random base demand
+            # max_bd = 0.01  # maximum possible random base demand
 
             min_press = 3.516   # 5 psi = 3.516 m
             req_press = 21.097  # 30 psi = 21.097 m
