@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 AUTHOR: Domenico Garlisi
 
@@ -7,7 +8,7 @@ USAGE:
 
 	shall 1 (SERVER)
 		cd D:\work\ECOBLU_smart_water\repository
-		python .\occ-test-2_group_stream_process_scalar.py --server server --verbose 1 --logFileName report_compute_latency --serverNotifyIp
+		python .\occ-test-2_group_stream_process_scalar.py --server server --verbose 1 --logFileName report_compute_latency --serverNotifyIp 127.0.0.1
 
 	shall 2
 		cd D:\work\ECOBLU_smart_water\repository
