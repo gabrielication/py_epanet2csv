@@ -8,7 +8,10 @@ import random
 
 from multiprocessing import Process, Lock
 
+
 lock = Lock()
+
+
 
 #MULTIPROCESS GENERATION CURRENTLY DEPRECATED
 class WNTR_Process (Process):

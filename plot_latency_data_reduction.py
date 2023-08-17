@@ -1351,7 +1351,186 @@ def plot_model_figure():
 	tf.keras.utils.plot_model(loaded_model, to_file='model_plot.png', show_shapes=True)
 
 
+
+
+
+def plot_hist_latency(path, save=False, show=True):
+
+	# Fixing random state for reproducibility
+	# np.random.seed(19680801)
+
+
+
+
+	data = pd.read_csv(path, delimiter=";")
+	print(data.columns)
+
+	"""
+	Index(['startTime;edgeTime;cloudTime;notificationTime;clientName;hasLeak;leakGroup;prediction'], dtype='object')
+	"""
+
+	arrayDiff = []
+
+	arrayDiff.append(data['edgeTime'].values - data['startTime'].values)
+	arrayDiff.append(data['cloudTime'].values - data['edgeTime'].values)
+	arrayDiff.append(data['notificationTime'].values - data['cloudTime'].values)
+
+	for ii in range(3):
+		print(ii)
+		print(arrayDiff[ii])
+
+		fig = plt.figure(ii)
+		# ax = fig.add_subplot(projection='3d')
+		ax = fig.add_subplot()
+
+		# count, division = np.histogram(arrayDiff[ii], bins=20)
+		# print(count)
+		# print(division)
+		#
+		# width = 0.7 * (division[1] - division[0])
+		# center = (division[:-1] + division[1:]) / 2
+		# plt.bar(center, count, align='center', width=width)
+
+		plt.plot(arrayDiff[ii])
+
+	plt.show()
+
+	sys.exit(1)
+
+
+	colors = ['r', 'g', 'b', 'y', 'c', 'm', 'k', 'w']
+	# yticks = [7, 6, 5, 4, 3, 2, 1, 0]
+	yticks = [0,1,2,3,4,5,6,7]
+
+	nodeList = data.nodeID.unique()
+	nodeIndex = 0
+	for node in nodeList:
+		dataToPlot = data.loc[(data['nodeID'] == node)]
+		#hour,nodeID,base_demand,demand_value,head_value,pressure_value,x_pos,y_pos,node_type,has_leak,leak_area_value,leak_discharge_value,current_leak_demand_value,smart_sensor_is_present,tot_network_demand
+		demandToPlot = dataToPlot['demand_value'].values
+		baseDemandToPlot = dataToPlot['base_demand'].values
+
+		# count, division = np.histogram(baseDemandToPlot, bins=40, range=[0, 0.01], density=False)
+		# count, division = np.histogram(baseDemandToPlot, bins=20, density=False)
+		count, division = np.histogram(baseDemandToPlot, bins=20)
+		print(count)
+		print(division)
+
+		width = 0.7 * (division[1] - division[0])
+		center = (division[:-1] + division[1:]) / 2
+		# plt.bar(center, count, align='center', width=width)
+		# plt.show()
+		#
+		# sys.exit(1)
+
+		# for c, k in zip(colors, yticks):
+		c = colors[nodeIndex]; k = yticks[nodeIndex];
+
+		# create data for the y=k 'layer'.
+		# xs = np.arange(len(demandToPlot))
+		xs = np.arange(20)
+		# xs = division[:-1]
+
+
+		# ys = demandToPlot
+		# ys = baseDemandToPlot
+		ys = count
+
+		# You can provide either a single color or an array with the same length as
+		# xs and ys. To demonstrate this, we color the first bar of each set cyan.
+		cs = [c] * len(xs)
+		# cs[0] = 'c'
+
+		# Plot the bar graph given by xs and ys on the plane y=k with 80% opacity.
+		ax.bar(xs, ys, k, zdir='y', color=cs, alpha=0.8)
+		# ls = LightSource(270, 45)
+		# # To use a custom hillshading mode, override the built-in shading and pass
+		# # in the rgb colors of the shaded surface calculated from "shade".
+		# rgb = ls.shade(z, cmap=cm.gist_earth, vert_exag=0.1, blend_mode='soft')
+		# surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=rgb,
+		#                        linewidth=0, antialiased=False, shade=False)
+
+		nodeIndex += 1
+		# if nodeIndex>len(colors)-1:
+		if nodeIndex > 3:
+			break
+
+	ax.set_xticklabels(center.round(6), rotation=65)
+
+	ax.set_xlabel('Demand center bin')
+	ax.set_ylabel('Node')
+	ax.set_zlabel('Frequency')
+
+	# On the y axis let's only label the discrete values that we have data for.
+	# ax.set_yticks(yticks)
+	ax.set_yticks([1,2,3,4])
+
+
+	# bool_base_demand = True
+	# bool_pressure_value = False
+	# data = data.loc[(data['base_demand'] == bool_base_demand) & (data['pressure_value'] == bool_pressure_value)]
+	#
+	# # x = ["no leak", "1 leak", "1/8 leaks", "1/4 leaks", "1/2 leaks"]
+	# # y = data[y_data]
+	#
+	# time_period = path[0:2]
+	#
+	# plot_title = time_period + " with "
+	output_filename = "one_res_small_no_leaks_hist_node_demand" + "_" #+ y_data + "_with_"
+
+	# # output_filename = "1W_delta_loss_with_bdem_press.png"
+	#
+	# if (bool_base_demand == True and bool_pressure_value == False):
+	#     plot_title = plot_title + "base_demand"
+	#     output_filename = output_filename + "base_demand"
+	# elif (bool_base_demand == False and bool_pressure_value == True):
+	#     plot_title = plot_title + "pressure"
+	#     output_filename = output_filename + "pressure"
+	# elif (bool_base_demand == True and bool_pressure_value == True):
+	#     plot_title = plot_title + "base_demand and pressure"
+	#     output_filename = output_filename + "base_demand_pressure"
+	#
+	output_filename = "fig/" + output_filename + ".png"
+	#
+	# # plt.yticks(np.arange(0, max(y), 0.00001))
+	#
+	# # fig = plt.figure()
+	# # ax = fig.add_subplot()
+	#
+	# # plt.plot(x, y)
+	# plt.title(plot_title)
+	#
+	# # plt.plot(x,y,'ro')
+	#
+	# # for i,j in zip(x,y):
+	# #     ax.annotate(str(j), xy=(i,j), xytext=(10,20), textcoords='offset points')
+	#
+	# plt.xlabel('Dataset')
+	# # plt.ylabel('Delta Loss')
+	#
+	# # plt.ylabel(y_data)
+	# plt.ylabel("user demand")
+	#
+	# # plt.legend()
+	# plt.grid(True)
+	#
+	if (save):
+		plt.savefig(output_filename, dpi=300, bbox_inches="tight")
+		print("Saved to: " + output_filename)
+
+	if (show):
+		plt.show()
+	#
+	# plt.clf()
+
 if __name__ == "__main__":
+
+	exported_path = './'
+	path_base = exported_path + "report_compute_latency_16082023_145300.csv"
+	plot_hist_latency(path_base, save=True, show=True)
+	sys.exit(1)
+
+
 
 	# exported_path = 'tensorflow_group_datasets/fig/'
 	# path_base = exported_path + "report_model_comparison_leak_group_"
@@ -1362,49 +1541,49 @@ if __name__ == "__main__":
 	# plot_model_figure()
 	# sys.exit(1)
 
-
-	folder_input = "tensorflow_group_datasets/"
-
-	### 1M no leak
-	folder_network = "one_res_small/0_no_leaks_rand_base_demand/"
-	input_full_dataset = folder_network + '1M_one_res_small_leaks_ordered_group_0_node_0_0164_merged.csv'
-	complete_path = folder_input + input_full_dataset
-
-	### 1M leak
-	folder_network_leakage = "one_res_small/1_at_82_leaks_rand_base_demand/"
-	input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_ordered_group_3_node_4_0164_merged.csv'
-	complete_path_leakage = folder_input + input_full_dataset_leakage
-
-	### 1M leak
-	folder_network_leakage_2 = "one_res_small/1_at_82_leaks_rand_base_demand/"
-	input_full_dataset_leakage_2 = folder_network_leakage_2 + '1M_one_res_small_leaks_ordered_group_5_node_4_0164_merged.csv'
-	complete_path_leakage_2 = folder_input + input_full_dataset_leakage_2
-
-	# cols = ["nodeID", "pressure_value", "base_demand", "demand_value", "has_leak"]
-	cols = None
-
-	# load dati senza perdita
-	train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
-																										 cols,
-																										 scaling=False,
-																										 pairplot=False)
-
-	# load dati con perdita
-	train_dataset_leakage, test_dataset_leakage, train_features_leakage, \
-		test_features_leakage, train_labels_leakage, test_labels_leakage = load_dataset(complete_path_leakage,
-																						cols,
-																						scaling=False,
-																						pairplot=False)
-
-	# load dati con perdita 2
-	train_dataset_leakage_2, test_dataset_leakage_2, train_features_leakage_2, \
-		test_features_leakage_2, train_labels_leakage_2, test_labels_leakage_2 = load_dataset(complete_path_leakage_2,
-																							  cols,
-																							  scaling=False,
-																							  pairplot=False)
-
-	plot_lost_demand(train_dataset, train_dataset_leakage, train_dataset_leakage_2, True, True)
-	sys.exit(1)
+	#
+	# folder_input = "tensorflow_group_datasets/"
+	#
+	# ### 1M no leak
+	# folder_network = "one_res_small/0_no_leaks_rand_base_demand/"
+	# input_full_dataset = folder_network + '1M_one_res_small_leaks_ordered_group_0_node_0_0164_merged.csv'
+	# complete_path = folder_input + input_full_dataset
+	#
+	# ### 1M leak
+	# folder_network_leakage = "one_res_small/1_at_82_leaks_rand_base_demand/"
+	# input_full_dataset_leakage = folder_network_leakage + '1M_one_res_small_leaks_ordered_group_3_node_4_0164_merged.csv'
+	# complete_path_leakage = folder_input + input_full_dataset_leakage
+	#
+	# ### 1M leak
+	# folder_network_leakage_2 = "one_res_small/1_at_82_leaks_rand_base_demand/"
+	# input_full_dataset_leakage_2 = folder_network_leakage_2 + '1M_one_res_small_leaks_ordered_group_5_node_4_0164_merged.csv'
+	# complete_path_leakage_2 = folder_input + input_full_dataset_leakage_2
+	#
+	# # cols = ["nodeID", "pressure_value", "base_demand", "demand_value", "has_leak"]
+	# cols = None
+	#
+	# # load dati senza perdita
+	# train_dataset, test_dataset, train_features, test_features, train_labels, test_labels = load_dataset(complete_path,
+	# 																									 cols,
+	# 																									 scaling=False,
+	# 																									 pairplot=False)
+	#
+	# # load dati con perdita
+	# train_dataset_leakage, test_dataset_leakage, train_features_leakage, \
+	# 	test_features_leakage, train_labels_leakage, test_labels_leakage = load_dataset(complete_path_leakage,
+	# 																					cols,
+	# 																					scaling=False,
+	# 																					pairplot=False)
+	#
+	# # load dati con perdita 2
+	# train_dataset_leakage_2, test_dataset_leakage_2, train_features_leakage_2, \
+	# 	test_features_leakage_2, train_labels_leakage_2, test_labels_leakage_2 = load_dataset(complete_path_leakage_2,
+	# 																						  cols,
+	# 																						  scaling=False,
+	# 																						  pairplot=False)
+	#
+	# plot_lost_demand(train_dataset, train_dataset_leakage, train_dataset_leakage_2, True, True)
+	# sys.exit(1)
 
 
 
