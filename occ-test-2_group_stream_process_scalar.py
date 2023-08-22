@@ -99,16 +99,19 @@ loaded_model = tf.keras.models.load_model(dataset_path+model_filename)
 # dataset_path = 'tensorflow_group_datasets/one_res_small/1_at_82_leaks_rand_base_demand/'
 dataset_path = 'tensorflow_group_datasets/one_res_small/1_at_82_leaks_rand_base_demand_scalar/'
 
-parser = argparse.ArgumentParser(description='zeromq server/client')
+parser = argparse.ArgumentParser(description='LEAKSTREAM server/client')
+
 parser.add_argument('--client')
 parser.add_argument('--gateway')
 parser.add_argument('--mqttBroker')
 parser.add_argument('--serverIp')
+parser.add_argument('--serverPort')
 parser.add_argument('--serverNotifyIp')
 
 parser.add_argument('--server')
 parser.add_argument('--logFileName')
 parser.add_argument('--notify')
+parser.add_argument('--listenPort')
 
 parser.add_argument('--verbose')
 
@@ -212,7 +215,7 @@ def on_subscribe(client, userdata, mid, granted_qos, properties=None):
 class CLIENT_Process:
 # class CLIENT_Process(Process):
 
-	def __init__(self, name, wn, gateway_num, mqttBroker, server_ip, verbose):
+	def __init__(self, name, wn, gateway_num, mqttBroker, server_ip, server_port, verbose):
 		Process.__init__(self)
 		self.name = name
 		self.wn = wn
@@ -220,6 +223,7 @@ class CLIENT_Process:
 		self.selected_gateway = gateway_num
 		self.mqttBroker = mqttBroker
 		self.server_ip = server_ip
+		self.server_port = server_port
 		self.verbose = verbose
 		self.socket = None
 		self.groups = [['8614', '8600', '8610', '9402', '8598', '8608', '8620', '8616', '4922', 'J106'],
@@ -306,7 +310,7 @@ scalar":1.66379797,"demand_5_scalar":2.52099018,"head_5_scalar":1.62117109,"pres
 		context = zmq.Context()
 		# socket = context.socket(zmq.REQ)
 		self.socket = context.socket(zmq.PUSH)
-		self.socket.connect('tcp://'+ self.server_ip +':5557')
+		self.socket.connect('tcp://'+ self.server_ip +':'+ self.server_port)
 
 		# client --> connect to MQTT broker
 		port = 1885
@@ -407,13 +411,14 @@ def signal_handler(signum, frame):
 class SERVER_Process:
 # class SERVER_Process(Process):
 
-	def __init__(self, name, wn, smart_sensor_junctions, verbose, logFileName, server_notify_ip):
+	def __init__(self, name, wn, smart_sensor_junctions, verbose, logFileName, server_notify_ip, listenPort):
 		Process.__init__(self)
 		self.name = name
 		self.wn = wn
 		self.verbose = verbose
 		self.logFileName = logFileName
 		self.server_notify_ip = server_notify_ip
+		self.listen_port = listenPort
 		self.smart_sensor_junctions = smart_sensor_junctions
 
 	def run(self):
@@ -461,7 +466,7 @@ class SERVER_Process:
 			context = zmq.Context()
 			# socket = context.socket(zmq.REP)
 			socket = context.socket(zmq.PULL)
-			socket.bind('tcp://0.0.0.0:5557')
+			socket.bind('tcp://0.0.0.0:'+self.listen_port)
 			print("wait msg")
 
 			# or you can use a custom handler
@@ -602,13 +607,13 @@ if __name__ == "__main__":
 			proc3.run()
 
 		if args.server:
-			proc1 = SERVER_Process(args.server, "1", "2", verbose, args.logFileName, args.serverNotifyIp)
+			proc1 = SERVER_Process(args.server, "1", "2", verbose, args.logFileName, args.serverNotifyIp, args.listenPort)
 			# proc1.start()
 			# proc1.join()
 			proc1.run()
 
 		if args.client:
-			proc2 = CLIENT_Process(args.client, "3", args.gateway, args.mqttBroker, args.serverIp, verbose)
+			proc2 = CLIENT_Process(args.client, "3", args.gateway, args.mqttBroker, args.serverIp, args.serverPort, verbose)
 			# proc2.start()
 			# proc2.join()
 			proc2.run()

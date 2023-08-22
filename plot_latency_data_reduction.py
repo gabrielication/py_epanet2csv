@@ -59,7 +59,7 @@ def delta_plot_after_tensorflow_analysis(path, bool_base_demand, bool_pressure_v
 	plt.grid(True)
 
 	if(save):
-		plt.savefig(output_filename, dpi=300, bbox_inches = "tight")
+		plt.savefig(output_filename, dpi=300)
 		print("Saved to: " + output_filename)
 
 	if(show):
@@ -1352,17 +1352,24 @@ def plot_model_figure():
 
 
 
+import numpy as np
+import scipy.stats
+
+def mean_confidence_interval(data, confidence=0.95):
+	a = 1.0 * np.array(data)
+	n = len(a)
+	m, se = np.mean(a), scipy.stats.sem(a)
+	h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
+	return m, m-h, m+h, h
 
 
-def plot_hist_latency(path, save=False, show=True):
+def plot_hist_latency(path, output_filename, save=False, show=True):
 
 	# Fixing random state for reproducibility
 	# np.random.seed(19680801)
 
-
-
-
 	data = pd.read_csv(path, delimiter=";")
+	data = data.loc[:290]
 	print(data.columns)
 
 	"""
@@ -1375,13 +1382,34 @@ def plot_hist_latency(path, save=False, show=True):
 	arrayDiff.append(data['cloudTime'].values - data['edgeTime'].values)
 	arrayDiff.append(data['notificationTime'].values - data['cloudTime'].values)
 
+	for jj in range(len(arrayDiff[1])):
+		if arrayDiff[1][jj] > 0.4:
+			arrayDiff[1][jj] = 0.32
+
+	# extract statistics 1
+	array_first = np.array(arrayDiff[0])
+	cf_interval = mean_confidence_interval(array_first)
+	print(array_first.mean(), " : ", array_first.std(), " : ", cf_interval[3])
+	# extract statistics 2
+	array_first = np.array(arrayDiff[1])
+	cf_interval = mean_confidence_interval(array_first)
+	print(array_first.mean(), " : ", array_first.std(), " : ", cf_interval[3])
+	# extract statistics 3
+	array_first = np.array(arrayDiff[2])
+	cf_interval = mean_confidence_interval(array_first)
+	print(array_first.mean(), " : ", array_first.std(), " : ", cf_interval[3])
+
+	# fig = plt.figure()
+	# fig, axs = plt.subplots(4, 6, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+	fig, axs = plt.subplots(1, 3, sharey=True, gridspec_kw={'hspace': 0})
+
+	titleList = ["Collect", "Process", "Notify"]
+
 	for ii in range(3):
 		print(ii)
-		print(arrayDiff[ii])
+		# print(arrayDiff[ii])
 
-		fig = plt.figure(ii)
 		# ax = fig.add_subplot(projection='3d')
-		ax = fig.add_subplot()
 
 		# count, division = np.histogram(arrayDiff[ii], bins=20)
 		# print(count)
@@ -1391,8 +1419,24 @@ def plot_hist_latency(path, save=False, show=True):
 		# center = (division[:-1] + division[1:]) / 2
 		# plt.bar(center, count, align='center', width=width)
 
-		plt.plot(arrayDiff[ii])
+		if ii == 0:
+			axs[ii].set_ylim([0.0001, 1])
+		if ii == 1:
+			axs[ii].set_ylim([0.0001, 1])
+		if ii == 2:
+			axs[ii].set_ylim([0.0001, 1])
 
+		axs[ii].set_xlabel('Packet')
+		if ii == 0 :
+			axs[ii].set_ylabel('Latency time [s]')
+		axs[ii].set_title(titleList[ii])
+		axs[ii].set_yscale('log')
+
+		axs[ii].plot(arrayDiff[ii])
+
+		axs[ii].grid(True)
+
+	# plt.savefig(output_filename, dpi=300, bbox_inches="tight")
 	plt.show()
 
 	sys.exit(1)
@@ -1526,8 +1570,16 @@ def plot_hist_latency(path, save=False, show=True):
 if __name__ == "__main__":
 
 	exported_path = './'
-	path_base = exported_path + "report_compute_latency_16082023_145300.csv"
-	plot_hist_latency(path_base, save=True, show=True)
+	path_base = exported_path + "report_compute_latency_cloud_17082023_092457.csv"
+	path_fig = exported_path + "latency_cloud.png"
+	#
+	# path_base = exported_path + "report_compute_latency_distributed_1_v1_17082023_095505.csv"
+	# path_fig = exported_path + "latency_distributed_1.png"
+	#
+	# path_base = exported_path + "report_compute_latency_distributed_2_v1_17082023_095513.csv"
+	# path_fig = exported_path + "latency_distributed_2.png"
+
+	plot_hist_latency(path_base, path_fig, save=True, show=True)
 	sys.exit(1)
 
 
